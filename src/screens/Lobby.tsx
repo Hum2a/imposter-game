@@ -13,9 +13,17 @@ export default function Lobby({ gameState, send, isHost }: LobbyProps) {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-6 px-4 py-8 text-left">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-100">Lobby</h1>
-        <p className="mt-1 text-sm text-zinc-400">
+      <div className="flex flex-col items-center gap-3 sm:items-start">
+        <img
+          src="/logo.svg"
+          alt="Imposter"
+          className="h-auto w-full max-w-md"
+          width={600}
+          height={300}
+          decoding="async"
+        />
+        <h1 className="text-lg font-medium text-zinc-300">Lobby</h1>
+        <p className="text-sm text-zinc-400">
           Waiting for players. The host can start when everyone has joined.
         </p>
         <p className="mt-3 text-xs text-zinc-500">

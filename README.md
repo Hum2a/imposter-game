@@ -123,6 +123,7 @@ For local testing through Discord, use **cloudflared** or **ngrok** on port `517
 | `npm run build` | Production client build |
 | `npm run lint` | ESLint |
 | `npm run deploy:token-worker` | `wrangler deploy` |
+| `npm run assets:brand` | Regenerate `public/*.png` from `logo.svg` / `favicon.svg` (requires `sharp`) |
 
 ## Security
 
