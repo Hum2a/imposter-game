@@ -171,6 +171,12 @@ For local testing through Discord, use **cloudflared** or **ngrok** on port `517
 
 In `server/partykit.json`, set `"JOIN_VERIFY": "true"` under `vars` (or override in the Partykit dashboard when deployed). The client then sends `accessToken` on `JOIN`; the room checks `GET https://discord.com/api/v10/users/@me` matches `userId`. Turn this on for production if you want a basic guard against spoofed user IDs (still not as strong as your own signed session tokens).
 
+### Word packs & optional profanity filter (Partykit)
+
+- **Packs:** Curated pairs live in `server/src/word-packs.ts`. The host picks a pack in the lobby (`wordPackId` in broadcast state). **Deploy** Partykit after changing packs or message handling.
+- **Client labels:** `src/data/word-pack-options.ts` — keep **`id` values identical** to server pack ids.
+- **`WORD_PROFANITY_FILTER`:** Set to `true` in `partykit.json` / deploy vars (see `.env.deploy.example`) to reject some custom pairs on `SET_NEXT_WORDS` (token list in `server/src/word-profanity.ts`). Default off; not a full moderation solution.
+
 ## Website auth & optional Supabase
 
 When the app runs **outside** Discord (normal browser):

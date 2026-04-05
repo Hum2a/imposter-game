@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import PartySocket from 'partysocket'
+import { DEFAULT_WORD_PACK_ID } from '../data/word-pack-options'
 import type { ClientMessage, GameState, RoomStats } from '../types/game'
 
 const defaultStats = (): RoomStats => ({
@@ -67,6 +68,10 @@ export function useParty(roomId: string | undefined, userId: string | undefined)
           ...(g as GameState),
           stats: { ...defaultStats(), ...g.stats },
           hasCustomNextRound: g.hasCustomNextRound === true,
+          wordPackId:
+            typeof g.wordPackId === 'string' && g.wordPackId.length > 0
+              ? g.wordPackId
+              : DEFAULT_WORD_PACK_ID,
         })
       } catch {
         /* ignore */

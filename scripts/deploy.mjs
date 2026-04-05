@@ -139,11 +139,22 @@ function cmdWorker(vars) {
 
 function cmdPartykit(vars) {
   const joinVerify = vars.JOIN_VERIFY ?? 'false'
-  const args = ['deploy', '-c', 'partykit.json', '--var', `JOIN_VERIFY=${joinVerify}`]
+  const wordProfanity = vars.WORD_PROFANITY_FILTER ?? 'false'
+  const args = [
+    'deploy',
+    '-c',
+    'partykit.json',
+    '--var',
+    `JOIN_VERIFY=${joinVerify}`,
+    '--var',
+    `WORD_PROFANITY_FILTER=${wordProfanity}`,
+  ]
   if (vars.PARTYKIT_DEPLOY_NAME?.trim()) {
     args.push('-n', vars.PARTYKIT_DEPLOY_NAME.trim())
   }
-  console.log(`[deploy] partykit deploy (JOIN_VERIFY=${joinVerify})`)
+  console.log(
+    `[deploy] partykit deploy (JOIN_VERIFY=${joinVerify}, WORD_PROFANITY_FILTER=${wordProfanity})`
+  )
   runPartykit(args)
   console.log('[deploy] partykit done')
 }

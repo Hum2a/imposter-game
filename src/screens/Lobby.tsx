@@ -15,8 +15,26 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { WORD_PACK_OPTIONS, labelForWordPackId } from '../data/word-pack-options'
 import { buildWebInviteUrl, displayInviteCodeFromPartyRoomId } from '../lib/party-room'
+import { parseFirstPastedPair } from '../lib/paste-word-pairs'
+import { cn } from '@/lib/utils'
 import type { ClientMessage, GameState } from '../types/game'
+
+function partyLobbyErrorMessage(code: string | null | undefined): string | null {
+  switch (code) {
+    case 'INVALID_NEXT_WORDS':
+      return 'Those words are not valid. Use two different words, 1–40 characters each (after trimming).'
+    case 'WORDS_PROFANITY':
+      return 'That pair was blocked by the server word filter. Try different words.'
+    case 'INVALID_WORD_PACK':
+      return 'That word pack is not available.'
+    case 'EMPTY_WORD_PACK':
+      return 'This word pack has no pairs to draw from.'
+    default:
+      return null
+  }
+}
 
 type LobbyProps = {
   gameState: GameState
@@ -56,12 +74,15 @@ export default function Lobby({
   const [copied, setCopied] = useState<'link' | 'code' | null>(null)
   const [crewWord, setCrewWord] = useState('')
   const [imposterWord, setImposterWord] = useState('')
+  const [pasteText, setPasteText] = useState('')
+  const [pasteHint, setPasteHint] = useState<string | null>(null)
 
   const webShareCode = partyRoomId.startsWith('lobby-')
     ? displayInviteCodeFromPartyRoomId(partyRoomId)
     : null
   const inviteUrl = webShareCode ? buildWebInviteUrl(webShareCode) : ''
   const discordExtraCode = displayInviteCodeFromPartyRoomId(partyRoomId)
+  const lobbyPartyErr = partyLobbyErrorMessage(partyErrorCode)
 
   const copyText = useCallback(async (label: 'link' | 'code', text: string) => {
     try {
@@ -114,13 +135,10 @@ export default function Lobby({
             </Alert>
           ) : null}
 
-          {partyErrorCode === 'INVALID_NEXT_WORDS' ? (
+          {lobbyPartyErr ? (
             <Alert variant="destructive">
               <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
-                <span>
-                  Those words are not valid. Use two different words, 1–40 characters each (after
-                  trimming).
-                </span>
+                <span>{lobbyPartyErr}</span>
                 {onDismissPartyError ? (
                   <Button type="button" variant="outline" size="sm" onClick={onDismissPartyError}>
                     Dismiss
@@ -291,14 +309,117 @@ export default function Lobby({
         </CardContent>
         <Separator />
         <CardFooter className="flex-col gap-4 pt-6 sm:flex-row sm:flex-wrap">
+          {!isHost ? (
+            <div className="w-full text-sm text-muted-foreground">
+              {gameState.hasCustomNextRound ? (
+                <p>The host chose custom words for the next round.</p>
+              ) : (
+                <p>
+                  Random words use pack:{' '}
+                  <span className="font-medium text-foreground">
+                    {labelForWordPackId(gameState.wordPackId)}
+                  </span>
+                  .
+                </p>
+              )}
+            </div>
+          ) : null}
           {isHost ? (
             <div className="w-full space-y-3 border-b border-border pb-4 sm:border-0 sm:pb-0">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Next round words (optional)
+                Word pack
               </p>
               <p className="text-sm text-muted-foreground">
-                Enter two different words and tap <strong>Use these next round</strong>, or use random
-                pairs. Your choices stay secret until the round starts.
+                Choose a theme for random rounds, roll one pair from the pack, or type / paste your
+                own. Custom pairs stay secret until the round starts.
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <Label htmlFor="word-pack">Pack for random</Label>
+                  <select
+                    id="word-pack"
+                    className={cn(
+                      'h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none md:text-sm dark:bg-input/30',
+                      'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
+                    )}
+                    value={
+                      WORD_PACK_OPTIONS.some((o) => o.id === gameState.wordPackId)
+                        ? gameState.wordPackId
+                        : WORD_PACK_OPTIONS[0]!.id
+                    }
+                    onChange={(e) => {
+                      onDismissPartyError?.()
+                      send({ type: 'SET_WORD_PACK', packId: e.target.value })
+                    }}
+                    aria-label="Word pack for random rounds"
+                  >
+                    {WORD_PACK_OPTIONS.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.hint ? `${o.label} (${o.hint})` : o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="min-h-11 w-full shrink-0 sm:w-auto"
+                  onClick={() => {
+                    onDismissPartyError?.()
+                    send({ type: 'ROLL_PACK_PAIR' })
+                  }}
+                >
+                  Random pair from pack
+                </Button>
+              </div>
+
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground pt-1">
+                Paste or type next round
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="paste-pairs">Paste pairs (optional)</Label>
+                <textarea
+                  id="paste-pairs"
+                  rows={3}
+                  placeholder={'One pair per line, e.g.\nPizza, Burger\nOcean | Lake'}
+                  className={cn(
+                    'w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none md:text-sm dark:bg-input/30',
+                    'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                    'placeholder:text-muted-foreground disabled:opacity-50'
+                  )}
+                  value={pasteText}
+                  onChange={(e) => {
+                    setPasteText(e.target.value)
+                    if (pasteHint) setPasteHint(null)
+                  }}
+                  aria-label="Paste word pairs, one per line"
+                />
+                {pasteHint ? <p className="text-sm text-amber-600 dark:text-amber-500">{pasteHint}</p> : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="min-h-11"
+                  onClick={() => {
+                    const p = parseFirstPastedPair(pasteText)
+                    if (p) {
+                      setCrewWord(p.crew)
+                      setImposterWord(p.imposter)
+                      setPasteHint(null)
+                      onDismissPartyError?.()
+                    } else {
+                      setPasteHint(
+                        'No valid line found. Use crew, imposter or crew|imposter per line (lines starting with # are ignored).'
+                      )
+                    }
+                  }}
+                >
+                  Load first pair into fields
+                </Button>
+              </div>
+
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground pt-2">
+                Crew & imposter words
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
@@ -331,9 +452,10 @@ export default function Lobby({
                   type="button"
                   variant="secondary"
                   className="min-h-11 w-full sm:w-auto"
-                  onClick={() =>
+                  onClick={() => {
+                    onDismissPartyError?.()
                     send({ type: 'SET_NEXT_WORDS', word: crewWord, imposterWord: imposterWord })
-                  }
+                  }}
                 >
                   Use these next round
                 </Button>
@@ -343,6 +465,7 @@ export default function Lobby({
                   className="min-h-11 w-full sm:w-auto"
                   disabled={!gameState.hasCustomNextRound}
                   onClick={() => {
+                    onDismissPartyError?.()
                     send({ type: 'CLEAR_NEXT_WORDS' })
                     setCrewWord('')
                     setImposterWord('')
@@ -352,10 +475,6 @@ export default function Lobby({
                 </Button>
               </div>
             </div>
-          ) : gameState.hasCustomNextRound ? (
-            <p className="w-full text-sm text-muted-foreground">
-              The host chose custom words for the next round.
-            </p>
           ) : null}
           {isHost ? (
             <>

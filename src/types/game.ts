@@ -31,6 +31,8 @@ export interface GameState {
   stats: RoomStats
   /** True when the host locked in a custom word pair for the next start (words are not broadcast). */
   hasCustomNextRound: boolean
+  /** Curated pack used when there is no custom pair for the next round. */
+  wordPackId: string
 }
 
 export type ClientMessage =
@@ -51,3 +53,7 @@ export type ClientMessage =
   | { type: 'SET_NEXT_WORDS'; word: string; imposterWord: string }
   /** Host only — clear custom words and use random pairs again. */
   | { type: 'CLEAR_NEXT_WORDS' }
+  /** Host only, lobby — which pack supplies random pairs and “roll from pack”. */
+  | { type: 'SET_WORD_PACK'; packId: string }
+  /** Host only, lobby — pick a random pair from the current pack as next custom words. */
+  | { type: 'ROLL_PACK_PAIR' }

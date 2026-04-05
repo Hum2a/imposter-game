@@ -1,4 +1,6 @@
 import type * as Party from 'partykit/server'
+import { DEFAULT_WORD_PACK_ID, getWordPack, isValidPackId } from './word-packs'
+import { pairFailsProfanityFilter } from './word-profanity'
 
 type Phase = 'lobby' | 'discussion' | 'voting' | 'reveal'
 
@@ -36,25 +38,12 @@ interface GameState {
   discussionEndsAt: number | null
   stats: RoomStats
   hasCustomNextRound: boolean
+  /** Which curated pack is used for random draws (no custom pair). */
+  wordPackId: string
 }
 
 const STORAGE_STATS = 'imposter:stats:v1'
 const STORAGE_ROUND = 'imposter:round:v1'
-
-const WORD_PAIRS: [string, string][] = [
-  ['Pizza', 'Burger'],
-  ['Cat', 'Dog'],
-  ['Beach', 'Pool'],
-  ['Coffee', 'Tea'],
-  ['Football', 'Rugby'],
-  ['Guitar', 'Piano'],
-  ['Shark', 'Dolphin'],
-  ['Skiing', 'Snowboarding'],
-  ['Lemon', 'Lime'],
-  ['Castle', 'Mansion'],
-  ['Sword', 'Axe'],
-  ['Mars', 'Moon'],
-]
 
 const DISCUSSION_SECONDS = 60
 /** Re-broadcast state during discussion so clients resync `discussionEndsAt` after tab sleep / skew. */
@@ -70,6 +59,11 @@ function defaultStats(): RoomStats {
 
 function joinVerifyEnabled(env: Record<string, unknown>): boolean {
   const v = env.JOIN_VERIFY
+  return v === 'true' || v === true || v === '1'
+}
+
+function profanityFilterEnabled(env: Record<string, unknown>): boolean {
+  const v = env.WORD_PROFANITY_FILTER
   return v === 'true' || v === true || v === '1'
 }
 
@@ -145,6 +139,7 @@ export default class ImposterRoom implements Party.Server {
       discussionEndsAt: null,
       stats: defaultStats(),
       hasCustomNextRound: false,
+      wordPackId: DEFAULT_WORD_PACK_ID,
     }
   }
 
@@ -219,6 +214,7 @@ export default class ImposterRoom implements Party.Server {
       accessToken?: string
       word?: string
       imposterWord?: string
+      packId?: string
     }
 
     switch (msg.type) {
@@ -240,7 +236,16 @@ export default class ImposterRoom implements Party.Server {
         }
         break
       case 'START_GAME':
-        if (this.userForConn(sender) === this.state.hostId) this.startGame()
+        if (this.userForConn(sender) === this.state.hostId) {
+          if (!this.nextCustomPair) {
+            const pack = getWordPack(this.state.wordPackId)
+            if (pack.pairs.length === 0) {
+              sender.send(JSON.stringify({ type: 'ERROR', code: 'EMPTY_WORD_PACK' }))
+              break
+            }
+          }
+          this.startGame()
+        }
         break
       case 'CAST_VOTE': {
         const voterId = this.userForConn(sender)
@@ -266,8 +271,41 @@ export default class ImposterRoom implements Party.Server {
           const pair = normalizeWordPair(msg.word, msg.imposterWord)
           if (!pair) {
             sender.send(JSON.stringify({ type: 'ERROR', code: 'INVALID_NEXT_WORDS' }))
+          } else if (
+            profanityFilterEnabled(this.room.env) &&
+            pairFailsProfanityFilter(pair.word, pair.imposterWord)
+          ) {
+            sender.send(JSON.stringify({ type: 'ERROR', code: 'WORDS_PROFANITY' }))
           } else {
             this.nextCustomPair = pair
+            this.state.hasCustomNextRound = true
+            this.broadcast()
+          }
+        }
+        break
+      case 'SET_WORD_PACK':
+        if (
+          this.userForConn(sender) === this.state.hostId &&
+          this.state.phase === 'lobby' &&
+          typeof msg.packId === 'string'
+        ) {
+          if (!isValidPackId(msg.packId)) {
+            sender.send(JSON.stringify({ type: 'ERROR', code: 'INVALID_WORD_PACK' }))
+          } else {
+            this.state.wordPackId = msg.packId
+            this.broadcast()
+          }
+        }
+        break
+      case 'ROLL_PACK_PAIR':
+        if (this.userForConn(sender) === this.state.hostId && this.state.phase === 'lobby') {
+          const pack = getWordPack(this.state.wordPackId)
+          const pairs = pack.pairs
+          if (pairs.length === 0) {
+            sender.send(JSON.stringify({ type: 'ERROR', code: 'EMPTY_WORD_PACK' }))
+          } else {
+            const pick = pairs[Math.floor(Math.random() * pairs.length)]!
+            this.nextCustomPair = { word: pick[0], imposterWord: pick[1] }
             this.state.hasCustomNextRound = true
             this.broadcast()
           }
@@ -429,7 +467,10 @@ export default class ImposterRoom implements Party.Server {
       this.nextCustomPair = null
       this.state.hasCustomNextRound = false
     } else {
-      const pair = WORD_PAIRS[Math.floor(Math.random() * WORD_PAIRS.length)]!
+      const pack = getWordPack(this.state.wordPackId)
+      const pairs = pack.pairs
+      if (pairs.length === 0) return
+      const pair = pairs[Math.floor(Math.random() * pairs.length)]!
       ;[word, imposterWord] = pair
     }
 

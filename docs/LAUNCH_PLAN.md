@@ -217,7 +217,7 @@ Features below are the **master planning list**; P0 L1–L5 are done in client +
 |----|---------|--------|
 | **G1** | **Reconnect same user** | **Done:** **45s grace** after last socket `onClose` before removing the player; **`JOIN` on every socket open** re-binds `connToUser`. Host handoff prefers a **non-spectator** if the host drops. |
 | **G2** | **Spectate / late join rules** | **Done:** Mid-round **new** users join as **`isSpectator`** (watch discussion/vote/reveal; no word/vote). **`startGame`** / **`backToLobby`** clears spectator flag so they play next round. |
-| **G3** | **Custom word lists** | **Done (per-round pair):** host `SET_NEXT_WORDS` / `CLEAR_NEXT_WORDS`; server `nextCustomPair` (secret); `hasCustomNextRound` in broadcast. No word packs / uploads / profanity filter. |
+| **G3** | **Custom word lists** | **Done:** per-round `SET_NEXT_WORDS` / `CLEAR_NEXT_WORDS`; **`wordPackId`** + curated packs (`server/src/word-packs.ts`); host lobby picker, **Random pair from pack**, paste/import lines; optional **`WORD_PROFANITY_FILTER`** on Partykit for custom pairs. |
 | **G4** | **Timer / phase edge cases** | **Partial:** client clamps countdown to ≥0; **hidden-tab** notice during discussion; server timer unchanged. |
 | **G5** | **Mobile + narrow iframes** | **Partial:** `GameScreen` / header **safe-area**; **min-h-11** on key lobby buttons. |
 
@@ -267,7 +267,7 @@ Use this as the **master order** for everything not yet fully shipped in P1/P2. 
 | **R3** ‖ | **G4** (finish) | **Done:** discussion-phase **25s** full-state re-broadcast in `server/src/room.ts`; README note. Client already had hidden-tab copy + `aria-live` on countdown. | — | `server/src/room.ts`, `README.md` |
 | **R4** | **G1** (finish) | **Done:** `DISCONNECT_GRACE_MS` (45s), `disconnectGrace` map, `finalizePlayerDisconnect`; client **`socketOpenNonce` + JOIN on `open`**. | — | `server/src/room.ts`, `useParty.ts`, `App.tsx` |
 | **R5** | **G2** (spectate) | **Done:** `Player.isSpectator`, mid-round `handleJoin` path, `Game` / `Voting` / `Reveal` / `Lobby` UI. | **R4** | `room.ts`, `Game.tsx`, `Voting.tsx`, `Reveal.tsx`, `Lobby.tsx`, `types/game.ts` |
-| **R6** | **G3** (finish) | **Packs:** curated JSON lists + host picker in lobby; **profanity:** optional filter or block on `SET_NEXT_WORDS`; **import:** paste/CSV last (validate length/count) | **R0** for safe iteration | `data/word-packs/*`, `Lobby.tsx`, `room.ts` |
+| **R6** | **G3** (finish) | **Done:** packs in `server/src/word-packs.ts` + `SET_WORD_PACK` / `ROLL_PACK_PAIR`; lobby select + paste first pair; **`WORD_PROFANITY_FILTER`** env on Partykit; client labels in `src/data/word-pack-options.ts` (keep ids in sync). | **R0** for safe iteration | `word-packs.ts`, `word-pack-options.ts`, `Lobby.tsx`, `room.ts` |
 | **R7** ‖ | **X1** | Muted-by-default or settings-based SFX; light haptics on vote (mobile); short CSS transitions; respect reduced-motion + user mute | **R1** partial | `public/sounds/*`, small hook, optional settings row |
 | **R8** ‖ | **X2** | Optional Supabase tables for per-user stats/history; RLS; write path from client after `reveal` or batch from trusted server path | Stable **web identity** story | `supabase/migrations`, `web-session.ts`, UI surface (profile or modal) |
 | **R9** | **X3** | PartyKit verifies **short-lived join JWT** from Worker (or Worker proxies mint); stop sending raw Discord OAuth token on wire when feature flag on | **R0**, **R4** | `workers/discord-oauth-token.ts` (or new route), `room.ts`, `App.tsx`, secrets |
@@ -288,7 +288,7 @@ If you have bandwidth, these can advance **alongside** the table above without b
 |-----------|-------|---------------------|
 | **M1 — Staging + trust** | ~~R0~~, ~~R2~~, ~~R3~~ (implemented — wire your own staging hosts) | “We can test safely and see funnels without breaking prod.” |
 | **M2 — Session reliability** | ~~R4~~, R1 | “Refresh and flaky networks don’t ruin the round as often.” |
-| **M3 — Social depth** | ~~R5~~, R6, R7 | “Friends can watch a round and hosts can theme words.” |
+| **M3 — Social depth** | ~~R5~~, ~~R6~~, R7 | “Friends can watch a round and hosts can theme words.” |
 | **M4 — Accounts & security** | R8, R9, R10 | “Stats for signed-in users and stronger join tokens.” |
 
 ### Explicitly out of scope for this sequence (unless you reprioritize)

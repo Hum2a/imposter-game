@@ -4,7 +4,8 @@
   "main": "src/room.ts",
   "compatibilityDate": "2026-04-05",
   "vars": {
-    "JOIN_VERIFY": "false"
+    "JOIN_VERIFY": "false",
+    "WORD_PROFANITY_FILTER": "false"
   },
   "serve": {
     "path": "public",
