@@ -1,4 +1,5 @@
 import type * as Party from 'partykit/server'
+import { verifyPartyJoinJwt } from './join-jwt'
 import { DEFAULT_WORD_PACK_ID, getWordPack, isValidPackId } from './word-packs'
 import { pairFailsProfanityFilter } from './word-profanity'
 
@@ -60,6 +61,16 @@ function defaultStats(): RoomStats {
 function joinVerifyEnabled(env: Record<string, unknown>): boolean {
   const v = env.JOIN_VERIFY
   return v === 'true' || v === true || v === '1'
+}
+
+function joinJwtRequired(env: Record<string, unknown>): boolean {
+  const v = env.JOIN_JWT_REQUIRED
+  return v === 'true' || v === true || v === '1'
+}
+
+function joinJwtSecret(env: Record<string, unknown>): string | null {
+  const s = env.JOIN_JWT_SECRET
+  return typeof s === 'string' && s.length > 0 ? s : null
 }
 
 function profanityFilterEnabled(env: Record<string, unknown>): boolean {
@@ -230,6 +241,7 @@ export default class ImposterRoom implements Party.Server {
               name: msg.name,
               avatar: msg.avatar ?? '',
               accessToken: msg.accessToken,
+              partyJwt: msg.partyJwt,
             },
             sender
           )

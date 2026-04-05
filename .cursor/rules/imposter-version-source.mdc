@@ -1,0 +1,14 @@
+---
+description: Single source of truth for app version (root package.json)
+globs: "**/*.{ts,tsx,md,json,mjs}"
+alwaysApply: true
+---
+
+# Version source of truth
+
+- **Canonical version** lives in the **root** `package.json` `version` field (semver string, no `v` prefix).
+- **`server/package.json` `version`** must stay **in sync** with the root for releases; `release.sh` bumps both together via `scripts/release_bump_versions.py`.
+- **Do not hard-code** a display or docs version that can drift (e.g. duplicating `"1.2.3"` in UI or README).
+- **README:** If you document the package version, use a line the release script can sync: `**Package version:** \`x.y.z\`` — the value is rewritten from root `package.json` on release (not hand-edited per release).
+- **Client / Vite:** If the UI needs a version string, derive it at build time from root `package.json` (e.g. `define` in `vite.config.ts`, or `import` with `resolveJsonModule`), not a separate constant file unless that file is generated from `package.json`.
+- **Git tags** use a `v` prefix (e.g. `v1.2.3`); **package.json** uses plain semver (`1.2.3`).
