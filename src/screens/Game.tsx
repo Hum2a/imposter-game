@@ -19,10 +19,19 @@ type GameProps = AuthUserProps & {
 
 export default function Game({ gameState, me }: GameProps) {
   const [now, setNow] = useState(() => Date.now())
+  const [tabHidden, setTabHidden] = useState(
+    () => typeof document !== 'undefined' && document.visibilityState === 'hidden'
+  )
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 500)
     return () => clearInterval(t)
+  }, [])
+
+  useEffect(() => {
+    const onVis = () => setTabHidden(document.visibilityState === 'hidden')
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
   }, [])
 
   const word = me.isImposter ? gameState.imposterWord : gameState.word
@@ -35,7 +44,12 @@ export default function Game({ gameState, me }: GameProps) {
       <div className="flex flex-col items-center gap-2">
         <Badge variant="secondary">Discussion</Badge>
         {remaining != null ? (
-          <Badge variant="outline" className="gap-1.5 font-mono text-sm tabular-nums">
+          <Badge
+            variant="outline"
+            className="gap-1.5 font-mono text-sm tabular-nums"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             <Clock className="size-3.5" aria-hidden />
             Voting in {remaining}s
           </Badge>
@@ -59,6 +73,12 @@ export default function Game({ gameState, me }: GameProps) {
           </div>
         </CardContent>
       </Card>
+
+      {tabHidden ? (
+        <p className="text-center text-xs text-amber-700 dark:text-amber-400" role="status">
+          Tab in background — the timer still runs on the server. Come back before time runs out.
+        </p>
+      ) : null}
 
       <Card className="border-dashed">
         <CardContent className="pt-6 text-sm text-muted-foreground">

@@ -27,6 +27,8 @@ export interface GameState {
   winner: 'crew' | 'imposter' | null
   discussionEndsAt: number | null
   stats: RoomStats
+  /** True when the host locked in a custom word pair for the next start (words are not broadcast). */
+  hasCustomNextRound: boolean
 }
 
 export type ClientMessage =
@@ -43,3 +45,7 @@ export type ClientMessage =
   | { type: 'NEXT_ROUND' }
   | { type: 'BACK_TO_LOBBY' }
   | { type: 'END_GAME' }
+  /** Host only, lobby only — words for the next round (1–40 chars each, must differ). */
+  | { type: 'SET_NEXT_WORDS'; word: string; imposterWord: string }
+  /** Host only — clear custom words and use random pairs again. */
+  | { type: 'CLEAR_NEXT_WORDS' }

@@ -11,21 +11,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install & build client
+      - name: Install & lint & build (client)
         run: |
           npm ci
-          npm run build
           npm run lint
-
-      - name: Install & typecheck Partykit server
+          npm run build
+      - name: Install & typecheck (Partykit server)
         working-directory: server
         run: |
           npm ci
-          npx tsc --noEmit
+          npx tsc --noEmit -p .

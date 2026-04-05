@@ -18,6 +18,11 @@ interface Player {
   eliminated: boolean
 }
 
+interface NextRoundWords {
+  word: string
+  imposterWord: string
+}
+
 interface GameState {
   phase: Phase
   players: Record<string, Player>
@@ -29,6 +34,7 @@ interface GameState {
   winner: 'crew' | 'imposter' | null
   discussionEndsAt: number | null
   stats: RoomStats
+  hasCustomNextRound: boolean
 }
 
 const STORAGE_STATS = 'imposter:stats:v1'
@@ -50,6 +56,8 @@ const WORD_PAIRS: [string, string][] = [
 ]
 
 const DISCUSSION_SECONDS = 60
+const WORD_MAX_LEN = 40
+const WORD_MIN_LEN = 1
 
 function defaultStats(): RoomStats {
   return { roundsCompleted: 0, crewWins: 0, imposterWins: 0 }
@@ -72,11 +80,24 @@ async function verifyDiscordUserId(
   return typeof u.id === 'string' && u.id === expectedUserId
 }
 
+function normalizeWordPair(
+  rawWord: string,
+  rawImposter: string
+): NextRoundWords | null {
+  const word = rawWord.trim().slice(0, WORD_MAX_LEN)
+  const imposterWord = rawImposter.trim().slice(0, WORD_MAX_LEN)
+  if (word.length < WORD_MIN_LEN || imposterWord.length < WORD_MIN_LEN) return null
+  if (word.toLowerCase() === imposterWord.toLowerCase()) return null
+  return { word, imposterWord }
+}
+
 export default class ImposterRoom implements Party.Server {
   state: GameState
   /** PartyKit socket id → Discord / app user id */
   private readonly connToUser = new Map<string, string>()
   private discussionTimer: ReturnType<typeof setTimeout> | null = null
+  /** Not broadcast — avoids spoiling both words to everyone in the lobby. */
+  private nextCustomPair: NextRoundWords | null = null
 
   constructor(readonly room: Party.Room) {
     this.state = this.defaultState()
@@ -115,6 +136,7 @@ export default class ImposterRoom implements Party.Server {
       winner: null,
       discussionEndsAt: null,
       stats: defaultStats(),
+      hasCustomNextRound: false,
     }
   }
 
@@ -168,6 +190,8 @@ export default class ImposterRoom implements Party.Server {
       avatar?: string
       targetId?: string
       accessToken?: string
+      word?: string
+      imposterWord?: string
     }
 
     switch (msg.type) {
@@ -205,6 +229,30 @@ export default class ImposterRoom implements Party.Server {
       case 'END_GAME':
         if (this.userForConn(sender) === this.state.hostId) this.endGame()
         break
+      case 'SET_NEXT_WORDS':
+        if (
+          this.userForConn(sender) === this.state.hostId &&
+          this.state.phase === 'lobby' &&
+          typeof msg.word === 'string' &&
+          typeof msg.imposterWord === 'string'
+        ) {
+          const pair = normalizeWordPair(msg.word, msg.imposterWord)
+          if (!pair) {
+            sender.send(JSON.stringify({ type: 'ERROR', code: 'INVALID_NEXT_WORDS' }))
+          } else {
+            this.nextCustomPair = pair
+            this.state.hasCustomNextRound = true
+            this.broadcast()
+          }
+        }
+        break
+      case 'CLEAR_NEXT_WORDS':
+        if (this.userForConn(sender) === this.state.hostId && this.state.phase === 'lobby') {
+          this.nextCustomPair = null
+          this.state.hasCustomNextRound = false
+          this.broadcast()
+        }
+        break
     }
   }
 
@@ -217,6 +265,11 @@ export default class ImposterRoom implements Party.Server {
     },
     sender: Party.Connection
   ) {
+    if (this.state.phase !== 'lobby') {
+      sender.send(JSON.stringify({ type: 'ERROR', code: 'JOIN_ROUND_IN_PROGRESS' }))
+      return
+    }
+
     if (joinVerifyEnabled(this.room.env)) {
       const token = msg.accessToken
       if (!token) {
@@ -253,8 +306,17 @@ export default class ImposterRoom implements Party.Server {
     this.clearDiscussionTimer()
 
     const imposterId = ids[Math.floor(Math.random() * ids.length)]!
-    const pair = WORD_PAIRS[Math.floor(Math.random() * WORD_PAIRS.length)]!
-    const [word, imposterWord] = pair
+    let word: string
+    let imposterWord: string
+    if (this.nextCustomPair) {
+      word = this.nextCustomPair.word
+      imposterWord = this.nextCustomPair.imposterWord
+      this.nextCustomPair = null
+      this.state.hasCustomNextRound = false
+    } else {
+      const pair = WORD_PAIRS[Math.floor(Math.random() * WORD_PAIRS.length)]!
+      ;[word, imposterWord] = pair
+    }
 
     for (const id of ids) {
       const p = this.state.players[id]
@@ -354,6 +416,7 @@ export default class ImposterRoom implements Party.Server {
 
   endGame() {
     this.clearDiscussionTimer()
+    this.nextCustomPair = null
     const { stats } = this.state
     this.state = this.defaultState()
     this.state.stats = stats

@@ -31,6 +31,8 @@ type LobbyProps = {
   onDismissJoinLobbyError?: () => void
   discordLobbySuffix?: string
   onDiscordLobbySuffixChange?: (value: string) => void
+  partyErrorCode?: string | null
+  onDismissPartyError?: () => void
 }
 
 export default function Lobby({
@@ -46,10 +48,14 @@ export default function Lobby({
   onDismissJoinLobbyError,
   discordLobbySuffix = '',
   onDiscordLobbySuffixChange,
+  partyErrorCode,
+  onDismissPartyError,
 }: LobbyProps) {
   const players = Object.values(gameState.players)
   const [joinInput, setJoinInput] = useState('')
   const [copied, setCopied] = useState<'link' | 'code' | null>(null)
+  const [crewWord, setCrewWord] = useState('')
+  const [imposterWord, setImposterWord] = useState('')
 
   const webShareCode = partyRoomId.startsWith('lobby-')
     ? displayInviteCodeFromPartyRoomId(partyRoomId)
@@ -101,6 +107,22 @@ export default function Lobby({
                 <span>{joinLobbyError}</span>
                 {onDismissJoinLobbyError ? (
                   <Button type="button" variant="outline" size="sm" onClick={onDismissJoinLobbyError}>
+                    Dismiss
+                  </Button>
+                ) : null}
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          {partyErrorCode === 'INVALID_NEXT_WORDS' ? (
+            <Alert variant="destructive">
+              <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  Those words are not valid. Use two different words, 1–40 characters each (after
+                  trimming).
+                </span>
+                {onDismissPartyError ? (
+                  <Button type="button" variant="outline" size="sm" onClick={onDismissPartyError}>
                     Dismiss
                   </Button>
                 ) : null}
@@ -261,12 +283,78 @@ export default function Lobby({
           )}
         </CardContent>
         <Separator />
-        <CardFooter className="flex-col gap-3 pt-6 sm:flex-row">
+        <CardFooter className="flex-col gap-4 pt-6 sm:flex-row sm:flex-wrap">
+          {isHost ? (
+            <div className="w-full space-y-3 border-b border-border pb-4 sm:border-0 sm:pb-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Next round words (optional)
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Enter two different words and tap <strong>Use these next round</strong>, or use random
+                pairs. Your choices stay secret until the round starts.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="crew-word">Crew word</Label>
+                  <Input
+                    id="crew-word"
+                    value={crewWord}
+                    onChange={(e) => setCrewWord(e.target.value)}
+                    maxLength={40}
+                    placeholder="e.g. Pizza"
+                    autoComplete="off"
+                    aria-label="Crew word for next round"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="imposter-word">Imposter word</Label>
+                  <Input
+                    id="imposter-word"
+                    value={imposterWord}
+                    onChange={(e) => setImposterWord(e.target.value)}
+                    maxLength={40}
+                    placeholder="e.g. Burger"
+                    autoComplete="off"
+                    aria-label="Imposter word for next round"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="min-h-11 w-full sm:w-auto"
+                  onClick={() =>
+                    send({ type: 'SET_NEXT_WORDS', word: crewWord, imposterWord: imposterWord })
+                  }
+                >
+                  Use these next round
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11 w-full sm:w-auto"
+                  disabled={!gameState.hasCustomNextRound}
+                  onClick={() => {
+                    send({ type: 'CLEAR_NEXT_WORDS' })
+                    setCrewWord('')
+                    setImposterWord('')
+                  }}
+                >
+                  Use random words
+                </Button>
+              </div>
+            </div>
+          ) : gameState.hasCustomNextRound ? (
+            <p className="w-full text-sm text-muted-foreground">
+              The host chose custom words for the next round.
+            </p>
+          ) : null}
           {isHost ? (
             <>
               <Button
                 type="button"
-                className="w-full sm:w-auto"
+                className="min-h-11 w-full sm:w-auto"
                 size="lg"
                 disabled={players.length === 0}
                 onClick={() => send({ type: 'START_GAME' })}

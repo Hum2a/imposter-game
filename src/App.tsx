@@ -3,6 +3,7 @@ import {
   AppConfigWarning,
   AppErrorState,
   AppLoadingState,
+  WaitingForLobbyState,
 } from './components/layout/AppStates'
 import { WebProfileControls } from './components/WebProfileControls'
 import { useDiscord } from './hooks/useDiscord'
@@ -44,11 +45,15 @@ export default function App() {
     setDiscordLobbySuffix,
   } = useDiscord()
   const partyHost = import.meta.env.VITE_PARTYKIT_HOST
-  const { gameState, send } = useParty(partyRoomId ?? undefined, auth?.user.id)
+  const { gameState, send, connection, partyErrorCode, clearPartyError } = useParty(
+    partyRoomId ?? undefined,
+    auth?.user.id
+  )
 
   useEffect(() => {
     if (!auth || !gameState) return
     if (gameState.players[auth.user.id]) return
+    if (gameState.phase !== 'lobby') return
     send({
       type: 'JOIN',
       userId: auth.user.id,
@@ -107,11 +112,38 @@ export default function App() {
   }
 
   if (!gameState) {
+    if (connection === 'closed') {
+      return (
+        <AppLoadingState
+          label="Reconnecting to game server…"
+          description="Connection dropped. Trying again — you can keep this tab open."
+        />
+      )
+    }
     return <AppLoadingState label="Connecting to game server…" />
   }
 
   const me = gameState.players[auth.user.id]
   if (!me) {
+    if (partyErrorCode === 'JOIN_VERIFY_FAILED') {
+      return (
+        <AppConfigWarning
+          title="Could not verify your Discord account"
+          body="This room requires a valid Discord sign-in. Try closing and reopening the Activity, or ask the host to turn off strict join verification for testing."
+        />
+      )
+    }
+    if (partyErrorCode === 'JOIN_NEED_TOKEN') {
+      return (
+        <AppConfigWarning
+          title="Discord token required"
+          body="The server is configured to verify Discord accounts on join, but no token was sent. Reopen the Activity from Discord or check Partykit JOIN_VERIFY settings."
+        />
+      )
+    }
+    if (gameState.phase !== 'lobby') {
+      return <WaitingForLobbyState phase={gameState.phase} />
+    }
     return <AppLoadingState label="Joining room…" />
   }
 
@@ -120,6 +152,15 @@ export default function App() {
 
   const shell = (body: ReactNode) => (
     <div className="flex min-h-svh flex-col bg-background text-foreground">
+      {connection === 'closed' ? (
+        <div
+          className="border-b border-amber-500/40 bg-amber-500/15 px-4 py-2 text-center text-sm text-amber-950 dark:text-amber-100"
+          role="status"
+          aria-live="polite"
+        >
+          Reconnecting to the game server…
+        </div>
+      ) : null}
       {webMode ? (
         <WebProfileControls
           displayName={auth.user.global_name ?? auth.user.username}
@@ -152,6 +193,8 @@ export default function App() {
           onDismissJoinLobbyError={clearJoinLobbyError}
           discordLobbySuffix={discordLobbySuffix}
           onDiscordLobbySuffixChange={setDiscordLobbySuffix}
+          partyErrorCode={partyErrorCode}
+          onDismissPartyError={clearPartyError}
         />
       )
     case 'discussion':

@@ -215,11 +215,11 @@ Features below are the **master planning list**; P0 L1–L5 are done in client +
 
 | ID | Feature | Notes |
 |----|---------|--------|
-| **G1** | **Reconnect same user** | Same `userId` + same room: server merges or replaces socket mapping (`connToUser`); UI shows “Reconnecting…” |
-| **G2** | **Spectate / late join rules** | Clarify if mid-game join is allowed; if not, show “Round in progress — wait for lobby” |
-| **G3** | **Custom word lists** | Host picks pack or uploads words; validate length & profanity policy |
-| **G4** | **Timer / phase edge cases** | Tab backgrounding, clock skew, discussion timer UX |
-| **G5** | **Mobile + narrow iframes** | Discord mobile Activity; touch targets; `WebProfileControls` / lobby layout |
+| **G1** | **Reconnect same user** | **Partial:** `useParty` tracks socket lifecycle; full-screen **Reconnecting…** when disconnected before first state; amber banner when disconnected mid-session. Refresh still drops the player until lobby (`onClose`). |
+| **G2** | **Spectate / late join rules** | **Done:** JOIN only in **lobby** (client + server `JOIN_ROUND_IN_PROGRESS`). **`WaitingForLobbyState`** for mid-round arrivals. No spectate. |
+| **G3** | **Custom word lists** | **Done (per-round pair):** host `SET_NEXT_WORDS` / `CLEAR_NEXT_WORDS`; server `nextCustomPair` (secret); `hasCustomNextRound` in broadcast. No word packs / uploads / profanity filter. |
+| **G4** | **Timer / phase edge cases** | **Partial:** client clamps countdown to ≥0; **hidden-tab** notice during discussion; server timer unchanged. |
+| **G5** | **Mobile + narrow iframes** | **Partial:** `GameScreen` / header **safe-area**; **min-h-11** on key lobby buttons. |
 
 ---
 
@@ -231,8 +231,8 @@ Features below are the **master planning list**; P0 L1–L5 are done in client +
 | **X2** | Round history / stats per user | Needs persistent id + optional Supabase tables |
 | **X3** | **Stronger identity** | Short-lived signed tokens vs raw Discord token on wire ([POST_LAUNCH.md](./POST_LAUNCH.md)) |
 | **X4** | Analytics (privacy-preserving) | Events: round_start, vote, crash — Plausible / CF Web Analytics |
-| **X5** | i18n / accessibility | aria labels, focus traps in modals, contrast |
-| **X6** | CI: `build` + `lint` on PR | GitHub Actions; optional Partykit deploy on tag |
+| **X5** | i18n / accessibility | **Partial:** discussion timer `aria-live`; more labels / focus / modals TBD |
+| **X6** | CI: `build` + `lint` on PR | **Done:** `.github/workflows/ci.yml` — client lint+build, `server/` `tsc --noEmit` |
 | **X7** | Staging app + staging Worker | Second Discord app or URL mapping to preview Pages |
 
 ---
@@ -242,8 +242,60 @@ Features below are the **master planning list**; P0 L1–L5 are done in client +
 1. ~~**L1 → L2 → L3 → L4**~~ — shipped.  
 2. ~~**L5**~~ — shipped (Discord optional suffix).  
 3. ~~**L6**~~ — covered by existing `onClose` host handoff; add UX copy only if playtesters are confused.  
-4. **G1–G5** in parallel or next sprint.  
-5. **X\*** after stable social launch.
+4. **G1–G5** — core items addressed (see P1 table); see **full sequence below** for everything still open.  
+5. ~~**X6**~~ — CI in place; remaining **X\*** follow the waves below.
+
+---
+
+## Remaining implementation sequence (full backlog)
+
+Use this as the **master order** for everything not yet fully shipped in P1/P2. Each **wave** builds on earlier waves unless marked **‖** (safe to run in parallel).
+
+### How to read it
+
+- **Depends on** means “finish or stub this first” to avoid rework or production risk.
+- **Staging (X7)** is listed first on purpose: you want a non-prod URL (and ideally a second Discord app or mapped preview) before identity/token work (X3) and before trusting analytics (X4).
+- **Server changes** (`server/src/room.ts`) need a **Partykit deploy**; **Vite env** changes need a **Pages rebuild**.
+
+### Waves (recommended order)
+
+| Wave | Backlog IDs | Outcome | Depends on | Main touch points |
+|------|-------------|---------|------------|-------------------|
+| **R0** | **X7** | Staging: preview Pages deploys or second project; Worker/Partykit vars for staging; optional second Discord application or URL mappings pointing at staging | — | Wrangler, Discord portal, `.env.staging` / deploy docs |
+| **R1** | **G5** (finish), **X5** (a11y foundation) | Voting/reveal/narrow iframe layouts; focus order; `aria-label` on icon-only controls; visible focus rings; `prefers-reduced-motion` hooks | — | `Voting.tsx`, `Reveal.tsx`, `Lobby.tsx`, `GameScreen`, shared `Button` usage |
+| **R2** ‖ | **X4** | Privacy-friendly analytics (Plausible snippet or Cloudflare Web Analytics); 4–6 events: `app_open`, `lobby_join`, `round_start`, `vote_submit`, `round_end`, `client_error` (no PII in event props) | **R0** strongly recommended | `index.html` or tiny `src/lib/analytics.ts`, `VITE_*` gate |
+| **R3** ‖ | **G4** (finish) | Timer trust: on every `discussion` start, clients already get `discussionEndsAt`; add **server tick** or **resync broadcast** if hibernation/skew observed; document PartyKit timer behavior in README | — | `server/src/room.ts`, `Game.tsx`, docs |
+| **R4** | **G1** (finish) | **Grace disconnect:** do not delete the player immediately on last socket `onClose`; use a short TTL (e.g. 20–60s) or `disconnectedUntil` so refresh/reconnect restores the same `userId` in the same phase; cancel TTL on `JOIN`/`onConnect` mapping | — | `room.ts` (timer per user or room), `useParty`, `App.tsx`, `types/game.ts` |
+| **R5** | **G2** (spectate) | Mid-game `JOIN` adds **spectator** (no word, no vote until `lobby`); UI: read-only phase view + copy “Next round you can play” | **R4** optional but smoother | `room.ts`, `App.tsx`, `Game.tsx`, `Voting.tsx`, types |
+| **R6** | **G3** (finish) | **Packs:** curated JSON lists + host picker in lobby; **profanity:** optional filter or block on `SET_NEXT_WORDS`; **import:** paste/CSV last (validate length/count) | **R0** for safe iteration | `data/word-packs/*`, `Lobby.tsx`, `room.ts` |
+| **R7** ‖ | **X1** | Muted-by-default or settings-based SFX; light haptics on vote (mobile); short CSS transitions; respect reduced-motion + user mute | **R1** partial | `public/sounds/*`, small hook, optional settings row |
+| **R8** ‖ | **X2** | Optional Supabase tables for per-user stats/history; RLS; write path from client after `reveal` or batch from trusted server path | Stable **web identity** story | `supabase/migrations`, `web-session.ts`, UI surface (profile or modal) |
+| **R9** | **X3** | PartyKit verifies **short-lived join JWT** from Worker (or Worker proxies mint); stop sending raw Discord OAuth token on wire when feature flag on | **R0**, **R4** | `workers/discord-oauth-token.ts` (or new route), `room.ts`, `App.tsx`, secrets |
+| **R10** | **X5** (i18n) | Add i18n library, extract strings (English first), then second locale if needed; full a11y pass with screen reader | **R1** | `src/locales/*`, component sweep |
+| **R11** ‖ | CI+ | Optional: GitHub deploy on tag, E2E smoke (Playwright) against staging | **R0**, ~~**X6**~~ | `.github/workflows/*` |
+
+### Parallel tracks (same calendar time)
+
+If you have bandwidth, these can advance **alongside** the table above without blocking each other:
+
+- **Design/content:** word pack JSON, sound asset list, analytics event dictionary, copy for spectator/reconnect.
+- **Docs:** staging runbook, X3 threat model, PartyKit hibernation notes.
+- **X5 a11y:** incremental PRs per screen while R4–R6 ship.
+
+### Suggested milestones (product framing)
+
+| Milestone | Waves | User-facing promise |
+|-----------|-------|---------------------|
+| **M1 — Staging + trust** | R0, R2, R3 | “We can test safely and see funnels without breaking prod.” |
+| **M2 — Session reliability** | R4, R1 | “Refresh and flaky networks don’t ruin the round as often.” |
+| **M3 — Social depth** | R5, R6, R7 | “Friends can watch a round and hosts can theme words.” |
+| **M4 — Accounts & security** | R8, R9, R10 | “Stats for signed-in users and stronger join tokens.” |
+
+### Explicitly out of scope for this sequence (unless you reprioritize)
+
+- Native app wrappers (PWA already).
+- Real-time voice/video (Discord handles voice).
+- User-generated content moderation beyond simple word filters.
 
 ---
 

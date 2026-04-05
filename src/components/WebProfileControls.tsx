@@ -59,7 +59,7 @@ export function WebProfileControls({
   const isGuest = identityMode === 'guest'
 
   return (
-    <header className="border-b bg-card/90 shadow-sm backdrop-blur-sm">
+    <header className="border-b bg-card/90 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm">
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-4">
         {profileError ? (
           <Alert variant="destructive" className="relative">
