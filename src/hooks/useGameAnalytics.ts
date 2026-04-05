@@ -22,6 +22,9 @@ export function useGameAnalytics(gameState: GameState | null, userId: string | u
     if (p === 'discussion' && prev !== 'discussion') {
       trackEvent('RoundStart', { round: gameState.round })
     }
+    if (p === 'voting' && prev !== 'voting') {
+      trackEvent('VotingStart', { round: gameState.round })
+    }
     if (p === 'reveal' && prev !== 'reveal') {
       trackEvent('RoundEnd', { outcome: gameState.winner ?? 'none' })
     }

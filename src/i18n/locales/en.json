@@ -20,7 +20,10 @@
     "partyJwtInvalid": "Join ticket invalid or expired",
     "partyJwtInvalidBody": "Close and reopen the Activity to refresh your Discord session, then try again. If it keeps failing, check Worker PARTYKIT_JWT_SECRET matches Partykit JOIN_JWT_SECRET.",
     "partyJwtMisconfig": "Server misconfiguration",
-    "partyJwtMisconfigBody": "JOIN_JWT_REQUIRED is on but JOIN_JWT_SECRET is missing on Partykit. Fix deploy vars or turn JOIN_JWT_REQUIRED off."
+    "partyJwtMisconfigBody": "JOIN_JWT_REQUIRED is on but JOIN_JWT_SECRET is missing on Partykit. Fix deploy vars or turn JOIN_JWT_REQUIRED off.",
+    "discordErrorHintP1": "In Discord: set <code0>VITE_DISCORD_CLIENT_ID</code0>, map <code1>/api/token</code1> to your Worker, and set <code2>VITE_DISCORD_TOKEN_URL</code2> if the app origin differs from the token endpoint.",
+    "discordErrorHintP2": "In the browser, a dev user is used automatically. Use <code0>VITE_DISCORD_MOCK=1</code0> for a fixed mock user and room.",
+    "partyHostHint": "Run Partykit in <code0>server/</code0> (<code1>npm run dev</code1>), then set <code2>VITE_PARTYKIT_HOST=localhost:1999</code2> in <code3>.env</code3>."
   },
   "states": {
     "quickFix": "Quick fix"

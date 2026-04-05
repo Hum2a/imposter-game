@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 import {
   AppConfigWarning,
   AppErrorState,
@@ -19,7 +19,7 @@ import Voting from './screens/Voting'
 import Reveal from './screens/Reveal'
 import type { Phase } from './types/game'
 
-function InlineCode({ children }: { children: ReactNode }) {
+function InlineCode({ children }: { children?: ReactNode }) {
   return (
     <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
       {children}
@@ -60,6 +60,14 @@ export default function App() {
   useEffect(() => {
     if (error) trackEvent('ClientError', { area: 'discord_setup' })
   }, [error])
+
+  useEffect(() => {
+    if (partyErrorCode) trackEvent('PartyError', { code: partyErrorCode })
+  }, [partyErrorCode])
+
+  useEffect(() => {
+    if (joinLobbyError) trackEvent('JoinLobbyError', { reason: 'invalid_code' })
+  }, [joinLobbyError])
 
   useEffect(() => {
     if (connection !== 'open' || !auth) return
@@ -118,14 +126,20 @@ export default function App() {
         hint={
           <>
             <p className="mb-3">
-              In Discord: set <InlineCode>VITE_DISCORD_CLIENT_ID</InlineCode>, map{' '}
-              <InlineCode>/api/token</InlineCode> to your Worker, and set{' '}
-              <InlineCode>VITE_DISCORD_TOKEN_URL</InlineCode> if the app origin differs from the
-              token endpoint.
+              <Trans
+                i18nKey="app.discordErrorHintP1"
+                components={{
+                  code0: <InlineCode />,
+                  code1: <InlineCode />,
+                  code2: <InlineCode />,
+                }}
+              />
             </p>
             <p>
-              In the browser, a dev user is used automatically. Use{' '}
-              <InlineCode>VITE_DISCORD_MOCK=1</InlineCode> for a fixed mock user and room.
+              <Trans
+                i18nKey="app.discordErrorHintP2"
+                components={{ code0: <InlineCode /> }}
+              />
             </p>
           </>
         }
@@ -143,12 +157,15 @@ export default function App() {
         title={t('app.gameServerNotConfigured')}
         body={t('app.gameServerNotConfiguredBody')}
         codeHint={
-          <>
-            Run Partykit in <InlineCode>server/</InlineCode> (
-            <InlineCode>npm run dev</InlineCode>), then set{' '}
-            <InlineCode>VITE_PARTYKIT_HOST=localhost:1999</InlineCode> in{' '}
-            <InlineCode>.env</InlineCode>.
-          </>
+          <Trans
+            i18nKey="app.partyHostHint"
+            components={{
+              code0: <InlineCode />,
+              code1: <InlineCode />,
+              code2: <InlineCode />,
+              code3: <InlineCode />,
+            }}
+          />
         }
       />
     )
