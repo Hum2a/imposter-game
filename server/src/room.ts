@@ -16,6 +16,7 @@ interface Player {
   hasVoted: boolean
   votedFor: string | null
   eliminated: boolean
+  isSpectator: boolean
 }
 
 interface NextRoundWords {
@@ -56,6 +57,10 @@ const WORD_PAIRS: [string, string][] = [
 ]
 
 const DISCUSSION_SECONDS = 60
+/** Re-broadcast state during discussion so clients resync `discussionEndsAt` after tab sleep / skew. */
+const DISCUSSION_RESYNC_MS = 25_000
+/** Keep player row after last socket closes so refresh/reconnect can `JOIN` without losing the round. */
+const DISCONNECT_GRACE_MS = 45_000
 const WORD_MAX_LEN = 40
 const WORD_MIN_LEN = 1
 
@@ -96,8 +101,11 @@ export default class ImposterRoom implements Party.Server {
   /** PartyKit socket id → Discord / app user id */
   private readonly connToUser = new Map<string, string>()
   private discussionTimer: ReturnType<typeof setTimeout> | null = null
+  private discussionResync: ReturnType<typeof setInterval> | null = null
   /** Not broadcast — avoids spoiling both words to everyone in the lobby. */
   private nextCustomPair: NextRoundWords | null = null
+  /** userId → timer to remove them after grace if they don’t reconnect */
+  private readonly disconnectGrace = new Map<string, ReturnType<typeof setTimeout>>()
 
   constructor(readonly room: Party.Room) {
     this.state = this.defaultState()
@@ -140,15 +148,19 @@ export default class ImposterRoom implements Party.Server {
     }
   }
 
-  private clearDiscussionTimer() {
+  private clearDiscussionScheduling() {
     if (this.discussionTimer) {
       clearTimeout(this.discussionTimer)
       this.discussionTimer = null
     }
+    if (this.discussionResync) {
+      clearInterval(this.discussionResync)
+      this.discussionResync = null
+    }
   }
 
   private scheduleDiscussionEnd() {
-    this.clearDiscussionTimer()
+    this.clearDiscussionScheduling()
     const ends = this.state.discussionEndsAt
     if (!ends || this.state.phase !== 'discussion') return
     const ms = ends - Date.now()
@@ -160,12 +172,27 @@ export default class ImposterRoom implements Party.Server {
     }
     this.discussionTimer = setTimeout(() => {
       this.discussionTimer = null
+      if (this.discussionResync) {
+        clearInterval(this.discussionResync)
+        this.discussionResync = null
+      }
       if (this.state.phase === 'discussion') {
         this.state.phase = 'voting'
         void this.persistMeta()
         this.broadcast()
       }
     }, ms)
+
+    this.discussionResync = setInterval(() => {
+      if (this.state.phase !== 'discussion') {
+        if (this.discussionResync) {
+          clearInterval(this.discussionResync)
+          this.discussionResync = null
+        }
+        return
+      }
+      this.broadcast()
+    }, DISCUSSION_RESYNC_MS)
   }
 
   private async persistMeta() {
@@ -256,6 +283,60 @@ export default class ImposterRoom implements Party.Server {
     }
   }
 
+  private cancelGraceForUser(userId: string) {
+    const t = this.disconnectGrace.get(userId)
+    if (t) {
+      clearTimeout(t)
+      this.disconnectGrace.delete(userId)
+    }
+  }
+
+  private clearAllDisconnectGrace() {
+    for (const t of this.disconnectGrace.values()) {
+      clearTimeout(t)
+    }
+    this.disconnectGrace.clear()
+  }
+
+  private userHasOpenConnection(userId: string): boolean {
+    for (const u of this.connToUser.values()) {
+      if (u === userId) return true
+    }
+    return false
+  }
+
+  /** After grace: remove player, fix host, voting cleanup. */
+  private finalizePlayerDisconnect(userId: string) {
+    if (this.userHasOpenConnection(userId)) return
+    if (!this.state.players[userId]) return
+
+    if (this.state.phase === 'voting') {
+      this.cleanupVotesForDepartedUser(userId)
+    }
+    delete this.state.players[userId]
+    if (this.state.hostId === userId) {
+      const remaining = Object.keys(this.state.players)
+      const preferred = remaining.find((id) => !this.state.players[id]!.isSpectator)
+      this.state.hostId = preferred ?? remaining[0] ?? ''
+    }
+    if (this.state.phase === 'voting') {
+      this.tryCompleteVotingIfReady()
+      return
+    }
+    this.broadcast()
+  }
+
+  private scheduleDisconnectGrace(userId: string) {
+    this.cancelGraceForUser(userId)
+    this.disconnectGrace.set(
+      userId,
+      setTimeout(() => {
+        this.disconnectGrace.delete(userId)
+        this.finalizePlayerDisconnect(userId)
+      }, DISCONNECT_GRACE_MS)
+    )
+  }
+
   private async handleJoin(
     msg: {
       userId: string
@@ -265,11 +346,6 @@ export default class ImposterRoom implements Party.Server {
     },
     sender: Party.Connection
   ) {
-    if (this.state.phase !== 'lobby') {
-      sender.send(JSON.stringify({ type: 'ERROR', code: 'JOIN_ROUND_IN_PROGRESS' }))
-      return
-    }
-
     if (joinVerifyEnabled(this.room.env)) {
       const token = msg.accessToken
       if (!token) {
@@ -283,9 +359,45 @@ export default class ImposterRoom implements Party.Server {
       }
     }
 
-    this.connToUser.set(sender.id, msg.userId)
+    const existing = this.state.players[msg.userId]
+    const phase = this.state.phase
 
-    const isFirst = Object.keys(this.state.players).length === 0
+    if (phase === 'lobby') {
+      this.cancelGraceForUser(msg.userId)
+      this.connToUser.set(sender.id, msg.userId)
+      if (!existing) {
+        this.state.players[msg.userId] = {
+          id: msg.userId,
+          name: msg.name,
+          avatar: msg.avatar,
+          isImposter: false,
+          hasVoted: false,
+          votedFor: null,
+          eliminated: false,
+          isSpectator: false,
+        }
+        if (Object.keys(this.state.players).length === 1) {
+          this.state.hostId = msg.userId
+        }
+      } else {
+        existing.name = msg.name
+        existing.avatar = msg.avatar
+        existing.isSpectator = false
+      }
+      this.broadcast()
+      return
+    }
+
+    if (existing) {
+      this.cancelGraceForUser(msg.userId)
+      this.connToUser.set(sender.id, msg.userId)
+      existing.name = msg.name
+      existing.avatar = msg.avatar
+      this.broadcast()
+      return
+    }
+
+    this.connToUser.set(sender.id, msg.userId)
     this.state.players[msg.userId] = {
       id: msg.userId,
       name: msg.name,
@@ -294,16 +406,19 @@ export default class ImposterRoom implements Party.Server {
       hasVoted: false,
       votedFor: null,
       eliminated: false,
+      isSpectator: true,
     }
-    if (isFirst) this.state.hostId = msg.userId
     this.broadcast()
   }
 
   startGame() {
+    for (const p of Object.values(this.state.players)) {
+      p.isSpectator = false
+    }
     const ids = Object.keys(this.state.players)
     if (ids.length === 0) return
 
-    this.clearDiscussionTimer()
+    this.clearDiscussionScheduling()
 
     const imposterId = ids[Math.floor(Math.random() * ids.length)]!
     let word: string
@@ -340,7 +455,7 @@ export default class ImposterRoom implements Party.Server {
   handleVote(voterId: string, targetId: string) {
     if (this.state.phase !== 'voting') return
     const voter = this.state.players[voterId]
-    if (!voter || voter.hasVoted) return
+    if (!voter || voter.hasVoted || voter.isSpectator) return
 
     this.state.votes[voterId] = targetId
     voter.hasVoted = true
@@ -352,11 +467,12 @@ export default class ImposterRoom implements Party.Server {
   /** All *current* players have cast a vote */
   private tryCompleteVotingIfReady() {
     const players = Object.values(this.state.players)
-    if (players.length === 0) {
+    const voters = players.filter((p) => !p.isSpectator)
+    if (voters.length === 0) {
       this.broadcast()
       return
     }
-    const allVoted = players.every((p) => p.hasVoted)
+    const allVoted = voters.every((p) => p.hasVoted)
     if (allVoted) this.resolveVotes()
     else this.broadcast()
   }
@@ -399,11 +515,12 @@ export default class ImposterRoom implements Party.Server {
   }
 
   backToLobby() {
-    this.clearDiscussionTimer()
+    this.clearDiscussionScheduling()
     for (const p of Object.values(this.state.players)) {
       p.isImposter = false
       p.hasVoted = false
       p.votedFor = null
+      p.isSpectator = false
     }
     this.state.word = ''
     this.state.imposterWord = ''
@@ -415,7 +532,8 @@ export default class ImposterRoom implements Party.Server {
   }
 
   endGame() {
-    this.clearDiscussionTimer()
+    this.clearDiscussionScheduling()
+    this.clearAllDisconnectGrace()
     this.nextCustomPair = null
     const { stats } = this.state
     this.state = this.defaultState()
@@ -453,19 +571,8 @@ export default class ImposterRoom implements Party.Server {
           break
         }
       }
-      if (!stillConnected) {
-        if (this.state.phase === 'voting') {
-          this.cleanupVotesForDepartedUser(userId)
-        }
-        delete this.state.players[userId]
-        if (this.state.hostId === userId) {
-          const remaining = Object.keys(this.state.players)
-          this.state.hostId = remaining[0] ?? ''
-        }
-        if (this.state.phase === 'voting') {
-          this.tryCompleteVotingIfReady()
-          return
-        }
+      if (!stillConnected && this.state.players[userId]) {
+        this.scheduleDisconnectGrace(userId)
       }
     }
 

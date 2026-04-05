@@ -14,6 +14,7 @@ export function useParty(roomId: string | undefined, userId: string | undefined)
   const socketRef = useRef<PartySocket | null>(null)
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [socketPhase, setSocketPhase] = useState<'connecting' | 'open' | 'closed'>('connecting')
+  const [socketOpenNonce, setSocketOpenNonce] = useState(0)
   const [partyErrorCode, setPartyErrorCode] = useState<string | null>(null)
 
   const connection: PartyConnectionState =
@@ -41,6 +42,7 @@ export function useParty(roomId: string | undefined, userId: string | undefined)
 
     const onOpen = () => {
       setSocketPhase('open')
+      setSocketOpenNonce((n) => n + 1)
     }
     const onClose = () => {
       setSocketPhase('closed')
@@ -85,5 +87,5 @@ export function useParty(roomId: string | undefined, userId: string | undefined)
 
   const clearPartyError = useCallback(() => setPartyErrorCode(null), [])
 
-  return { gameState, send, connection, partyErrorCode, clearPartyError }
+  return { gameState, send, connection, socketOpenNonce, partyErrorCode, clearPartyError }
 }

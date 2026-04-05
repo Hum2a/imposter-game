@@ -261,10 +261,10 @@ Use this as the **master order** for everything not yet fully shipped in P1/P2. 
 
 | Wave | Backlog IDs | Outcome | Depends on | Main touch points |
 |------|-------------|---------|------------|-------------------|
-| **R0** | **X7** | Staging: preview Pages deploys or second project; Worker/Partykit vars for staging; optional second Discord application or URL mappings pointing at staging | — | Wrangler, Discord portal, `.env.staging` / deploy docs |
-| **R1** | **G5** (finish), **X5** (a11y foundation) | Voting/reveal/narrow iframe layouts; focus order; `aria-label` on icon-only controls; visible focus rings; `prefers-reduced-motion` hooks | — | `Voting.tsx`, `Reveal.tsx`, `Lobby.tsx`, `GameScreen`, shared `Button` usage |
-| **R2** ‖ | **X4** | Privacy-friendly analytics (Plausible snippet or Cloudflare Web Analytics); 4–6 events: `app_open`, `lobby_join`, `round_start`, `vote_submit`, `round_end`, `client_error` (no PII in event props) | **R0** strongly recommended | `index.html` or tiny `src/lib/analytics.ts`, `VITE_*` gate |
-| **R3** ‖ | **G4** (finish) | Timer trust: on every `discussion` start, clients already get `discussionEndsAt`; add **server tick** or **resync broadcast** if hibernation/skew observed; document PartyKit timer behavior in README | — | `server/src/room.ts`, `Game.tsx`, docs |
+| **R0** | **X7** | **Done (docs + template):** [docs/STAGING.md](./STAGING.md), `.env.deploy.staging.example`, `DEPLOY_ENV_FILE` already supported in `scripts/deploy.mjs`. You still create Cloudflare/Discord resources yourself. | — | Wrangler, Discord portal, `.env.deploy.staging` |
+| **R1** | **G5** (finish), **X5** (a11y foundation) | **Done (this pass):** voting `aria-label` / `aria-pressed`, confirm `aria-label`, `min-h-11` targets, `GameScreen` `motion-reduce:transition-none`, narrow grid `min-w-0`. Further polish (focus rings audit, Voting as true radiogroup) optional. | — | `Voting.tsx`, `Reveal.tsx`, `GameScreen` |
+| **R2** ‖ | **X4** | **Done (Plausible):** `src/lib/analytics.ts`, `initAnalytics()` in `main.tsx`, `useGameAnalytics` phase hooks, `VoteSubmit` in `Voting`; `VITE_PLAUSIBLE_DOMAIN` / `VITE_PLAUSIBLE_SCRIPT_URL`. Cloudflare Web Analytics = separate snippet if you prefer. | **R0** recommended for prod/staging separation | `analytics.ts`, `App.tsx`, `.env.example` |
+| **R3** ‖ | **G4** (finish) | **Done:** discussion-phase **25s** full-state re-broadcast in `server/src/room.ts`; README note. Client already had hidden-tab copy + `aria-live` on countdown. | — | `server/src/room.ts`, `README.md` |
 | **R4** | **G1** (finish) | **Grace disconnect:** do not delete the player immediately on last socket `onClose`; use a short TTL (e.g. 20–60s) or `disconnectedUntil` so refresh/reconnect restores the same `userId` in the same phase; cancel TTL on `JOIN`/`onConnect` mapping | — | `room.ts` (timer per user or room), `useParty`, `App.tsx`, `types/game.ts` |
 | **R5** | **G2** (spectate) | Mid-game `JOIN` adds **spectator** (no word, no vote until `lobby`); UI: read-only phase view + copy “Next round you can play” | **R4** optional but smoother | `room.ts`, `App.tsx`, `Game.tsx`, `Voting.tsx`, types |
 | **R6** | **G3** (finish) | **Packs:** curated JSON lists + host picker in lobby; **profanity:** optional filter or block on `SET_NEXT_WORDS`; **import:** paste/CSV last (validate length/count) | **R0** for safe iteration | `data/word-packs/*`, `Lobby.tsx`, `room.ts` |
@@ -286,7 +286,7 @@ If you have bandwidth, these can advance **alongside** the table above without b
 
 | Milestone | Waves | User-facing promise |
 |-----------|-------|---------------------|
-| **M1 — Staging + trust** | R0, R2, R3 | “We can test safely and see funnels without breaking prod.” |
+| **M1 — Staging + trust** | ~~R0~~, ~~R2~~, ~~R3~~ (implemented — wire your own staging hosts) | “We can test safely and see funnels without breaking prod.” |
 | **M2 — Session reliability** | R4, R1 | “Refresh and flaky networks don’t ruin the round as often.” |
 | **M3 — Social depth** | R5, R6, R7 | “Friends can watch a round and hosts can theme words.” |
 | **M4 — Accounts & security** | R8, R9, R10 | “Stats for signed-in users and stronger join tokens.” |

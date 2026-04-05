@@ -3,10 +3,11 @@ import {
   AppConfigWarning,
   AppErrorState,
   AppLoadingState,
-  WaitingForLobbyState,
 } from './components/layout/AppStates'
 import { WebProfileControls } from './components/WebProfileControls'
 import { useDiscord } from './hooks/useDiscord'
+import { useGameAnalytics } from './hooks/useGameAnalytics'
+import { trackEvent } from './lib/analytics'
 import { isSupabaseConfigured } from './lib/supabase-client'
 import { useParty } from './hooks/useParty'
 import Lobby from './screens/Lobby'
@@ -45,15 +46,17 @@ export default function App() {
     setDiscordLobbySuffix,
   } = useDiscord()
   const partyHost = import.meta.env.VITE_PARTYKIT_HOST
-  const { gameState, send, connection, partyErrorCode, clearPartyError } = useParty(
-    partyRoomId ?? undefined,
-    auth?.user.id
-  )
+  const { gameState, send, connection, socketOpenNonce, partyErrorCode, clearPartyError } =
+    useParty(partyRoomId ?? undefined, auth?.user.id)
+
+  useGameAnalytics(gameState, auth?.user.id)
 
   useEffect(() => {
-    if (!auth || !gameState) return
-    if (gameState.players[auth.user.id]) return
-    if (gameState.phase !== 'lobby') return
+    if (error) trackEvent('ClientError', { area: 'discord_setup' })
+  }, [error])
+
+  useEffect(() => {
+    if (connection !== 'open' || !auth) return
     send({
       type: 'JOIN',
       userId: auth.user.id,
@@ -66,7 +69,17 @@ export default function App() {
         ? { accessToken: auth.access_token }
         : {}),
     })
-  }, [auth, gameState, send, isDiscordActivity])
+  }, [
+    connection,
+    socketOpenNonce,
+    send,
+    isDiscordActivity,
+    auth?.user.id,
+    auth?.user.global_name,
+    auth?.user.username,
+    auth?.user.avatar,
+    auth?.access_token,
+  ])
 
   if (error) {
     return (
@@ -142,7 +155,12 @@ export default function App() {
       )
     }
     if (gameState.phase !== 'lobby') {
-      return <WaitingForLobbyState phase={gameState.phase} />
+      return (
+        <AppLoadingState
+          label="Joining this round…"
+          description="If the game already started, you’ll appear as a spectator until the next lobby or round."
+        />
+      )
     }
     return <AppLoadingState label="Joining room…" />
   }

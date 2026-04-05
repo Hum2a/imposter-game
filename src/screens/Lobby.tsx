@@ -274,9 +274,16 @@ export default function Lobby({
                 <li key={p.id} className="flex items-center gap-3 px-6 py-3">
                   <Avatar user={{ id: p.id, name: p.name, avatar: p.avatar }} size={40} />
                   <span className="font-medium text-foreground">{p.name}</span>
-                  {p.id === gameState.hostId ? (
-                    <Badge className="ml-auto shrink-0 bg-primary/15 text-primary">Host</Badge>
-                  ) : null}
+                  <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
+                    {p.isSpectator ? (
+                      <Badge variant="outline" className="shrink-0">
+                        Spectator
+                      </Badge>
+                    ) : null}
+                    {p.id === gameState.hostId ? (
+                      <Badge className="shrink-0 bg-primary/15 text-primary">Host</Badge>
+                    ) : null}
+                  </div>
                 </li>
               ))}
             </ul>

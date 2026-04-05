@@ -14,6 +14,8 @@ export interface Player {
   hasVoted: boolean
   votedFor: string | null
   eliminated: boolean
+  /** Mid-round join: watches discussion/vote/reveal; next lobby or round includes them as a full player. */
+  isSpectator?: boolean
 }
 
 export interface GameState {

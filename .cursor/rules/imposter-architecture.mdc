@@ -29,5 +29,6 @@ alwaysApply: true
 
 - Shared game types: `src/types/game.ts`. Keep server room types aligned when changing `GameState` / messages.
 - Do not commit secrets; `.env` and `.env.deploy` are gitignored. Use `.env.example` / `.env.deploy.example` as templates.
-- **Deploy from repo root:** `npm run deploy` reads `.env.deploy` and runs Worker (secrets + deploy), Partykit (`JOIN_VERIFY` via `--var`), and Pages (Vite build + `wrangler pages deploy`). See `scripts/deploy.mjs` and README.
+- **Deploy from repo root:** `npm run deploy` reads `.env.deploy` (override with `DEPLOY_ENV_FILE`) and runs Worker (secrets + deploy), Partykit (`JOIN_VERIFY` via `--var`), and Pages (Vite build + `wrangler pages deploy`). Staging template: `docs/STAGING.md`, `.env.deploy.staging.example`.
+- **Analytics:** optional Plausible via `VITE_PLAUSIBLE_DOMAIN`; `src/lib/analytics.ts` + `useGameAnalytics`. **Discussion:** server re-broadcasts state every 25s during discussion for client timer resync.
 - **Room / lobby:** Partykit isolates by `room` string (`useParty`). **Web:** `lobby-{CODE}` from `?room=`, `sessionStorage`, helpers in `src/lib/party-room.ts` + `resolveWebPartyRoomId()` in `web-session.ts`. **Discord Activity:** base instance/channel id, optional `{base}__{CODE}` suffix for split lobbies. Invite/join UI on `Lobby`. More ideas: `docs/LAUNCH_PLAN.md` backlog (G\*, X\*).

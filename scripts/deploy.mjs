@@ -2,7 +2,7 @@
 /**
  * Deploy orchestration: Cloudflare Worker (Discord token), Partykit, Cloudflare Pages.
  *
- * Reads `.env.deploy` from the repo root (override with DEPLOY_ENV_FILE).
+ * Reads `.env.deploy` from the repo root (override with `DEPLOY_ENV_FILE`, e.g. `.env.deploy.staging`).
  * Requires: `wrangler login`, `partykit login` (first time).
  *
  * Usage: node scripts/deploy.mjs <command>

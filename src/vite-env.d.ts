@@ -17,6 +17,10 @@ interface ImportMetaEnv {
   /** Publishable key name used by Supabase UI / some shadcn snippets */
   readonly VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY?: string
   readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string
+  /** Plausible Analytics domain (e.g. `imposter.example.com`). Omit to disable the script. */
+  readonly VITE_PLAUSIBLE_DOMAIN?: string
+  /** Override script URL (default `https://plausible.io/js/script.js`). */
+  readonly VITE_PLAUSIBLE_SCRIPT_URL?: string
 }
 
 interface ImportMeta {

@@ -19,7 +19,9 @@ type RevealProps = AuthUserProps & {
   send: (msg: ClientMessage) => void
 }
 
-export default function Reveal({ gameState, isHost, send }: RevealProps) {
+export default function Reveal({ gameState, isHost, send, auth }: RevealProps) {
+  const me = gameState.players[auth.user.id]
+  const isSpectator = me?.isSpectator === true
   const imposter = Object.values(gameState.players).find((p) => p.isImposter)
 
   const winnerLabel =
@@ -31,6 +33,12 @@ export default function Reveal({ gameState, isHost, send }: RevealProps) {
 
   return (
     <GameScreen>
+      {isSpectator ? (
+        <p className="text-center text-sm text-muted-foreground" role="status">
+          You joined as a spectator this round — you’ll play normally after the next lobby or round
+          start.
+        </p>
+      ) : null}
       <Card>
         <CardHeader className="text-center">
           <Badge variant="outline">Round over</Badge>
@@ -126,14 +134,22 @@ export default function Reveal({ gameState, isHost, send }: RevealProps) {
             <CardTitle className="text-lg">Host controls</CardTitle>
             <CardDescription>Everyone else waits for you here.</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2 sm:flex-row">
-            <Button type="button" size="lg" onClick={() => send({ type: 'NEXT_ROUND' })}>
+          <CardContent className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Button
+              type="button"
+              size="lg"
+              className="min-h-11 w-full sm:w-auto"
+              aria-label="Start next round with a new word"
+              onClick={() => send({ type: 'NEXT_ROUND' })}
+            >
               Next round
             </Button>
             <Button
               type="button"
               size="lg"
               variant="outline"
+              className="min-h-11 w-full sm:w-auto"
+              aria-label="Return everyone to the lobby"
               onClick={() => send({ type: 'BACK_TO_LOBBY' })}
             >
               Back to lobby

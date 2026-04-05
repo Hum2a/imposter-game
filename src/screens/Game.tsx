@@ -34,10 +34,39 @@ export default function Game({ gameState, me }: GameProps) {
     return () => document.removeEventListener('visibilitychange', onVis)
   }, [])
 
+  const isSpectator = me.isSpectator === true
   const word = me.isImposter ? gameState.imposterWord : gameState.word
   const ends = gameState.discussionEndsAt
   const remaining =
     ends != null ? Math.max(0, Math.ceil((ends - now) / 1000)) : null
+
+  if (isSpectator) {
+    return (
+      <GameScreen className="text-center">
+        <div className="flex flex-col items-center gap-2">
+          <Badge variant="secondary">Discussion</Badge>
+          <Badge variant="outline">Spectator</Badge>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl sm:text-2xl">You’re watching this round</CardTitle>
+            <CardDescription className="text-base">
+              You joined after the round started. Listen to the clues — you’ll play when the host
+              starts the next round or returns to the lobby.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {remaining != null ? (
+              <p className="text-sm text-muted-foreground">
+                Voting begins in{' '}
+                <span className="font-mono font-medium tabular-nums">{remaining}s</span>.
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+      </GameScreen>
+    )
+  }
 
   return (
     <GameScreen className="text-center">

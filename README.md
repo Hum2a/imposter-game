@@ -45,6 +45,20 @@ For Discord auth in dev, add `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` to 
 | `DISCORD_CLIENT_ID` | Vite dev only | Same as app ID; used by dev token plugin |
 | `DISCORD_CLIENT_SECRET` | Vite dev only | **Never** expose as `VITE_*` |
 | `DISCORD_REDIRECT_URI` | Worker / dev | Only if Discord requires it for your OAuth setup |
+| `VITE_PLAUSIBLE_DOMAIN` | Optional | Enables [Plausible](https://plausible.io/) script + custom events (`AppOpen`, `LobbyJoin`, `RoundStart`, `VoteSubmit`, `RoundEnd`, `ClientError`). Leave unset for no third-party analytics. |
+| `VITE_PLAUSIBLE_SCRIPT_URL` | Optional | Override Plausible script URL (self-hosted installs). |
+
+### Staging (non-production)
+
+Use a separate Pages project / Partykit host / Discord app so prod URL mappings stay stable. Copy [`.env.deploy.staging.example`](.env.deploy.staging.example) to **`.env.deploy.staging`** (gitignored) and deploy with:
+
+`DEPLOY_ENV_FILE=.env.deploy.staging node scripts/deploy.mjs all`
+
+Details: [docs/STAGING.md](docs/STAGING.md).
+
+### Discussion timer (server)
+
+During the **discussion** phase, the Partykit room **re-broadcasts** full state about every **25 seconds** so clients refresh `discussionEndsAt` after tab backgrounding or minor clock skew. The phase still flips to voting when the server timer fires.
 
 ---
 
