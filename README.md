@@ -40,7 +40,7 @@ For Discord auth in dev, add `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` to 
 |----------|--------|---------|
 | `VITE_DISCORD_CLIENT_ID` | Client / Pages build | Discord application ID (public) |
 | `VITE_PARTYKIT_HOST` | Client / Pages build | Partykit host, e.g. `localhost:1999` or `your-project.yourname.partykit.dev` |
-| `VITE_DISCORD_TOKEN_URL` | Client / Pages build | Full URL of token Worker `POST` (see deploy). Omit to use same-origin `/api/token` |
+| `VITE_DISCORD_TOKEN_URL` | Client / Pages build | Full URL of token Worker `POST` for **browser / PWA**. **Inside Discord Activity** the app always uses mapped **`/api/token`** (set URL mappings in the portal). |
 | `VITE_DISCORD_MOCK` | Optional | Set to `1` to force mock user + room |
 | `DISCORD_CLIENT_ID` | Vite dev only | Same as app ID; used by dev token plugin |
 | `DISCORD_CLIENT_SECRET` | Vite dev only | **Never** expose as `VITE_*` |
@@ -168,7 +168,7 @@ Cursor agents: see `.cursor/rules/` for architecture and auth notes.
 
 ## After deploy
 
-- **[docs/LAUNCH_PLAN.md](docs/LAUNCH_PLAN.md)** — step-by-step plan from now until launch (phases A–H, test matrix, commands).
+- **[docs/LAUNCH_PLAN.md](docs/LAUNCH_PLAN.md)** — step-by-step plan from now until launch (phases A–H, test matrix, commands), plus **product backlog** (lobby invites, multi-lobby UX, host transfer, polish).
 - [docs/POST_LAUNCH.md](docs/POST_LAUNCH.md) — shorter verification and follow-up checklist.
 
 ## License

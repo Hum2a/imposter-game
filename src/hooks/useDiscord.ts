@@ -38,7 +38,14 @@ function makeMockAuth(): DiscordAuthSession {
   }
 }
 
+/**
+ * Discord Activities run behind a proxy with CSP: use mapped `/api/token` in the iframe.
+ * `VITE_DISCORD_TOKEN_URL` is for the normal browser / PWA build (full Worker URL).
+ */
 function tokenExchangeUrl(): string {
+  if (isDiscordActivity()) {
+    return '/api/token'
+  }
   const configured = import.meta.env.VITE_DISCORD_TOKEN_URL?.trim()
   if (configured) return configured
   return '/api/token'

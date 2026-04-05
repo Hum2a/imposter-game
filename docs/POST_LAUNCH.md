@@ -34,7 +34,7 @@ Track verification, ops, and follow-up work after deploying Pages, Worker, and P
 - [x] **Polish** — vote ties broken randomly among tied leaders; disconnect during voting cleans votes and may auto-resolve.
 - [x] **JOIN verification (optional)** — set Partykit var `JOIN_VERIFY` to `true` and send `accessToken` on `JOIN` (Discord `@me` check).
 - [ ] **Stronger identity** — short-lived signed tokens from your backend (not only OAuth access token on the wire).
-- [ ] **Round history / sound / animations** — see your original game plan Phase 6.
+- [ ] **Round history / sound / animations** — see your original game plan Phase 6; full feature list in [LAUNCH_PLAN.md — Product & engineering backlog](./LAUNCH_PLAN.md#product--engineering-backlog) (invites, multi-lobby, host transfer, etc.).
 
 ---
 
