@@ -168,7 +168,8 @@ Cursor agents: see `.cursor/rules/` for architecture and auth notes.
 
 ## After deploy
 
-See [docs/POST_LAUNCH.md](docs/POST_LAUNCH.md) for a verification and follow-up checklist.
+- **[docs/LAUNCH_PLAN.md](docs/LAUNCH_PLAN.md)** — step-by-step plan from now until launch (phases A–H, test matrix, commands).
+- [docs/POST_LAUNCH.md](docs/POST_LAUNCH.md) — shorter verification and follow-up checklist.
 
 ## License
 
