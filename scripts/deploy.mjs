@@ -123,6 +123,7 @@ function cmdSync(vars) {
   console.log('[deploy] Sync Worker secrets only')
   wranglerSecretPut('DISCORD_CLIENT_ID', vars.DISCORD_CLIENT_ID ?? vars.VITE_DISCORD_CLIENT_ID)
   wranglerSecretPut('DISCORD_CLIENT_SECRET', vars.DISCORD_CLIENT_SECRET)
+  wranglerSecretPut('PARTYKIT_JWT_SECRET', vars.PARTYKIT_JWT_SECRET)
   console.log('[deploy] sync done')
 }
 
@@ -140,6 +141,8 @@ function cmdWorker(vars) {
 function cmdPartykit(vars) {
   const joinVerify = vars.JOIN_VERIFY ?? 'false'
   const wordProfanity = vars.WORD_PROFANITY_FILTER ?? 'false'
+  const joinJwtRequired = vars.JOIN_JWT_REQUIRED ?? 'false'
+  const joinJwtSecret = vars.JOIN_JWT_SECRET ?? ''
   const args = [
     'deploy',
     '-c',
@@ -148,12 +151,16 @@ function cmdPartykit(vars) {
     `JOIN_VERIFY=${joinVerify}`,
     '--var',
     `WORD_PROFANITY_FILTER=${wordProfanity}`,
+    '--var',
+    `JOIN_JWT_REQUIRED=${joinJwtRequired}`,
+    '--var',
+    `JOIN_JWT_SECRET=${joinJwtSecret}`,
   ]
   if (vars.PARTYKIT_DEPLOY_NAME?.trim()) {
     args.push('-n', vars.PARTYKIT_DEPLOY_NAME.trim())
   }
   console.log(
-    `[deploy] partykit deploy (JOIN_VERIFY=${joinVerify}, WORD_PROFANITY_FILTER=${wordProfanity})`
+    `[deploy] partykit deploy (JOIN_VERIFY=${joinVerify}, WORD_PROFANITY_FILTER=${wordProfanity}, JOIN_JWT_REQUIRED=${joinJwtRequired})`
   )
   runPartykit(args)
   console.log('[deploy] partykit done')

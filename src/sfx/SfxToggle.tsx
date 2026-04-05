@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Volume2, VolumeX } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -5,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useSfx } from './use-sfx'
 
 export function SfxToggle() {
+  const { t } = useTranslation()
   const { sfxEnabled, setSfxEnabled, reducedMotion } = useSfx()
 
   return (
@@ -14,13 +16,13 @@ export function SfxToggle() {
       size="sm"
       className="h-9 gap-2 text-muted-foreground hover:text-foreground"
       aria-pressed={sfxEnabled}
-      aria-label={sfxEnabled ? 'Sound effects on' : 'Sound effects off'}
+      aria-label={sfxEnabled ? t('sfx.soundOn') : t('sfx.soundOff')}
       title={
         reducedMotion
-          ? 'Sounds are muted while “reduce motion” is on in your system settings'
+          ? t('sfx.titleReducedMotion')
           : sfxEnabled
-            ? 'Turn sound effects off'
-            : 'Turn sound effects on (off by default)'
+            ? t('sfx.titleTurnOff')
+            : t('sfx.titleTurnOn')
       }
       onClick={() => setSfxEnabled(!sfxEnabled)}
     >
@@ -29,8 +31,8 @@ export function SfxToggle() {
       ) : (
         <VolumeX className="size-4 shrink-0" aria-hidden />
       )}
-      <span className="text-xs font-medium">Sound</span>
-      <span className="sr-only">{sfxEnabled ? 'on' : 'off'}</span>
+      <span className="text-xs font-medium">{t('sfx.soundLabel')}</span>
+      <span className="sr-only">{sfxEnabled ? t('sfx.on') : t('sfx.off')}</span>
     </Button>
   )
 }

@@ -92,7 +92,7 @@ Granular commands: **`npm run deploy:sync`** (Worker secrets only), **`npm run d
    - **Root** → your static app URL (e.g. Cloudflare Pages).
    - **`/api/token`** (or your chosen path) → your token Worker URL (see step 2).
 
-### 2. Cloudflare Worker (Discord token exchange)
+### 2. Cloudflare Worker (Discord token exchange + optional party JWT)
 
 From the **repo root** (where `wrangler.toml` lives):
 
@@ -162,6 +162,7 @@ For local testing through Discord, use **cloudflared** or **ngrok** on port `517
 | `npm run deploy:token-worker` | Same as `deploy:worker` |
 | `npm run assets:brand` | Regenerate `public/*.png` from `logo.svg` / `favicon.svg` (requires `sharp`) |
 | `npm run gen:sfx` | Regenerate `public/sounds/*.wav` for optional UI sounds |
+| `npm run test:e2e` | Playwright smoke test (starts preview; needs build env vars like CI) |
 
 ## Security
 
@@ -177,6 +178,23 @@ In `server/partykit.json`, set `"JOIN_VERIFY": "true"` under `vars` (or override
 - **Off by default.** Use the **Sound** control in the top bar to enable short cues (round start, vote confirm, reveal). Preference is stored in `localStorage` (`imposter_sfx_enabled`).
 - **Reduce motion:** when the OS prefers reduced motion, sounds and vote haptics do not run even if Sound is on.
 - **Regenerate WAVs:** `npm run gen:sfx` writes `public/sounds/*.wav` (sine blips; safe to replace with your own files at the same paths).
+
+### Optional: Party join JWT (R9)
+
+When **`JOIN_JWT_REQUIRED=true`** on Partykit, clients must send a short-lived **`partyJwt`** on `JOIN` (no raw Discord `accessToken` to Partykit in that mode).
+
+1. Set **`PARTYKIT_JWT_SECRET`** on the Worker (`wrangler secret put` — included in `npm run deploy:sync` / `deploy:worker` from `.env.deploy`).
+2. Set **`JOIN_JWT_SECRET`** to the **same value** in `.env.deploy` (passed to `partykit deploy --var`).
+3. Map **`/api/party-jwt`** to the **same Worker** as `/api/token` in Discord URL mappings.
+4. Build the client with **`VITE_USE_PARTY_JWT=true`** (or `1`) so it mints a JWT before each `JOIN`.
+
+### Optional: per-user round history (Supabase R8)
+
+After **`003_player_rounds.sql`** is applied, users with a Supabase session get one row per round (after reveal) and a **Recent rounds** list in the web profile header. Guests are unchanged.
+
+### i18n (R10)
+
+Strings live in **`src/i18n/locales/en.json`**. Add locales by registering new resources in **`src/i18n/config.ts`**.
 
 ### Word packs & optional profanity filter (Partykit)
 

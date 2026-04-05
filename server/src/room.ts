@@ -223,6 +223,7 @@ export default class ImposterRoom implements Party.Server {
       avatar?: string
       targetId?: string
       accessToken?: string
+      partyJwt?: string
       word?: string
       imposterWord?: string
       packId?: string
@@ -393,10 +394,27 @@ export default class ImposterRoom implements Party.Server {
       name: string
       avatar: string
       accessToken?: string
+      partyJwt?: string
     },
     sender: Party.Connection
   ) {
-    if (joinVerifyEnabled(this.room.env)) {
+    if (joinJwtRequired(this.room.env)) {
+      const secret = joinJwtSecret(this.room.env)
+      if (!secret) {
+        sender.send(JSON.stringify({ type: 'ERROR', code: 'JOIN_PARTY_JWT_MISCONFIG' }))
+        return
+      }
+      const pj = msg.partyJwt
+      if (!pj || typeof pj !== 'string') {
+        sender.send(JSON.stringify({ type: 'ERROR', code: 'JOIN_PARTY_JWT_REQUIRED' }))
+        return
+      }
+      const jwtOk = await verifyPartyJoinJwt(pj, secret, msg.userId)
+      if (!jwtOk) {
+        sender.send(JSON.stringify({ type: 'ERROR', code: 'JOIN_PARTY_JWT_INVALID' }))
+        return
+      }
+    } else if (joinVerifyEnabled(this.room.env)) {
       const token = msg.accessToken
       if (!token) {
         sender.send(JSON.stringify({ type: 'ERROR', code: 'JOIN_NEED_TOKEN' }))

@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Avatar } from '../components/Avatar'
 import { GameScreen } from '../components/layout/GameScreen'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -20,21 +21,6 @@ import { buildWebInviteUrl, displayInviteCodeFromPartyRoomId } from '../lib/part
 import { parseFirstPastedPair } from '../lib/paste-word-pairs'
 import { cn } from '@/lib/utils'
 import type { ClientMessage, GameState } from '../types/game'
-
-function partyLobbyErrorMessage(code: string | null | undefined): string | null {
-  switch (code) {
-    case 'INVALID_NEXT_WORDS':
-      return 'Those words are not valid. Use two different words, 1–40 characters each (after trimming).'
-    case 'WORDS_PROFANITY':
-      return 'That pair was blocked by the server word filter. Try different words.'
-    case 'INVALID_WORD_PACK':
-      return 'That word pack is not available.'
-    case 'EMPTY_WORD_PACK':
-      return 'This word pack has no pairs to draw from.'
-    default:
-      return null
-  }
-}
 
 type LobbyProps = {
   gameState: GameState
@@ -69,6 +55,7 @@ export default function Lobby({
   partyErrorCode,
   onDismissPartyError,
 }: LobbyProps) {
+  const { t } = useTranslation()
   const players = Object.values(gameState.players)
   const [joinInput, setJoinInput] = useState('')
   const [copied, setCopied] = useState<'link' | 'code' | null>(null)
@@ -82,7 +69,20 @@ export default function Lobby({
     : null
   const inviteUrl = webShareCode ? buildWebInviteUrl(webShareCode) : ''
   const discordExtraCode = displayInviteCodeFromPartyRoomId(partyRoomId)
-  const lobbyPartyErr = partyLobbyErrorMessage(partyErrorCode)
+  const lobbyPartyErr = (() => {
+    switch (partyErrorCode) {
+      case 'INVALID_NEXT_WORDS':
+        return t('lobby.invalidWords')
+      case 'WORDS_PROFANITY':
+        return t('lobby.profanity')
+      case 'INVALID_WORD_PACK':
+        return t('lobby.invalidPack')
+      case 'EMPTY_WORD_PACK':
+        return t('lobby.emptyPack')
+      default:
+        return null
+    }
+  })()
 
   const copyText = useCallback(async (label: 'link' | 'code', text: string) => {
     try {
@@ -110,16 +110,15 @@ export default function Lobby({
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">Lobby</Badge>
+            <Badge variant="secondary">{t('lobby.badge')}</Badge>
             {isHost ? (
-              <Badge className="bg-primary/15 text-primary hover:bg-primary/20">You are host</Badge>
+              <Badge className="bg-primary/15 text-primary hover:bg-primary/20">
+                {t('lobby.youAreHost')}
+              </Badge>
             ) : null}
           </div>
-          <CardTitle className="text-2xl">Waiting for players</CardTitle>
-          <CardDescription>
-            When everyone has joined, the host starts the round. You’ll get a word — or you’ll be
-            the imposter with a different word.
-          </CardDescription>
+          <CardTitle className="text-2xl">{t('lobby.waitingTitle')}</CardTitle>
+          <CardDescription>{t('lobby.waitingDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {joinLobbyError ? (
@@ -128,7 +127,7 @@ export default function Lobby({
                 <span>{joinLobbyError}</span>
                 {onDismissJoinLobbyError ? (
                   <Button type="button" variant="outline" size="sm" onClick={onDismissJoinLobbyError}>
-                    Dismiss
+                    {t('lobby.dismiss')}
                   </Button>
                 ) : null}
               </AlertDescription>
@@ -141,7 +140,7 @@ export default function Lobby({
                 <span>{lobbyPartyErr}</span>
                 {onDismissPartyError ? (
                   <Button type="button" variant="outline" size="sm" onClick={onDismissPartyError}>
-                    Dismiss
+                    {t('lobby.dismiss')}
                   </Button>
                 ) : null}
               </AlertDescription>
@@ -151,16 +150,14 @@ export default function Lobby({
           {webMode ? (
             <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Invite
+                {t('lobby.invite')}
               </p>
               {webShareCode ? (
                 <>
                   <p className="text-2xl font-mono font-semibold tracking-wider text-foreground">
                     {webShareCode}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    Friends can open this link or enter the code to join the same lobby.
-                  </p>
+                  <p className="text-sm text-muted-foreground">{t('lobby.friendsBlurb')}</p>
                   <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
@@ -168,7 +165,7 @@ export default function Lobby({
                       size="sm"
                       onClick={() => copyText('link', inviteUrl)}
                     >
-                      {copied === 'link' ? 'Copied!' : 'Copy link'}
+                      {copied === 'link' ? t('lobby.copied') : t('lobby.copyLink')}
                     </Button>
                     <Button
                       type="button"
@@ -176,7 +173,7 @@ export default function Lobby({
                       size="sm"
                       onClick={() => copyText('code', webShareCode)}
                     >
-                      {copied === 'code' ? 'Copied!' : 'Copy code'}
+                      {copied === 'code' ? t('lobby.copied') : t('lobby.copyCode')}
                     </Button>
                     {onCreateWebLobby ? (
                       <Button
@@ -185,27 +182,20 @@ export default function Lobby({
                         size="sm"
                         className="text-muted-foreground"
                         onClick={() => {
-                          if (
-                            window.confirm(
-                              'Start a new lobby? You will leave this room and join an empty one.'
-                            )
-                          ) {
+                          if (window.confirm(t('lobby.newLobbyConfirm'))) {
                             onCreateWebLobby()
                           }
                         }}
                       >
-                        New lobby
+                        {t('lobby.newLobby')}
                       </Button>
                     ) : null}
                   </div>
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground font-mono break-all">
-                  Room: {partyRoomId}
-                  <span className="mt-2 block font-sans text-xs">
-                    Shareable codes use the <span className="font-mono">lobby-</span> format; open the
-                    site from a normal link to get one.
-                  </span>
+                  {t('lobby.roomPrefix')} {partyRoomId}
+                  <span className="mt-2 block font-sans text-xs">{t('lobby.shareCodeHint')}</span>
                 </p>
               )}
               {onJoinWebLobby ? (
@@ -219,10 +209,10 @@ export default function Lobby({
                   }}
                 >
                   <div className="flex-1 space-y-1.5">
-                    <Label htmlFor="join-lobby-code">Join another lobby</Label>
+                    <Label htmlFor="join-lobby-code">{t('lobby.joinAnother')}</Label>
                     <Input
                       id="join-lobby-code"
-                      placeholder="Room code"
+                      placeholder={t('lobby.joinCodePlaceholder')}
                       autoComplete="off"
                       value={joinInput}
                       onChange={(e) => {
@@ -232,7 +222,7 @@ export default function Lobby({
                     />
                   </div>
                   <Button type="submit" variant="default">
-                    Join
+                    {t('lobby.join')}
                   </Button>
                 </form>
               ) : null}
@@ -242,17 +232,14 @@ export default function Lobby({
           {isDiscordActivity && onDiscordLobbySuffixChange ? (
             <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Discord lobby
+                {t('lobby.discordLobby')}
               </p>
-              <p className="text-sm text-muted-foreground">
-                By default everyone in this Activity instance shares one room. Set a room code (4+
-                characters) so only friends who enter the same code join your game.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('lobby.discordLobbyHelp')}</p>
               <div className="space-y-1.5 max-w-sm">
-                <Label htmlFor="discord-room-code">Optional room code</Label>
+                <Label htmlFor="discord-room-code">{t('lobby.discordRoomCode')}</Label>
                 <Input
                   id="discord-room-code"
-                  placeholder="e.g. FRIDAY"
+                  placeholder={t('lobby.discordRoomPlaceholder')}
                   autoComplete="off"
                   value={discordLobbySuffix}
                   onChange={(e) => onDiscordLobbySuffixChange(e.target.value)}
@@ -260,7 +247,7 @@ export default function Lobby({
               </div>
               {discordExtraCode ? (
                 <p className="text-sm">
-                  Active code:{' '}
+                  {t('lobby.activeCode')}{' '}
                   <span className="font-mono font-medium">{discordExtraCode}</span>
                 </p>
               ) : null}
@@ -268,24 +255,30 @@ export default function Lobby({
           ) : null}
 
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Room record
+            {t('lobby.roomRecord')}
           </p>
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">{gameState.stats.roundsCompleted} rounds</Badge>
-            <Badge variant="outline">Crew {gameState.stats.crewWins}</Badge>
-            <Badge variant="outline">Imposter {gameState.stats.imposterWins}</Badge>
+            <Badge variant="outline">
+              {t('lobby.roundsBadge', { count: gameState.stats.roundsCompleted })}
+            </Badge>
+            <Badge variant="outline">
+              {t('lobby.crewWins', { count: gameState.stats.crewWins })}
+            </Badge>
+            <Badge variant="outline">
+              {t('lobby.imposterWins', { count: gameState.stats.imposterWins })}
+            </Badge>
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Players ({players.length})</CardTitle>
-          <CardDescription>Who’s in this session right now.</CardDescription>
+          <CardTitle className="text-lg">{t('lobby.playersTitle', { count: players.length })}</CardTitle>
+          <CardDescription>{t('lobby.playersDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="px-0">
           {players.length === 0 ? (
-            <p className="px-6 text-sm text-muted-foreground">No players yet…</p>
+            <p className="px-6 text-sm text-muted-foreground">{t('lobby.noPlayers')}</p>
           ) : (
             <ul className="divide-y divide-border">
               {players.map((p) => (
@@ -295,11 +288,11 @@ export default function Lobby({
                   <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
                     {p.isSpectator ? (
                       <Badge variant="outline" className="shrink-0">
-                        Spectator
+                        {t('lobby.spectator')}
                       </Badge>
                     ) : null}
                     {p.id === gameState.hostId ? (
-                      <Badge className="shrink-0 bg-primary/15 text-primary">Host</Badge>
+                      <Badge className="shrink-0 bg-primary/15 text-primary">{t('lobby.host')}</Badge>
                     ) : null}
                   </div>
                 </li>
@@ -312,14 +305,12 @@ export default function Lobby({
           {!isHost ? (
             <div className="w-full text-sm text-muted-foreground">
               {gameState.hasCustomNextRound ? (
-                <p>The host chose custom words for the next round.</p>
+                <p>{t('lobby.customWordsHost')}</p>
               ) : (
                 <p>
-                  Random words use pack:{' '}
-                  <span className="font-medium text-foreground">
-                    {labelForWordPackId(gameState.wordPackId)}
-                  </span>
-                  .
+                  {t('lobby.randomPackLabel', {
+                    pack: labelForWordPackId(gameState.wordPackId),
+                  })}
                 </p>
               )}
             </div>
@@ -327,15 +318,12 @@ export default function Lobby({
           {isHost ? (
             <div className="w-full space-y-3 border-b border-border pb-4 sm:border-0 sm:pb-0">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Word pack
+                {t('lobby.wordPackSection')}
               </p>
-              <p className="text-sm text-muted-foreground">
-                Choose a theme for random rounds, roll one pair from the pack, or type / paste your
-                own. Custom pairs stay secret until the round starts.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('lobby.wordPackHelp')}</p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div className="min-w-0 flex-1 space-y-1.5">
-                  <Label htmlFor="word-pack">Pack for random</Label>
+                  <Label htmlFor="word-pack">{t('lobby.packForRandom')}</Label>
                   <select
                     id="word-pack"
                     className={cn(
@@ -351,7 +339,7 @@ export default function Lobby({
                       onDismissPartyError?.()
                       send({ type: 'SET_WORD_PACK', packId: e.target.value })
                     }}
-                    aria-label="Word pack for random rounds"
+                    aria-label={t('lobby.packSelectAria')}
                   >
                     {WORD_PACK_OPTIONS.map((o) => (
                       <option key={o.id} value={o.id}>
@@ -369,19 +357,19 @@ export default function Lobby({
                     send({ type: 'ROLL_PACK_PAIR' })
                   }}
                 >
-                  Random pair from pack
+                  {t('lobby.randomFromPack')}
                 </Button>
               </div>
 
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground pt-1">
-                Paste or type next round
+                {t('lobby.pasteSection')}
               </p>
               <div className="space-y-1.5">
-                <Label htmlFor="paste-pairs">Paste pairs (optional)</Label>
+                <Label htmlFor="paste-pairs">{t('lobby.pasteLabel')}</Label>
                 <textarea
                   id="paste-pairs"
                   rows={3}
-                  placeholder={'One pair per line, e.g.\nPizza, Burger\nOcean | Lake'}
+                  placeholder={t('lobby.pastePlaceholder')}
                   className={cn(
                     'w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none md:text-sm dark:bg-input/30',
                     'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
@@ -392,7 +380,7 @@ export default function Lobby({
                     setPasteText(e.target.value)
                     if (pasteHint) setPasteHint(null)
                   }}
-                  aria-label="Paste word pairs, one per line"
+                  aria-label={t('lobby.pasteAria')}
                 />
                 {pasteHint ? <p className="text-sm text-amber-600 dark:text-amber-500">{pasteHint}</p> : null}
                 <Button
@@ -408,42 +396,40 @@ export default function Lobby({
                       setPasteHint(null)
                       onDismissPartyError?.()
                     } else {
-                      setPasteHint(
-                        'No valid line found. Use crew, imposter or crew|imposter per line (lines starting with # are ignored).'
-                      )
+                      setPasteHint(t('lobby.pasteHint'))
                     }
                   }}
                 >
-                  Load first pair into fields
+                  {t('lobby.loadFirstPair')}
                 </Button>
               </div>
 
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground pt-2">
-                Crew & imposter words
+                {t('lobby.crewImposterSection')}
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="crew-word">Crew word</Label>
+                  <Label htmlFor="crew-word">{t('lobby.crewWord')}</Label>
                   <Input
                     id="crew-word"
                     value={crewWord}
                     onChange={(e) => setCrewWord(e.target.value)}
                     maxLength={40}
-                    placeholder="e.g. Pizza"
+                    placeholder={t('lobby.crewPlaceholder')}
                     autoComplete="off"
-                    aria-label="Crew word for next round"
+                    aria-label={t('lobby.crewWordAria')}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="imposter-word">Imposter word</Label>
+                  <Label htmlFor="imposter-word">{t('lobby.imposterWord')}</Label>
                   <Input
                     id="imposter-word"
                     value={imposterWord}
                     onChange={(e) => setImposterWord(e.target.value)}
                     maxLength={40}
-                    placeholder="e.g. Burger"
+                    placeholder={t('lobby.imposterPlaceholder')}
                     autoComplete="off"
-                    aria-label="Imposter word for next round"
+                    aria-label={t('lobby.imposterWordAria')}
                   />
                 </div>
               </div>
@@ -457,7 +443,7 @@ export default function Lobby({
                     send({ type: 'SET_NEXT_WORDS', word: crewWord, imposterWord: imposterWord })
                   }}
                 >
-                  Use these next round
+                  {t('lobby.useThese')}
                 </Button>
                 <Button
                   type="button"
@@ -471,7 +457,7 @@ export default function Lobby({
                     setImposterWord('')
                   }}
                 >
-                  Use random words
+                  {t('lobby.useRandom')}
                 </Button>
               </div>
             </div>
@@ -485,15 +471,15 @@ export default function Lobby({
                 disabled={players.length === 0}
                 onClick={() => send({ type: 'START_GAME' })}
               >
-                Start game
+                {t('lobby.startGame')}
               </Button>
               <p className="text-center text-xs text-muted-foreground sm:text-left">
-                Need at least one player (you) to begin.
+                {t('lobby.startGameHint')}
               </p>
             </>
           ) : (
             <p className="w-full text-center text-sm text-muted-foreground sm:text-left">
-              Only the host can start. Ask them to tap <strong>Start game</strong> when ready.
+              {t('lobby.onlyHost')}
             </p>
           )}
         </CardFooter>

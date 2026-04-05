@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Check, CircleDot } from 'lucide-react'
 
 import { Avatar } from '../components/Avatar'
@@ -27,6 +28,7 @@ type VotingProps = AuthUserProps & {
 }
 
 export default function Voting({ gameState, me, send }: VotingProps) {
+  const { t } = useTranslation()
   const { play } = useSfx()
   const [selected, setSelected] = useState<string | null>(null)
   const players = Object.values(gameState.players)
@@ -48,13 +50,11 @@ export default function Voting({ gameState, me, send }: VotingProps) {
         <Card className="transition-shadow duration-200 motion-reduce:transition-none">
           <CardHeader className="text-center sm:text-left">
             <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-              <Badge variant="secondary">Voting</Badge>
-              <Badge variant="outline">Spectator</Badge>
+              <Badge variant="secondary">{t('voting.voting')}</Badge>
+              <Badge variant="outline">{t('voting.spectator')}</Badge>
             </div>
-            <CardTitle className="text-2xl">Watching the vote</CardTitle>
-            <CardDescription>
-              You can’t vote this round. Results will show on the reveal screen.
-            </CardDescription>
+            <CardTitle className="text-2xl">{t('voting.watchingTitle')}</CardTitle>
+            <CardDescription>{t('voting.watchingDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
@@ -62,7 +62,9 @@ export default function Voting({ gameState, me, send }: VotingProps) {
                 <li key={p.id} className="flex items-center gap-2">
                   <Avatar user={{ id: p.id, name: p.name, avatar: p.avatar }} size={36} />
                   <span className="font-medium text-foreground">{p.name}</span>
-                  <span>— {p.hasVoted ? 'voted' : 'still thinking…'}</span>
+                  <span>
+                    — {p.hasVoted ? t('voting.voted') : t('voting.thinking')}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -77,38 +79,39 @@ export default function Voting({ gameState, me, send }: VotingProps) {
       <Card className="transition-shadow duration-200 motion-reduce:transition-none">
         <CardHeader className="text-center sm:text-left">
           <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-            <Badge variant="secondary">Voting</Badge>
+            <Badge variant="secondary">{t('voting.voting')}</Badge>
             <Badge variant="outline" className="tabular-nums">
-              {votedCount}/{votingPlayers.length} voted
+              {t('voting.countVoted', { count: votedCount, total: votingPlayers.length })}
             </Badge>
           </div>
           <CardTitle id="voting-heading" className="text-2xl">
-            Who is the imposter?
+            {t('voting.whoImposter')}
           </CardTitle>
           <CardDescription>
-            Tap a player, then confirm. You can’t vote for yourself.
-            {me.hasVoted ? ' Your vote is locked in.' : ''}
+            {t('voting.instructions')}
+            {me.hasVoted ? t('voting.voteLocked') : ''}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div
             className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3"
-            role="group"
+            role="radiogroup"
             aria-labelledby="voting-heading"
           >
             {votingPlayers.map((p) => {
               const isSelf = p.id === me.id
               const isSelected = selected === p.id
               const label = isSelf
-                ? `${p.name} — you cannot vote for yourself`
-                : `Select ${p.name} to vote for`
+                ? t('voting.cannotVoteSelf', { name: p.name })
+                : t('voting.selectToVote', { name: p.name })
               return (
                 <Button
                   key={p.id}
                   type="button"
                   variant={isSelected ? 'default' : 'outline'}
                   disabled={me.hasVoted || isSelf}
-                  aria-pressed={!isSelf && !me.hasVoted ? isSelected : undefined}
+                  role="radio"
+                  aria-checked={!isSelf && !me.hasVoted ? isSelected : isSelf ? false : undefined}
                   aria-label={label}
                   className="min-h-11 h-auto flex-col gap-2 py-4 font-normal transition-colors duration-150 motion-reduce:transition-none"
                   onClick={() => setSelected(p.id)}
@@ -116,7 +119,7 @@ export default function Voting({ gameState, me, send }: VotingProps) {
                   <Avatar user={{ id: p.id, name: p.name, avatar: p.avatar }} size={56} />
                   <span className="max-w-full truncate text-sm font-medium">{p.name}</span>
                   {isSelf ? (
-                    <span className="text-xs text-muted-foreground">You</span>
+                    <span className="text-xs text-muted-foreground">{t('voting.you')}</span>
                   ) : null}
                 </Button>
               )
@@ -132,20 +135,22 @@ export default function Voting({ gameState, me, send }: VotingProps) {
             disabled={!selected || me.hasVoted}
             aria-label={
               me.hasVoted
-                ? 'Vote already submitted'
+                ? t('voting.confirmAriaVoted')
                 : selected
-                  ? `Confirm vote for ${players.find((x) => x.id === selected)?.name ?? 'player'}`
-                  : 'Confirm vote — select a player first'
+                  ? t('voting.confirmAriaFor', {
+                      name: players.find((x) => x.id === selected)?.name ?? 'player',
+                    })
+                  : t('voting.confirmAriaSelect')
             }
             onClick={confirm}
           >
             {me.hasVoted ? (
               <>
                 <Check className="size-4" />
-                Vote submitted
+                {t('voting.voteSubmitted')}
               </>
             ) : (
-              'Confirm vote'
+              t('voting.confirmVote')
             )}
           </Button>
           <ul className="flex w-full flex-col gap-1.5 text-center text-xs text-muted-foreground sm:text-left">
@@ -157,7 +162,9 @@ export default function Voting({ gameState, me, send }: VotingProps) {
                   <CircleDot className="size-3.5 shrink-0 opacity-40" aria-hidden />
                 )}
                 <span className="font-medium text-foreground">{p.name}</span>
-                <span>— {p.hasVoted ? 'voted' : 'still thinking…'}</span>
+                <span>
+                  — {p.hasVoted ? t('voting.voted') : t('voting.thinking')}
+                </span>
               </li>
             ))}
           </ul>

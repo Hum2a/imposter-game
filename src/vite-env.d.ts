@@ -21,6 +21,8 @@ interface ImportMetaEnv {
   readonly VITE_PLAUSIBLE_DOMAIN?: string
   /** Override script URL (default `https://plausible.io/js/script.js`). */
   readonly VITE_PLAUSIBLE_SCRIPT_URL?: string
+  /** When "1"/"true", mint Partykit join JWT from Worker before JOIN (pair with JOIN_JWT_REQUIRED on Partykit). */
+  readonly VITE_USE_PARTY_JWT?: string
 }
 
 interface ImportMeta {

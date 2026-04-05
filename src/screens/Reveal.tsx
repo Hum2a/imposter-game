@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Trophy } from 'lucide-react'
 
 import { Avatar } from '../components/Avatar'
@@ -11,40 +13,53 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { recordPlayerRoundIfNeeded } from '@/lib/record-player-round'
 import type { AuthUserProps } from './types'
 import type { ClientMessage } from '../types/game'
 
 type RevealProps = AuthUserProps & {
   isHost: boolean
   send: (msg: ClientMessage) => void
+  partyRoomId: string
 }
 
-export default function Reveal({ gameState, isHost, send, auth }: RevealProps) {
+export default function Reveal({ gameState, isHost, send, auth, partyRoomId }: RevealProps) {
+  const { t } = useTranslation()
   const me = gameState.players[auth.user.id]
   const isSpectator = me?.isSpectator === true
   const imposter = Object.values(gameState.players).find((p) => p.isImposter)
 
+  useEffect(() => {
+    if (!me || me.isSpectator) return
+    void recordPlayerRoundIfNeeded({
+      partyRoomId,
+      roundIndex: gameState.round,
+      winner: gameState.winner,
+      wasImposter: me.isImposter,
+      votedFor: me.votedFor,
+    })
+  }, [partyRoomId, gameState.round, gameState.winner, me])
+
   const winnerLabel =
     gameState.winner === 'crew'
-      ? 'Crew wins'
+      ? t('reveal.crewWins')
       : gameState.winner === 'imposter'
-        ? 'Imposter wins'
-        : 'No votes cast'
+        ? t('reveal.imposterWins')
+        : t('reveal.noVotes')
 
   return (
     <GameScreen>
       {isSpectator ? (
         <p className="text-center text-sm text-muted-foreground" role="status">
-          You joined as a spectator this round — you’ll play normally after the next lobby or round
-          start.
+          {t('reveal.spectatorNote')}
         </p>
       ) : null}
       <Card className="transition-shadow duration-200 motion-reduce:transition-none">
         <CardHeader className="text-center">
-          <Badge variant="outline">Round over</Badge>
+          <Badge variant="outline">{t('reveal.roundOver')}</Badge>
           <CardTitle className="flex items-center justify-center gap-2 text-3xl">
             <Trophy className="size-8 text-primary" aria-hidden />
-            Reveal
+            {t('reveal.title')}
           </CardTitle>
           <CardDescription className="text-lg font-medium text-foreground">
             {winnerLabel}
@@ -55,8 +70,8 @@ export default function Reveal({ gameState, isHost, send, auth }: RevealProps) {
       {imposter ? (
         <Card className="border-destructive/40 bg-destructive/5 transition-shadow duration-200 motion-reduce:transition-none">
           <CardHeader>
-            <CardTitle className="text-lg text-destructive">The imposter</CardTitle>
-            <CardDescription>Unmasking for this round</CardDescription>
+            <CardTitle className="text-lg text-destructive">{t('reveal.imposterCardTitle')}</CardTitle>
+            <CardDescription>{t('reveal.imposterCardDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-3 pb-8">
             <Avatar
@@ -73,15 +88,15 @@ export default function Reveal({ gameState, isHost, send, auth }: RevealProps) {
         </Card>
       ) : null}
 
-      <Card>
+      <Card className="transition-shadow duration-200 motion-reduce:transition-none">
         <CardHeader>
-          <CardTitle className="text-lg">Words</CardTitle>
-          <CardDescription>What each side was working with.</CardDescription>
+          <CardTitle className="text-lg">{t('reveal.wordsTitle')}</CardTitle>
+          <CardDescription>{t('reveal.wordsDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <div className="flex flex-col gap-1 rounded-lg border bg-muted/30 px-4 py-3">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Crew word
+              {t('reveal.crewWord')}
             </span>
             <span className="text-lg font-semibold text-foreground">
               {gameState.word || '—'}
@@ -89,7 +104,7 @@ export default function Reveal({ gameState, isHost, send, auth }: RevealProps) {
           </div>
           <div className="flex flex-col gap-1 rounded-lg border bg-muted/30 px-4 py-3">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Imposter word
+              {t('reveal.imposterWord')}
             </span>
             <span className="text-lg font-semibold text-foreground">
               {gameState.imposterWord || '—'}
@@ -100,8 +115,8 @@ export default function Reveal({ gameState, isHost, send, auth }: RevealProps) {
 
       <Card className="transition-shadow duration-200 motion-reduce:transition-none">
         <CardHeader>
-          <CardTitle className="text-lg">Votes</CardTitle>
-          <CardDescription>Who picked whom.</CardDescription>
+          <CardTitle className="text-lg">{t('reveal.votesTitle')}</CardTitle>
+          <CardDescription>{t('reveal.votesDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <ul className="space-y-2 text-sm">
@@ -122,7 +137,7 @@ export default function Reveal({ gameState, isHost, send, auth }: RevealProps) {
               )
             })}
             {Object.keys(gameState.votes).length === 0 ? (
-              <li className="text-muted-foreground">No votes this round.</li>
+              <li className="text-muted-foreground">{t('reveal.noVotesList')}</li>
             ) : null}
           </ul>
         </CardContent>
@@ -131,35 +146,33 @@ export default function Reveal({ gameState, isHost, send, auth }: RevealProps) {
       {isHost ? (
         <Card className="transition-shadow duration-200 motion-reduce:transition-none">
           <CardHeader>
-            <CardTitle className="text-lg">Host controls</CardTitle>
-            <CardDescription>Everyone else waits for you here.</CardDescription>
+            <CardTitle className="text-lg">{t('reveal.hostTitle')}</CardTitle>
+            <CardDescription>{t('reveal.hostDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Button
               type="button"
               size="lg"
               className="min-h-11 w-full sm:w-auto"
-              aria-label="Start next round with a new word"
+              aria-label={t('reveal.nextRoundAria')}
               onClick={() => send({ type: 'NEXT_ROUND' })}
             >
-              Next round
+              {t('reveal.nextRound')}
             </Button>
             <Button
               type="button"
               size="lg"
               variant="outline"
               className="min-h-11 w-full sm:w-auto"
-              aria-label="Return everyone to the lobby"
+              aria-label={t('reveal.backLobbyAria')}
               onClick={() => send({ type: 'BACK_TO_LOBBY' })}
             >
-              Back to lobby
+              {t('reveal.backLobby')}
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <p className="text-center text-sm text-muted-foreground">
-          Waiting for the host to start the next round or return to the lobby.
-        </p>
+        <p className="text-center text-sm text-muted-foreground">{t('reveal.waitingHost')}</p>
       )}
     </GameScreen>
   )

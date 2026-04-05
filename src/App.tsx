@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   AppConfigWarning,
   AppErrorState,
@@ -10,6 +11,7 @@ import { useGameAnalytics } from './hooks/useGameAnalytics'
 import { trackEvent } from './lib/analytics'
 import { isSupabaseConfigured } from './lib/supabase-client'
 import { useParty } from './hooks/useParty'
+import { fetchPartyJoinJwt, usePartyJoinJwtEnabled } from './lib/party-jwt-mint'
 import { PhaseSfxListener, SfxProvider, SfxToggle } from './sfx'
 import Lobby from './screens/Lobby'
 import Game from './screens/Game'
@@ -26,6 +28,8 @@ function InlineCode({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
+  const { t } = useTranslation()
+  const partyJwtMode = usePartyJoinJwtEnabled()
   const {
     auth,
     error,
@@ -59,18 +63,40 @@ export default function App() {
 
   useEffect(() => {
     if (connection !== 'open' || !auth) return
-    send({
-      type: 'JOIN',
-      userId: auth.user.id,
-      name: auth.user.global_name ?? auth.user.username,
-      avatar: auth.user.avatar ?? '',
-      ...(isDiscordActivity &&
-      auth.access_token &&
-      !auth.access_token.startsWith('browser-dev') &&
-      auth.access_token !== 'mock'
-        ? { accessToken: auth.access_token }
-        : {}),
-    })
+    let cancelled = false
+    const accessToken = auth.access_token
+    const hasRealDiscordToken =
+      Boolean(accessToken) &&
+      !accessToken!.startsWith('browser-dev') &&
+      accessToken !== 'mock'
+
+    void (async () => {
+      let partyJwt: string | undefined
+      if (partyJwtMode && hasRealDiscordToken && accessToken) {
+        const pj = await fetchPartyJoinJwt(accessToken)
+        if (!cancelled && pj) partyJwt = pj
+      }
+
+      if (cancelled) return
+
+      send({
+        type: 'JOIN',
+        userId: auth.user.id,
+        name: auth.user.global_name ?? auth.user.username,
+        avatar: auth.user.avatar ?? '',
+        ...(partyJwt ? { partyJwt } : {}),
+        ...(isDiscordActivity &&
+        hasRealDiscordToken &&
+        accessToken &&
+        !partyJwtMode
+          ? { accessToken }
+          : {}),
+      })
+    })()
+
+    return () => {
+      cancelled = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- JOIN on socket open + stable identity fields (omit `auth` ref churn)
   }, [
     connection,
@@ -82,6 +108,7 @@ export default function App() {
     auth?.user.username,
     auth?.user.avatar,
     auth?.access_token,
+    partyJwtMode,
   ])
 
   if (error) {
@@ -107,14 +134,14 @@ export default function App() {
   }
 
   if (!auth) {
-    return <AppLoadingState label="Connecting…" />
+    return <AppLoadingState label={t('app.connecting')} />
   }
 
   if (!partyHost) {
     return (
       <AppConfigWarning
-        title="Game server not configured"
-        body="Partykit must be running and reachable so players can join the same room."
+        title={t('app.gameServerNotConfigured')}
+        body={t('app.gameServerNotConfiguredBody')}
         codeHint={
           <>
             Run Partykit in <InlineCode>server/</InlineCode> (
@@ -131,12 +158,12 @@ export default function App() {
     if (connection === 'closed') {
       return (
         <AppLoadingState
-          label="Reconnecting to game server…"
-          description="Connection dropped. Trying again — you can keep this tab open."
+          label={t('app.reconnectingGameServer')}
+          description={t('app.reconnectingGameServerDesc')}
         />
       )
     }
-    return <AppLoadingState label="Connecting to game server…" />
+    return <AppLoadingState label={t('app.connectingGameServer')} />
   }
 
   const me = gameState.players[auth.user.id]
@@ -144,28 +171,43 @@ export default function App() {
     if (partyErrorCode === 'JOIN_VERIFY_FAILED') {
       return (
         <AppConfigWarning
-          title="Could not verify your Discord account"
-          body="This room requires a valid Discord sign-in. Try closing and reopening the Activity, or ask the host to turn off strict join verification for testing."
+          title={t('app.verifyDiscordFailed')}
+          body={t('app.verifyDiscordFailedBody')}
         />
       )
     }
     if (partyErrorCode === 'JOIN_NEED_TOKEN') {
       return (
         <AppConfigWarning
-          title="Discord token required"
-          body="The server is configured to verify Discord accounts on join, but no token was sent. Reopen the Activity from Discord or check Partykit JOIN_VERIFY settings."
+          title={t('app.discordTokenRequired')}
+          body={t('app.discordTokenRequiredBody')}
         />
+      )
+    }
+    if (partyErrorCode === 'JOIN_PARTY_JWT_REQUIRED') {
+      return (
+        <AppConfigWarning title={t('app.partyJwtRequired')} body={t('app.partyJwtRequiredBody')} />
+      )
+    }
+    if (partyErrorCode === 'JOIN_PARTY_JWT_INVALID') {
+      return (
+        <AppConfigWarning title={t('app.partyJwtInvalid')} body={t('app.partyJwtInvalidBody')} />
+      )
+    }
+    if (partyErrorCode === 'JOIN_PARTY_JWT_MISCONFIG') {
+      return (
+        <AppConfigWarning title={t('app.partyJwtMisconfig')} body={t('app.partyJwtMisconfigBody')} />
       )
     }
     if (gameState.phase !== 'lobby') {
       return (
         <AppLoadingState
-          label="Joining this round…"
-          description="If the game already started, you’ll appear as a spectator until the next lobby or round."
+          label={t('app.joiningRound')}
+          description={t('app.joiningRoundDesc')}
         />
       )
     }
-    return <AppLoadingState label="Joining room…" />
+    return <AppLoadingState label={t('app.joiningRoom')} />
   }
 
   const isHost = gameState.hostId === auth.user.id
@@ -179,7 +221,7 @@ export default function App() {
           role="status"
           aria-live="polite"
         >
-          Reconnecting to the game server…
+          {t('app.reconnectBanner')}
         </div>
       ) : null}
       <SfxProvider>
@@ -230,11 +272,11 @@ export default function App() {
     case 'voting':
       return shell(<Voting {...props} />, gameState.phase)
     case 'reveal':
-      return shell(<Reveal {...props} />, gameState.phase)
+      return shell(<Reveal {...props} partyRoomId={partyRoomId ?? ''} />, gameState.phase)
     default:
       return shell(
         <div className="flex flex-1 items-center justify-center text-muted-foreground">
-          Unknown phase
+          {t('app.unknownPhase')}
         </div>,
         gameState.phase
       )

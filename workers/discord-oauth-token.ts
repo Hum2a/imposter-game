@@ -1,13 +1,13 @@
 /**
- * Cloudflare Worker — Discord OAuth2 token exchange for Embedded App SDK.
+ * Cloudflare Worker — Discord OAuth2 token exchange + optional Partykit join JWT mint.
  *
  * Deploy: `npx wrangler deploy` from repo root (see wrangler.toml).
- * Secrets: `wrangler secret put DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET`
+ * Secrets: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `PARTYKIT_JWT_SECRET` (for `/api/party-jwt`)
  *
- * Optional env: DISCORD_REDIRECT_URI
- *
- * Discord URL mapping: route `/api/token` (or your chosen path) to this worker.
+ * Discord URL mappings: `/api/token` and `/api/party-jwt` → this Worker (same host).
  */
+
+import { mintPartyJoinJwt } from './party-jwt'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,8 +23,13 @@ export default {
     }
 
     const url = new URL(request.url)
-    const isTokenPath =
-      url.pathname === '/api/token' || url.pathname.endsWith('/api/token')
+    const path = url.pathname
+    const isTokenPath = path === '/api/token' || path.endsWith('/api/token')
+    const isPartyJwtPath = path === '/api/party-jwt' || path.endsWith('/api/party-jwt')
+
+    if (isPartyJwtPath && request.method === 'POST') {
+      return handlePartyJwt(request, env)
+    }
 
     if (!isTokenPath || request.method !== 'POST') {
       return new Response('Not found', { status: 404 })
@@ -72,6 +77,32 @@ export default {
   },
 }
 
+async function handlePartyJwt(request: Request, env: Env): Promise<Response> {
+  const secret = env.PARTYKIT_JWT_SECRET
+  if (!secret || secret.trim() === '') {
+    return jsonWithCors({ error: 'party_jwt_not_configured' }, 503)
+  }
+
+  let body: { access_token?: string; accessToken?: string }
+  try {
+    body = (await request.json()) as { access_token?: string; accessToken?: string }
+  } catch {
+    return jsonWithCors({ error: 'Invalid JSON' }, 400)
+  }
+
+  const accessToken = body.access_token ?? body.accessToken
+  if (!accessToken || typeof accessToken !== 'string') {
+    return jsonWithCors({ error: 'Missing access_token' }, 400)
+  }
+
+  const jwt = await mintPartyJoinJwt(accessToken, secret)
+  if (!jwt) {
+    return jsonWithCors({ error: 'discord_token_invalid' }, 401)
+  }
+
+  return jsonWithCors({ party_jwt: jwt }, 200)
+}
+
 function jsonWithCors(data: unknown, status: number): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -86,4 +117,5 @@ interface Env {
   DISCORD_CLIENT_ID: string
   DISCORD_CLIENT_SECRET: string
   DISCORD_REDIRECT_URI?: string
+  PARTYKIT_JWT_SECRET?: string
 }

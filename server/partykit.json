@@ -5,7 +5,9 @@
   "compatibilityDate": "2026-04-05",
   "vars": {
     "JOIN_VERIFY": "false",
-    "WORD_PROFANITY_FILTER": "false"
+    "WORD_PROFANITY_FILTER": "false",
+    "JOIN_JWT_REQUIRED": "false",
+    "JOIN_JWT_SECRET": ""
   },
   "serve": {
     "path": "public",

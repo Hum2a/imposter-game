@@ -1,13 +1,13 @@
-name: CI
+# Runs on version tags: full lint, build, server tsc, and Playwright smoke.
+# Wire GitHub → Cloudflare deploy separately (Wrangler/Pages secrets) when ready.
+name: Release verify
 
 on:
   push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+    tags: ['v*']
 
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Install & lint & build (client)
+      - name: Client install, lint, build
         env:
           VITE_DISCORD_CLIENT_ID: '0'
           VITE_PARTYKIT_HOST: localhost:1999
@@ -24,17 +24,17 @@ jobs:
           npm ci
           npm run lint
           npm run build
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
-      - name: E2E smoke
+      - name: Partykit server typecheck
+        working-directory: server
+        run: |
+          npm ci
+          npx tsc --noEmit -p .
+      - name: Playwright
         env:
           CI: true
           VITE_DISCORD_CLIENT_ID: '0'
           VITE_PARTYKIT_HOST: localhost:1999
           VITE_DISCORD_TOKEN_URL: https://example.com/api/token
-        run: npm run test:e2e
-      - name: Install & typecheck (Partykit server)
-        working-directory: server
         run: |
-          npm ci
-          npx tsc --noEmit -p .
+          npx playwright install --with-deps chromium
+          npm run test:e2e

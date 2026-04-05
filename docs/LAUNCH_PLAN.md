@@ -228,11 +228,11 @@ Features below are the **master planning list**; P0 L1–L5 are done in client +
 | ID | Feature | Notes |
 |----|---------|--------|
 | **X1** | Sound, haptics, animations | **Done (R7):** optional SFX (off by default), `public/sounds/*.wav`, lobby bar toggle; vote tap + phase cues; `prefers-reduced-motion` mutes SFX + haptics; short card transitions on play screens. |
-| **X2** | Round history / stats per user | Needs persistent id + optional Supabase tables |
-| **X3** | **Stronger identity** | Short-lived signed tokens vs raw Discord token on wire ([POST_LAUNCH.md](./POST_LAUNCH.md)) |
+| **X2** | Round history / stats per user | **Done (R8):** `player_rounds` migration + insert after reveal for Supabase sessions; **Recent rounds** in web profile. |
+| **X3** | **Stronger identity** | **Done (R9):** optional `JOIN_JWT_REQUIRED` + Worker `/api/party-jwt` (HS256) + `VITE_USE_PARTY_JWT`; raw Discord token not sent to Partykit when JWT mode on. |
 | **X4** | Analytics (privacy-preserving) | Events: round_start, vote, crash — Plausible / CF Web Analytics |
-| **X5** | i18n / accessibility | **Partial:** discussion timer `aria-live`; more labels / focus / modals TBD |
-| **X6** | CI: `build` + `lint` on PR | **Done:** `.github/workflows/ci.yml` — client lint+build, `server/` `tsc --noEmit` |
+| **X5** | i18n / accessibility | **Done (R10 baseline):** `i18next` + `src/i18n/locales/en.json`; main UI strings; Voting `radiogroup`/`radio`. Further locales + focus audit optional. |
+| **X6** | CI: `build` + `lint` on PR | **Done:** `.github/workflows/ci.yml` — lint, build, Playwright smoke, `server/` `tsc`; tag workflow `release-verify.yml`. |
 | **X7** | Staging app + staging Worker | Second Discord app or URL mapping to preview Pages |
 
 ---
@@ -269,10 +269,10 @@ Use this as the **master order** for everything not yet fully shipped in P1/P2. 
 | **R5** | **G2** (spectate) | **Done:** `Player.isSpectator`, mid-round `handleJoin` path, `Game` / `Voting` / `Reveal` / `Lobby` UI. | **R4** | `room.ts`, `Game.tsx`, `Voting.tsx`, `Reveal.tsx`, `Lobby.tsx`, `types/game.ts` |
 | **R6** | **G3** (finish) | **Done:** packs in `server/src/word-packs.ts` + `SET_WORD_PACK` / `ROLL_PACK_PAIR`; lobby select + paste first pair; **`WORD_PROFANITY_FILTER`** env on Partykit; client labels in `src/data/word-pack-options.ts` (keep ids in sync). | **R0** for safe iteration | `word-packs.ts`, `word-pack-options.ts`, `Lobby.tsx`, `room.ts` |
 | **R7** ‖ | **X1** | **Done:** SFX off by default (`localStorage` `imposter_sfx_enabled`); **Sound** toggle in app shell; `vote` / `round` / `reveal` WAVs; light `navigator.vibrate` on vote confirm; `motion-reduce` + user mute; `npm run gen:sfx` regenerates assets | **R1** partial | `src/sfx/*`, `sfx-play.ts`, `haptics.ts`, `public/sounds/*`, `Voting`/`Game`/`Reveal` transitions |
-| **R8** ‖ | **X2** | Optional Supabase tables for per-user stats/history; RLS; write path from client after `reveal` or batch from trusted server path | Stable **web identity** story | `supabase/migrations`, `web-session.ts`, UI surface (profile or modal) |
-| **R9** | **X3** | PartyKit verifies **short-lived join JWT** from Worker (or Worker proxies mint); stop sending raw Discord OAuth token on wire when feature flag on | **R0**, **R4** | `workers/discord-oauth-token.ts` (or new route), `room.ts`, `App.tsx`, secrets |
-| **R10** | **X5** (i18n) | Add i18n library, extract strings (English first), then second locale if needed; full a11y pass with screen reader | **R1** | `src/locales/*`, component sweep |
-| **R11** ‖ | CI+ | Optional: GitHub deploy on tag, E2E smoke (Playwright) against staging | **R0**, ~~**X6**~~ | `.github/workflows/*` |
+| **R8** ‖ | **X2** | **Done:** `003_player_rounds.sql`; `recordPlayerRoundIfNeeded` on reveal; **Recent rounds** in web profile | Stable **web identity** story | `supabase/migrations/003_player_rounds.sql`, `record-player-round.ts`, `Reveal.tsx`, `WebProfileControls.tsx` |
+| **R9** | **X3** | **Done:** Worker `POST /api/party-jwt`; Partykit `JOIN_JWT_REQUIRED` + `JOIN_JWT_SECRET`; `verifyPartyJoinJwt`; client `VITE_USE_PARTY_JWT` + async JOIN | **R0**, **R4** | `workers/party-jwt.ts`, `server/src/join-jwt.ts`, `room.ts`, `App.tsx`, `deploy.mjs` |
+| **R10** | **X5** (i18n) | **Done:** `i18next` + `src/i18n/locales/en.json` across main screens; Voting `radiogroup`/`radio` | **R1** | `src/i18n/*`, screens |
+| **R11** ‖ | CI+ | **Done:** Playwright smoke (`e2e/`, `npm run test:e2e`); CI step; `release-verify.yml` on `v*` (verify only — deploy secrets separate) | **R0**, ~~**X6**~~ | `.github/workflows/ci.yml`, `release-verify.yml`, `playwright.config.ts` |
 
 ### Parallel tracks (same calendar time)
 
@@ -289,7 +289,7 @@ If you have bandwidth, these can advance **alongside** the table above without b
 | **M1 — Staging + trust** | ~~R0~~, ~~R2~~, ~~R3~~ (implemented — wire your own staging hosts) | “We can test safely and see funnels without breaking prod.” |
 | **M2 — Session reliability** | ~~R4~~, R1 | “Refresh and flaky networks don’t ruin the round as often.” |
 | **M3 — Social depth** | ~~R5~~, ~~R6~~, ~~R7~~ | “Friends can watch a round and hosts can theme words.” |
-| **M4 — Accounts & security** | R8, R9, R10 | “Stats for signed-in users and stronger join tokens.” |
+| **M4 — Accounts & security** | ~~R8~~, ~~R9~~, ~~R10~~ | “Stats for signed-in users and stronger join tokens.” |
 
 ### Explicitly out of scope for this sequence (unless you reprioritize)
 

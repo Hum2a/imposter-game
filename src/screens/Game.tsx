@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Clock } from 'lucide-react'
 
 import { GameScreen } from '../components/layout/GameScreen'
@@ -18,14 +19,15 @@ type GameProps = AuthUserProps & {
 }
 
 export default function Game({ gameState, me }: GameProps) {
+  const { t } = useTranslation()
   const [now, setNow] = useState(() => Date.now())
   const [tabHidden, setTabHidden] = useState(
     () => typeof document !== 'undefined' && document.visibilityState === 'hidden'
   )
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 500)
-    return () => clearInterval(t)
+    const id = window.setInterval(() => setNow(Date.now()), 500)
+    return () => window.clearInterval(id)
   }, [])
 
   useEffect(() => {
@@ -44,24 +46,23 @@ export default function Game({ gameState, me }: GameProps) {
     return (
       <GameScreen className="text-center">
         <div className="flex flex-col items-center gap-2">
-          <Badge variant="secondary">Discussion</Badge>
-          <Badge variant="outline">Spectator</Badge>
+          <Badge variant="secondary">{t('game.discussion')}</Badge>
+          <Badge variant="outline">{t('game.spectator')}</Badge>
         </div>
         <Card className="transition-[box-shadow,transform] duration-200 motion-reduce:transition-none">
           <CardHeader>
-            <CardTitle className="text-xl sm:text-2xl">You’re watching this round</CardTitle>
-            <CardDescription className="text-base">
-              You joined after the round started. Listen to the clues — you’ll play when the host
-              starts the next round or returns to the lobby.
-            </CardDescription>
+            <CardTitle className="text-xl sm:text-2xl">{t('game.watchingTitle')}</CardTitle>
+            <CardDescription className="text-base">{t('game.watchingDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             {remaining != null ? (
               <p className="text-sm text-muted-foreground">
-                Voting begins in{' '}
+                {t('game.votingSoon')}{' '}
                 <span className="font-mono font-medium tabular-nums">{remaining}s</span>.
               </p>
-            ) : null}
+            ) : (
+              <p className="text-sm text-muted-foreground">{t('game.timerSyncing')}</p>
+            )}
           </CardContent>
         </Card>
       </GameScreen>
@@ -71,7 +72,7 @@ export default function Game({ gameState, me }: GameProps) {
   return (
     <GameScreen className="text-center">
       <div className="flex flex-col items-center gap-2">
-        <Badge variant="secondary">Discussion</Badge>
+        <Badge variant="secondary">{t('game.discussion')}</Badge>
         {remaining != null ? (
           <Badge
             variant="outline"
@@ -80,20 +81,28 @@ export default function Game({ gameState, me }: GameProps) {
             aria-atomic="true"
           >
             <Clock className="size-3.5" aria-hidden />
-            Voting in {remaining}s
+            {t('game.votingIn')} {remaining}s
           </Badge>
-        ) : null}
+        ) : (
+          <Badge
+            variant="outline"
+            className="gap-1.5 text-sm text-muted-foreground"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <Clock className="size-3.5" aria-hidden />
+            {t('game.timerSyncing')}
+          </Badge>
+        )}
       </div>
 
       <Card className="overflow-hidden border-primary/25 bg-gradient-to-b from-card to-primary/5 shadow-md transition-[box-shadow,transform] duration-200 motion-reduce:transition-none">
         <CardHeader>
           <CardTitle className="text-2xl sm:text-3xl">
-            {me.isImposter ? 'Your word (imposter)' : 'Your word'}
+            {me.isImposter ? t('game.yourWordImposter') : t('game.yourWord')}
           </CardTitle>
           <CardDescription className="text-base">
-            {me.isImposter
-              ? 'You have a different word than the crew. Blend in without saying it outright.'
-              : 'Describe it without naming it — the imposter is listening.'}
+            {me.isImposter ? t('game.imposterBlurb') : t('game.crewBlurb')}
           </CardDescription>
         </CardHeader>
         <CardContent className="pb-8">
@@ -105,14 +114,12 @@ export default function Game({ gameState, me }: GameProps) {
 
       {tabHidden ? (
         <p className="text-center text-xs text-amber-700 dark:text-amber-400" role="status">
-          Tab in background — the timer still runs on the server. Come back before time runs out.
+          {t('game.tabHidden')}
         </p>
       ) : null}
 
       <Card className="border-dashed transition-shadow duration-200 motion-reduce:transition-none">
-        <CardContent className="pt-6 text-sm text-muted-foreground">
-          Tip: give clues that only someone who knows the real word would understand.
-        </CardContent>
+        <CardContent className="pt-6 text-sm text-muted-foreground">{t('game.tipTitle')}</CardContent>
       </Card>
     </GameScreen>
   )

@@ -43,6 +43,8 @@ export type ClientMessage =
       avatar: string
       /** Required when Partykit `JOIN_VERIFY` is enabled */
       accessToken?: string
+      /** Short-lived JWT from Worker when Partykit `JOIN_JWT_REQUIRED` is enabled */
+      partyJwt?: string
     }
   | { type: 'START_GAME' }
   | { type: 'CAST_VOTE'; targetId: string }
