@@ -47,7 +47,7 @@ export default function Game({ gameState, me }: GameProps) {
           <Badge variant="secondary">Discussion</Badge>
           <Badge variant="outline">Spectator</Badge>
         </div>
-        <Card>
+        <Card className="transition-[box-shadow,transform] duration-200 motion-reduce:transition-none">
           <CardHeader>
             <CardTitle className="text-xl sm:text-2xl">You’re watching this round</CardTitle>
             <CardDescription className="text-base">
@@ -85,7 +85,7 @@ export default function Game({ gameState, me }: GameProps) {
         ) : null}
       </div>
 
-      <Card className="overflow-hidden border-primary/25 bg-gradient-to-b from-card to-primary/5 shadow-md">
+      <Card className="overflow-hidden border-primary/25 bg-gradient-to-b from-card to-primary/5 shadow-md transition-[box-shadow,transform] duration-200 motion-reduce:transition-none">
         <CardHeader>
           <CardTitle className="text-2xl sm:text-3xl">
             {me.isImposter ? 'Your word (imposter)' : 'Your word'}
@@ -109,7 +109,7 @@ export default function Game({ gameState, me }: GameProps) {
         </p>
       ) : null}
 
-      <Card className="border-dashed">
+      <Card className="border-dashed transition-shadow duration-200 motion-reduce:transition-none">
         <CardContent className="pt-6 text-sm text-muted-foreground">
           Tip: give clues that only someone who knows the real word would understand.
         </CardContent>

@@ -39,7 +39,7 @@ export default function Reveal({ gameState, isHost, send, auth }: RevealProps) {
           start.
         </p>
       ) : null}
-      <Card>
+      <Card className="transition-shadow duration-200 motion-reduce:transition-none">
         <CardHeader className="text-center">
           <Badge variant="outline">Round over</Badge>
           <CardTitle className="flex items-center justify-center gap-2 text-3xl">
@@ -53,7 +53,7 @@ export default function Reveal({ gameState, isHost, send, auth }: RevealProps) {
       </Card>
 
       {imposter ? (
-        <Card className="border-destructive/40 bg-destructive/5">
+        <Card className="border-destructive/40 bg-destructive/5 transition-shadow duration-200 motion-reduce:transition-none">
           <CardHeader>
             <CardTitle className="text-lg text-destructive">The imposter</CardTitle>
             <CardDescription>Unmasking for this round</CardDescription>
@@ -98,7 +98,7 @@ export default function Reveal({ gameState, isHost, send, auth }: RevealProps) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="transition-shadow duration-200 motion-reduce:transition-none">
         <CardHeader>
           <CardTitle className="text-lg">Votes</CardTitle>
           <CardDescription>Who picked whom.</CardDescription>
@@ -111,7 +111,7 @@ export default function Reveal({ gameState, isHost, send, auth }: RevealProps) {
               return (
                 <li
                   key={voterId}
-                  className="flex flex-wrap items-baseline gap-x-2 rounded-md border border-transparent px-2 py-1.5 hover:bg-muted/40"
+                  className="flex flex-wrap items-baseline gap-x-2 rounded-md border border-transparent px-2 py-1.5 transition-colors duration-150 motion-reduce:transition-none hover:bg-muted/40"
                 >
                   <span className="font-medium text-foreground">
                     {voter?.name ?? voterId}
@@ -129,7 +129,7 @@ export default function Reveal({ gameState, isHost, send, auth }: RevealProps) {
       </Card>
 
       {isHost ? (
-        <Card>
+        <Card className="transition-shadow duration-200 motion-reduce:transition-none">
           <CardHeader>
             <CardTitle className="text-lg">Host controls</CardTitle>
             <CardDescription>Everyone else waits for you here.</CardDescription>

@@ -9,6 +9,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "assets:brand": "node scripts/rasterize-brand-assets.mjs",
+    "gen:sfx": "node scripts/gen-sfx-wav.mjs",
     "preview": "vite preview",
     "deploy": "node scripts/deploy.mjs all",
     "deploy:all": "node scripts/deploy.mjs all",

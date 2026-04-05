@@ -161,6 +161,7 @@ For local testing through Discord, use **cloudflared** or **ngrok** on port `517
 | `npm run deploy:pages` | Build with `.env.deploy` merged + `wrangler pages deploy` |
 | `npm run deploy:token-worker` | Same as `deploy:worker` |
 | `npm run assets:brand` | Regenerate `public/*.png` from `logo.svg` / `favicon.svg` (requires `sharp`) |
+| `npm run gen:sfx` | Regenerate `public/sounds/*.wav` for optional UI sounds |
 
 ## Security
 
@@ -170,6 +171,12 @@ For local testing through Discord, use **cloudflared** or **ngrok** on port `517
 ### Optional: verify `JOIN` with Discord
 
 In `server/partykit.json`, set `"JOIN_VERIFY": "true"` under `vars` (or override in the Partykit dashboard when deployed). The client then sends `accessToken` on `JOIN`; the room checks `GET https://discord.com/api/v10/users/@me` matches `userId`. Turn this on for production if you want a basic guard against spoofed user IDs (still not as strong as your own signed session tokens).
+
+### Sound effects (client)
+
+- **Off by default.** Use the **Sound** control in the top bar to enable short cues (round start, vote confirm, reveal). Preference is stored in `localStorage` (`imposter_sfx_enabled`).
+- **Reduce motion:** when the OS prefers reduced motion, sounds and vote haptics do not run even if Sound is on.
+- **Regenerate WAVs:** `npm run gen:sfx` writes `public/sounds/*.wav` (sine blips; safe to replace with your own files at the same paths).
 
 ### Word packs & optional profanity filter (Partykit)
 

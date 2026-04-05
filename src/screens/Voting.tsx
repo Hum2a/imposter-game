@@ -17,6 +17,8 @@ import { Separator } from '@/components/ui/separator'
 import type { Player } from '../types/game'
 import type { AuthUserProps } from './types'
 import type { ClientMessage } from '../types/game'
+import { useSfx } from '../sfx/use-sfx'
+import { lightVoteHaptic } from '../lib/haptics'
 import { trackEvent } from '../lib/analytics'
 
 type VotingProps = AuthUserProps & {
@@ -25,6 +27,7 @@ type VotingProps = AuthUserProps & {
 }
 
 export default function Voting({ gameState, me, send }: VotingProps) {
+  const { play } = useSfx()
   const [selected, setSelected] = useState<string | null>(null)
   const players = Object.values(gameState.players)
   const isSpectator = me.isSpectator === true
@@ -34,13 +37,15 @@ export default function Voting({ gameState, me, send }: VotingProps) {
   const confirm = () => {
     if (!selected || me.hasVoted || isSpectator) return
     trackEvent('VoteSubmit')
+    play('vote')
+    lightVoteHaptic()
     send({ type: 'CAST_VOTE', targetId: selected })
   }
 
   if (isSpectator) {
     return (
       <GameScreen>
-        <Card>
+        <Card className="transition-shadow duration-200 motion-reduce:transition-none">
           <CardHeader className="text-center sm:text-left">
             <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
               <Badge variant="secondary">Voting</Badge>
@@ -69,7 +74,7 @@ export default function Voting({ gameState, me, send }: VotingProps) {
 
   return (
     <GameScreen>
-      <Card>
+      <Card className="transition-shadow duration-200 motion-reduce:transition-none">
         <CardHeader className="text-center sm:text-left">
           <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
             <Badge variant="secondary">Voting</Badge>
@@ -105,7 +110,7 @@ export default function Voting({ gameState, me, send }: VotingProps) {
                   disabled={me.hasVoted || isSelf}
                   aria-pressed={!isSelf && !me.hasVoted ? isSelected : undefined}
                   aria-label={label}
-                  className="min-h-11 h-auto flex-col gap-2 py-4 font-normal motion-reduce:transition-none"
+                  className="min-h-11 h-auto flex-col gap-2 py-4 font-normal transition-colors duration-150 motion-reduce:transition-none"
                   onClick={() => setSelected(p.id)}
                 >
                   <Avatar user={{ id: p.id, name: p.name, avatar: p.avatar }} size={56} />

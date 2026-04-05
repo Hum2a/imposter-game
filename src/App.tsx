@@ -10,10 +10,12 @@ import { useGameAnalytics } from './hooks/useGameAnalytics'
 import { trackEvent } from './lib/analytics'
 import { isSupabaseConfigured } from './lib/supabase-client'
 import { useParty } from './hooks/useParty'
+import { PhaseSfxListener, SfxProvider, SfxToggle } from './sfx'
 import Lobby from './screens/Lobby'
 import Game from './screens/Game'
 import Voting from './screens/Voting'
 import Reveal from './screens/Reveal'
+import type { Phase } from './types/game'
 
 function InlineCode({ children }: { children: ReactNode }) {
   return (
@@ -169,7 +171,7 @@ export default function App() {
   const isHost = gameState.hostId === auth.user.id
   const props = { gameState, send, me, isHost, auth }
 
-  const shell = (body: ReactNode) => (
+  const shell = (body: ReactNode, phase: Phase) => (
     <div className="flex min-h-svh flex-col bg-background text-foreground">
       {connection === 'closed' ? (
         <div
@@ -180,21 +182,27 @@ export default function App() {
           Reconnecting to the game server…
         </div>
       ) : null}
-      {webMode ? (
-        <WebProfileControls
-          displayName={auth.user.global_name ?? auth.user.username}
-          onSave={setWebDisplayName}
-          identityMode={webIdentityMode}
-          supabaseConfigured={isSupabaseConfigured()}
-          busy={webAuthBusy}
-          profileError={webProfileError}
-          onDismissProfileError={clearWebProfileError}
-          onEnableCloud={enableWebCloud}
-          onDisableCloud={disableWebCloud}
-          onSignInDiscord={signInDiscordOnWeb}
-        />
-      ) : null}
-      <div className="flex flex-1 flex-col">{body}</div>
+      <SfxProvider>
+        <PhaseSfxListener phase={phase} />
+        <div className="flex justify-end border-b border-border/60 px-2 sm:px-4">
+          <SfxToggle />
+        </div>
+        {webMode ? (
+          <WebProfileControls
+            displayName={auth.user.global_name ?? auth.user.username}
+            onSave={setWebDisplayName}
+            identityMode={webIdentityMode}
+            supabaseConfigured={isSupabaseConfigured()}
+            busy={webAuthBusy}
+            profileError={webProfileError}
+            onDismissProfileError={clearWebProfileError}
+            onEnableCloud={enableWebCloud}
+            onDisableCloud={disableWebCloud}
+            onSignInDiscord={signInDiscordOnWeb}
+          />
+        ) : null}
+        <div className="flex flex-1 flex-col">{body}</div>
+      </SfxProvider>
     </div>
   )
 
@@ -214,19 +222,21 @@ export default function App() {
           onDiscordLobbySuffixChange={setDiscordLobbySuffix}
           partyErrorCode={partyErrorCode}
           onDismissPartyError={clearPartyError}
-        />
+        />,
+        gameState.phase
       )
     case 'discussion':
-      return shell(<Game {...props} />)
+      return shell(<Game {...props} />, gameState.phase)
     case 'voting':
-      return shell(<Voting {...props} />)
+      return shell(<Voting {...props} />, gameState.phase)
     case 'reveal':
-      return shell(<Reveal {...props} />)
+      return shell(<Reveal {...props} />, gameState.phase)
     default:
       return shell(
         <div className="flex flex-1 items-center justify-center text-muted-foreground">
           Unknown phase
-        </div>
+        </div>,
+        gameState.phase
       )
   }
 }
