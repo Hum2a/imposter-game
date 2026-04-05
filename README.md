@@ -52,6 +52,19 @@ For Discord auth in dev, add `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` to 
 
 Do these once; then point Discord at your production URLs (or a tunnel while testing).
 
+### 0. One-command deploy (from repo root)
+
+1. Copy [`.env.deploy.example`](.env.deploy.example) to **`.env.deploy`** (gitignored). Fill `CF_PAGES_PROJECT_NAME`, all `VITE_*` values for production, `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`, `JOIN_VERIFY`, and optional `PARTYKIT_DEPLOY_NAME` / `DISCORD_REDIRECT_URI`.
+2. Log in once: `npx wrangler login` and `cd server && npx partykit login`.
+3. Run **`npm run deploy`** (or `npm run deploy:all`). This script:
+   - Pushes **`DISCORD_CLIENT_ID`** and **`DISCORD_CLIENT_SECRET`** to the Worker (`wrangler secret put`, non-interactive), then **`wrangler deploy`**
+   - Deploys Partykit with **`JOIN_VERIFY`** from the file (`partykit deploy --var …`)
+   - Builds the Vite app with the same env merged in, then **`wrangler pages deploy dist`**
+
+Granular commands: **`npm run deploy:sync`** (Worker secrets only), **`npm run deploy:worker`**, **`npm run deploy:partykit`**, **`npm run deploy:pages`**.
+
+**Note:** `VITE_*` variables are **build-time** for the static client; they are applied when `deploy:pages` / `deploy` runs `npm run build`, not via `wrangler pages secret` (those secrets are for Pages Functions only).
+
 ### 1. Discord Developer Portal
 
 1. Open your application → **OAuth2** → copy **Client ID** and create a **Client Secret** (store only in Worker secrets / local `.env`, not in git).
@@ -122,12 +135,17 @@ For local testing through Discord, use **cloudflared** or **ngrok** on port `517
 | `npm run dev:party` | Partykit dev (`server/`) |
 | `npm run build` | Production client build |
 | `npm run lint` | ESLint |
-| `npm run deploy:token-worker` | `wrangler deploy` |
+| `npm run deploy` / `deploy:all` | Worker secrets + deploy → Partykit → Pages build + deploy (uses `.env.deploy`) |
+| `npm run deploy:sync` | Push Worker secrets only from `.env.deploy` |
+| `npm run deploy:worker` | Sync secrets + `wrangler deploy` |
+| `npm run deploy:partykit` | `partykit deploy` with `JOIN_VERIFY` from `.env.deploy` |
+| `npm run deploy:pages` | Build with `.env.deploy` merged + `wrangler pages deploy` |
+| `npm run deploy:token-worker` | Same as `deploy:worker` |
 | `npm run assets:brand` | Regenerate `public/*.png` from `logo.svg` / `favicon.svg` (requires `sharp`) |
 
 ## Security
 
-- Do **not** commit `.env` or client secrets. This repo ignores `.env`; use `.env.example` as a template only.
+- Do **not** commit `.env`, **`.env.deploy`**, or client secrets. Use `.env.example` and `.env.deploy.example` as templates only.
 - The Worker holds `DISCORD_CLIENT_SECRET`. The browser only ever sees `VITE_*` and the short-lived user token from Discord after exchange.
 
 ### Optional: verify `JOIN` with Discord

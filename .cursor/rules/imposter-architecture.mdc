@@ -28,4 +28,5 @@ alwaysApply: true
 ## Adding features
 
 - Shared game types: `src/types/game.ts`. Keep server room types aligned when changing `GameState` / messages.
-- Do not commit secrets; `.env` is gitignored. Use `.env.example` as the template.
+- Do not commit secrets; `.env` and `.env.deploy` are gitignored. Use `.env.example` / `.env.deploy.example` as templates.
+- **Deploy from repo root:** `npm run deploy` reads `.env.deploy` and runs Worker (secrets + deploy), Partykit (`JOIN_VERIFY` via `--var`), and Pages (Vite build + `wrangler pages deploy`). See `scripts/deploy.mjs` and README.

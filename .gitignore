@@ -10,6 +10,7 @@ server/public/dist
 .env
 .env.*
 !.env.example
+!.env.deploy.example
 
 # Local Cloudflare Worker secrets (Wrangler)
 .dev.vars
