@@ -1,0 +1,31 @@
+---
+description: Imposter game — stack, folders, and Partykit conventions
+globs: "**/*.{ts,tsx,json}"
+alwaysApply: true
+---
+
+# Imposter — architecture
+
+## Stack
+
+- **Client:** Vite + React + TypeScript in repo root (`src/`). Tailwind v4 via `@tailwindcss/vite`.
+- **Realtime game:** Partykit server in `server/` (`server/src/room.ts`, `server/partykit.json`).
+- **Discord Activity:** `@discord/embedded-app-sdk` in `src/hooks/useDiscord.ts` when `isDiscordActivity()` (iframe / `frame_id` / Discord UA).
+- **Website / PWA:** Same app; when not in Discord, `initWebSession()` in `src/lib/web-session.ts` — localStorage guest id and optional **Supabase anonymous** auth (`VITE_SUPABASE_*`).
+- **OAuth token (Discord only):** Cloudflare Worker `workers/discord-oauth-token.ts`; dev uses `vite-plugin-discord-token.ts`.
+
+## Partykit
+
+- Room class: `ImposterRoom` in `server/src/room.ts`. Player keys are **Discord / web user ids** from `JOIN`, not socket ids (`connToUser` maps socket → user).
+- Persisted keys: `imposter:stats:v1`, `imposter:round:v1`. Optional `JOIN_VERIFY` in `partykit.json` `vars` checks Discord `@me` with `accessToken` on `JOIN` (Discord Activity only; do not send Supabase JWT as Discord token).
+
+## Client data flow
+
+- `useDiscord()` (name kept for history) returns `auth`, `partyRoomId`, `webMode`, `setWebDisplayName`, `isDiscordActivity`.
+- `useParty(roomId, userId)` uses `partysocket` + `VITE_PARTYKIT_HOST`.
+- `App.tsx` sends `JOIN` with `userId` / name / avatar; sends `accessToken` **only** when `isDiscordActivity` is true and token is a real Discord OAuth token (not `browser-dev` / `mock`).
+
+## Adding features
+
+- Shared game types: `src/types/game.ts`. Keep server room types aligned when changing `GameState` / messages.
+- Do not commit secrets; `.env` is gitignored. Use `.env.example` as the template.

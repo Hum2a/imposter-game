@@ -1,0 +1,32 @@
+---
+description: Auth modes, env vars, Supabase web storage, deployment pointers
+globs: "**/*.{ts,tsx,md,example}"
+alwaysApply: false
+---
+
+# Auth and storage
+
+## Modes
+
+| Context | Identity | Party room id |
+|--------|-----------|----------------|
+| Discord Activity | Embedded SDK + token Worker | `sdk.instanceId` or `ch-{channelId}` |
+| `VITE_DISCORD_MOCK=1` | Fixed mock user | `mock-room` |
+| Website (default) | `localStorage` `imposter-web-user-id` + display name in `imposter-web-display-name` | `sessionStorage` party room |
+| Website + Supabase | Anonymous Supabase user id (`signInAnonymously`) | same session room |
+
+## Env vars (client / build)
+
+- `VITE_DISCORD_CLIENT_ID`, `VITE_PARTYKIT_HOST`, `VITE_DISCORD_TOKEN_URL` — Discord + Partykit.
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` — optional; enables anonymous auth + `web_profiles` upserts from `src/lib/web-session.ts`.
+- `VITE_DISCORD_MOCK` — force mock.
+
+## Supabase setup
+
+1. Create project; enable **Authentication → Anonymous sign-ins**.
+2. Run `supabase/migrations/001_web_profiles.sql` (CLI `db push` or SQL editor).
+3. Set `VITE_SUPABASE_*` in `.env` locally and in Cloudflare Pages build env.
+
+## Post-deploy checklist
+
+See `docs/POST_LAUNCH.md`. Deploy order: Worker secrets → Partykit → Pages build with all `VITE_*`.

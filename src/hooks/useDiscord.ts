@@ -1,54 +1,20 @@
 import { DiscordSDK } from '@discord/embedded-app-sdk'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { isDiscordActivity } from '../lib/discord-context'
-
-type Auth = Awaited<ReturnType<DiscordSDK['commands']['authenticate']>>
+import {
+  initWebSession,
+  makeWebAuthSession,
+  readWebDisplayName,
+  upsertWebProfileRow,
+  writeWebDisplayName,
+} from '../lib/web-session'
+import type { DiscordAuthSession } from '../types/discord-auth'
 
 type Participant = Awaited<
   ReturnType<DiscordSDK['commands']['getInstanceConnectedParticipants']>
 >['participants'][number]
 
-const SESSION_USER = 'imposter-dev-user-id'
-const SESSION_ROOM = 'imposter-dev-party-room'
-
-function readSession(key: string): string | null {
-  try {
-    return sessionStorage.getItem(key)
-  } catch {
-    return null
-  }
-}
-
-function writeSession(key: string, value: string) {
-  try {
-    sessionStorage.setItem(key, value)
-  } catch {
-    /* private mode */
-  }
-}
-
-function makeBrowserAuth(userId: string): Auth {
-  return {
-    access_token: 'browser-dev',
-    user: {
-      id: userId,
-      username: 'DevUser',
-      discriminator: '0000',
-      public_flags: 0,
-      global_name: 'Browser dev',
-      avatar: null,
-    },
-    scopes: ['identify', 'guilds.members.read'],
-    expires: new Date(Date.now() + 86400000).toISOString(),
-    application: {
-      id: 'browser',
-      description: '',
-      name: 'Imposter (browser)',
-    },
-  }
-}
-
-function makeMockAuth(): Auth {
+function makeMockAuth(): DiscordAuthSession {
   return {
     access_token: 'mock',
     user: {
@@ -75,18 +41,33 @@ function tokenExchangeUrl(): string {
 }
 
 export function useDiscord() {
-  const [auth, setAuth] = useState<Auth | null>(null)
+  const [auth, setAuth] = useState<DiscordAuthSession | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [discordSdk, setDiscordSdk] = useState<DiscordSDK | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [partyRoomId, setPartyRoomId] = useState<string | null>(null)
   const [embeddedDiscord] = useState(() => isDiscordActivity())
+  const [webMode, setWebMode] = useState(false)
+  const webModeRef = useRef(false)
+  webModeRef.current = webMode
+
+  const setWebDisplayName = useCallback((name: string) => {
+    if (!webModeRef.current) return
+    writeWebDisplayName(name)
+    const display = readWebDisplayName()
+    setAuth((prev) => {
+      if (!prev) return prev
+      void upsertWebProfileRow(prev.user.id, display)
+      return makeWebAuthSession(prev.user.id, display, prev.access_token)
+    })
+  }, [])
 
   useEffect(() => {
     const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID
     const forceMock = import.meta.env.VITE_DISCORD_MOCK === '1'
 
     if (forceMock) {
+      setWebMode(false)
       setAuth(makeMockAuth())
       setPartyRoomId('mock-room')
       setParticipants([])
@@ -94,21 +75,27 @@ export function useDiscord() {
     }
 
     if (!embeddedDiscord) {
-      let userId = readSession(SESSION_USER)
-      if (!userId) {
-        userId = `browser-${crypto.randomUUID().slice(0, 8)}`
-        writeSession(SESSION_USER, userId)
+      let cancelled = false
+      setWebMode(false)
+      void initWebSession()
+        .then((session) => {
+          if (cancelled) return
+          setAuth(session.auth)
+          setPartyRoomId(session.partyRoomId)
+          setParticipants([])
+          setWebMode(true)
+        })
+        .catch((e) => {
+          if (!cancelled) {
+            setError(e instanceof Error ? e.message : 'Web session failed')
+          }
+        })
+      return () => {
+        cancelled = true
       }
-      let roomId = readSession(SESSION_ROOM)
-      if (!roomId) {
-        roomId = `browser-${crypto.randomUUID().slice(0, 8)}`
-        writeSession(SESSION_ROOM, roomId)
-      }
-      setAuth(makeBrowserAuth(userId))
-      setPartyRoomId(roomId)
-      setParticipants([])
-      return
     }
+
+    setWebMode(false)
 
     if (!clientId) {
       setError('Missing VITE_DISCORD_CLIENT_ID inside Discord Activity.')
@@ -190,5 +177,8 @@ export function useDiscord() {
     error,
     partyRoomId,
     isDiscordActivity: embeddedDiscord,
+    /** Browser / PWA path: show name editor and use local + optional Supabase identity */
+    webMode,
+    setWebDisplayName,
   }
 }

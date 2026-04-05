@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
+import { WebProfileControls } from './components/WebProfileControls'
 import { useDiscord } from './hooks/useDiscord'
 import { useParty } from './hooks/useParty'
 import Lobby from './screens/Lobby'
@@ -7,7 +8,8 @@ import Voting from './screens/Voting'
 import Reveal from './screens/Reveal'
 
 export default function App() {
-  const { auth, error, partyRoomId } = useDiscord()
+  const { auth, error, partyRoomId, webMode, setWebDisplayName, isDiscordActivity } =
+    useDiscord()
   const partyHost = import.meta.env.VITE_PARTYKIT_HOST
   const { gameState, send } = useParty(partyRoomId ?? undefined, auth?.user.id)
 
@@ -19,13 +21,14 @@ export default function App() {
       userId: auth.user.id,
       name: auth.user.global_name ?? auth.user.username,
       avatar: auth.user.avatar ?? '',
-      ...(auth.access_token &&
+      ...(isDiscordActivity &&
+      auth.access_token &&
       !auth.access_token.startsWith('browser-dev') &&
       auth.access_token !== 'mock'
         ? { accessToken: auth.access_token }
         : {}),
     })
-  }, [auth, gameState, send])
+  }, [auth, gameState, send, isDiscordActivity])
 
   if (error) {
     return (
@@ -86,18 +89,30 @@ export default function App() {
   const isHost = gameState.hostId === auth.user.id
   const props = { gameState, send, me, isHost, auth }
 
+  const shell = (body: ReactNode) => (
+    <div className="flex min-h-svh flex-col bg-zinc-950">
+      {webMode ? (
+        <WebProfileControls
+          displayName={auth.user.global_name ?? auth.user.username}
+          onSave={setWebDisplayName}
+        />
+      ) : null}
+      <div className="flex flex-1 flex-col">{body}</div>
+    </div>
+  )
+
   switch (gameState.phase) {
     case 'lobby':
-      return <Lobby {...props} />
+      return shell(<Lobby {...props} />)
     case 'discussion':
-      return <Game {...props} />
+      return shell(<Game {...props} />)
     case 'voting':
-      return <Voting {...props} />
+      return shell(<Voting {...props} />)
     case 'reveal':
-      return <Reveal {...props} />
+      return shell(<Reveal {...props} />)
     default:
-      return (
-        <div className="flex min-h-svh items-center justify-center bg-zinc-950 text-zinc-400">
+      return shell(
+        <div className="flex flex-1 items-center justify-center text-zinc-400">
           Unknown phase
         </div>
       )

@@ -133,6 +133,17 @@ For local testing through Discord, use **cloudflared** or **ngrok** on port `517
 
 In `server/partykit.json`, set `"JOIN_VERIFY": "true"` under `vars` (or override in the Partykit dashboard when deployed). The client then sends `accessToken` on `JOIN`; the room checks `GET https://discord.com/api/v10/users/@me` matches `userId`. Turn this on for production if you want a basic guard against spoofed user IDs (still not as strong as your own signed session tokens).
 
+## Website auth & optional Supabase
+
+When the app runs **outside** Discord (normal browser), identity is:
+
+1. **Default:** stable `localStorage` user id + editable display name (top bar). Names are sent to Partykit on `JOIN`.
+2. **Optional:** set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Enable **Anonymous sign-ins** in the Supabase dashboard, run `supabase/migrations/001_web_profiles.sql`, then anonymous users sync `display_name` to the `web_profiles` table.
+
+Do **not** send Supabase JWTs as `accessToken` on `JOIN` — `JOIN_VERIFY` expects a **Discord** OAuth token only.
+
+Cursor agents: see `.cursor/rules/` for architecture and auth notes.
+
 ## After deploy
 
 See [docs/POST_LAUNCH.md](docs/POST_LAUNCH.md) for a verification and follow-up checklist.

@@ -12,6 +12,7 @@ Track verification, ops, and follow-up work after deploying Pages, Worker, and P
 ## 2. Confirm environment wiring
 
 - [x] **Pages** build env: `VITE_DISCORD_CLIENT_ID`, `VITE_PARTYKIT_HOST`, `VITE_DISCORD_TOKEN_URL` (if Worker is not same-origin).
+- [ ] **Optional website:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` + `supabase/migrations/001_web_profiles.sql` + Anonymous sign-in enabled in Supabase.
 - [x] **Worker** secrets: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`.
 - [x] Redeploy **Pages** after changing any `VITE_*` variable (values are baked at build time).
 

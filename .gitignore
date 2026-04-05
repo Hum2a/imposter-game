@@ -45,7 +45,6 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
-.cursor
 
 # Test / coverage
 coverage

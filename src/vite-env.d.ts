@@ -10,6 +10,9 @@ interface ImportMetaEnv {
   readonly VITE_DISCORD_TOKEN_URL?: string
   /** Set to "1" to force fixed mock user + room (overrides browser auto-dev). */
   readonly VITE_DISCORD_MOCK?: string
+  /** Optional: Supabase project URL for website anonymous auth + web_profiles */
+  readonly VITE_SUPABASE_URL?: string
+  readonly VITE_SUPABASE_ANON_KEY?: string
 }
 
 interface ImportMeta {
