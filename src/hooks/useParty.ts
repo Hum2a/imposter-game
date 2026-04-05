@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import PartySocket from 'partysocket'
-import type { ClientMessage, GameState } from '../types/game'
+import type { ClientMessage, GameState, RoomStats } from '../types/game'
+
+const defaultStats = (): RoomStats => ({
+  roundsCompleted: 0,
+  crewWins: 0,
+  imposterWins: 0,
+})
 
 export function useParty(roomId: string | undefined, userId: string | undefined) {
   const socketRef = useRef<PartySocket | null>(null)
@@ -24,7 +30,17 @@ export function useParty(roomId: string | undefined, userId: string | undefined)
 
     ws.onmessage = (e: MessageEvent<string>) => {
       try {
-        setGameState(JSON.parse(e.data) as GameState)
+        const raw = JSON.parse(e.data) as Record<string, unknown>
+        if (raw.type === 'ERROR') {
+          console.warn('[party]', raw)
+          return
+        }
+        const g = raw as Partial<GameState>
+        if (typeof g.phase !== 'string') return
+        setGameState({
+          ...(g as GameState),
+          stats: { ...defaultStats(), ...g.stats },
+        })
       } catch {
         /* ignore */
       }

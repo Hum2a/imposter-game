@@ -18,6 +18,13 @@ export default function Lobby({ gameState, send, isHost }: LobbyProps) {
         <p className="mt-1 text-sm text-zinc-400">
           Waiting for players. The host can start when everyone has joined.
         </p>
+        <p className="mt-3 text-xs text-zinc-500">
+          Room stats (persisted){' '}
+          <span className="text-zinc-400">
+            rounds {gameState.stats.roundsCompleted} · crew {gameState.stats.crewWins} ·
+            imposter {gameState.stats.imposterWins}
+          </span>
+        </p>
       </div>
 
       <ul className="flex flex-col gap-2 rounded-xl border border-zinc-700 bg-zinc-900/60 p-3">

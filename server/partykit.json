@@ -3,6 +3,9 @@
   "name": "server",
   "main": "src/room.ts",
   "compatibilityDate": "2026-04-05",
+  "vars": {
+    "JOIN_VERIFY": "false"
+  },
   "serve": {
     "path": "public",
     "build": "src/client.ts"

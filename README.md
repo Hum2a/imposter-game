@@ -129,6 +129,14 @@ For local testing through Discord, use **cloudflared** or **ngrok** on port `517
 - Do **not** commit `.env` or client secrets. This repo ignores `.env`; use `.env.example` as a template only.
 - The Worker holds `DISCORD_CLIENT_SECRET`. The browser only ever sees `VITE_*` and the short-lived user token from Discord after exchange.
 
+### Optional: verify `JOIN` with Discord
+
+In `server/partykit.json`, set `"JOIN_VERIFY": "true"` under `vars` (or override in the Partykit dashboard when deployed). The client then sends `accessToken` on `JOIN`; the room checks `GET https://discord.com/api/v10/users/@me` matches `userId`. Turn this on for production if you want a basic guard against spoofed user IDs (still not as strong as your own signed session tokens).
+
+## After deploy
+
+See [docs/POST_LAUNCH.md](docs/POST_LAUNCH.md) for a verification and follow-up checklist.
+
 ## License
 
 Add a `LICENSE` file when you publish the repo (e.g. MIT), or keep the project private.

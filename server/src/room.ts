@@ -2,6 +2,12 @@ import type * as Party from 'partykit/server'
 
 type Phase = 'lobby' | 'discussion' | 'voting' | 'reveal'
 
+interface RoomStats {
+  roundsCompleted: number
+  crewWins: number
+  imposterWins: number
+}
+
 interface Player {
   id: string
   name: string
@@ -22,7 +28,11 @@ interface GameState {
   round: number
   winner: 'crew' | 'imposter' | null
   discussionEndsAt: number | null
+  stats: RoomStats
 }
+
+const STORAGE_STATS = 'imposter:stats:v1'
+const STORAGE_ROUND = 'imposter:round:v1'
 
 const WORD_PAIRS: [string, string][] = [
   ['Pizza', 'Burger'],
@@ -41,13 +51,52 @@ const WORD_PAIRS: [string, string][] = [
 
 const DISCUSSION_SECONDS = 60
 
+function defaultStats(): RoomStats {
+  return { roundsCompleted: 0, crewWins: 0, imposterWins: 0 }
+}
+
+function joinVerifyEnabled(env: Record<string, unknown>): boolean {
+  const v = env.JOIN_VERIFY
+  return v === 'true' || v === true || v === '1'
+}
+
+async function verifyDiscordUserId(
+  accessToken: string,
+  expectedUserId: string
+): Promise<boolean> {
+  const res = await fetch('https://discord.com/api/v10/users/@me', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  if (!res.ok) return false
+  const u = (await res.json()) as { id?: string }
+  return typeof u.id === 'string' && u.id === expectedUserId
+}
+
 export default class ImposterRoom implements Party.Server {
   state: GameState
   /** PartyKit socket id → Discord / app user id */
   private readonly connToUser = new Map<string, string>()
+  private discussionTimer: ReturnType<typeof setTimeout> | null = null
 
   constructor(readonly room: Party.Room) {
     this.state = this.defaultState()
+  }
+
+  async onStart() {
+    try {
+      const statsRaw = await this.room.storage.get<string>(STORAGE_STATS)
+      if (statsRaw) {
+        const parsed = JSON.parse(statsRaw) as Partial<RoomStats>
+        this.state.stats = { ...defaultStats(), ...parsed }
+      }
+      const roundRaw = await this.room.storage.get<string>(STORAGE_ROUND)
+      if (roundRaw) {
+        const r = parseInt(roundRaw, 10)
+        if (!Number.isNaN(r) && r >= 1) this.state.round = r
+      }
+    } catch {
+      /* ignore corrupt storage */
+    }
   }
 
   private userForConn(sender: Party.Connection): string | undefined {
@@ -65,6 +114,44 @@ export default class ImposterRoom implements Party.Server {
       round: 1,
       winner: null,
       discussionEndsAt: null,
+      stats: defaultStats(),
+    }
+  }
+
+  private clearDiscussionTimer() {
+    if (this.discussionTimer) {
+      clearTimeout(this.discussionTimer)
+      this.discussionTimer = null
+    }
+  }
+
+  private scheduleDiscussionEnd() {
+    this.clearDiscussionTimer()
+    const ends = this.state.discussionEndsAt
+    if (!ends || this.state.phase !== 'discussion') return
+    const ms = ends - Date.now()
+    if (ms <= 0) {
+      this.state.phase = 'voting'
+      void this.persistMeta()
+      this.broadcast()
+      return
+    }
+    this.discussionTimer = setTimeout(() => {
+      this.discussionTimer = null
+      if (this.state.phase === 'discussion') {
+        this.state.phase = 'voting'
+        void this.persistMeta()
+        this.broadcast()
+      }
+    }, ms)
+  }
+
+  private async persistMeta() {
+    try {
+      await this.room.storage.put(STORAGE_STATS, JSON.stringify(this.state.stats))
+      await this.room.storage.put(STORAGE_ROUND, String(this.state.round))
+    } catch {
+      /* storage failures should not crash the room */
     }
   }
 
@@ -72,7 +159,7 @@ export default class ImposterRoom implements Party.Server {
     conn.send(JSON.stringify(this.state))
   }
 
-  onMessage(message: string, sender: Party.Connection) {
+  async onMessage(message: string, sender: Party.Connection) {
     const parsed: unknown = JSON.parse(message)
     const msg = parsed as {
       type: string
@@ -80,6 +167,7 @@ export default class ImposterRoom implements Party.Server {
       name?: string
       avatar?: string
       targetId?: string
+      accessToken?: string
     }
 
     switch (msg.type) {
@@ -89,8 +177,13 @@ export default class ImposterRoom implements Party.Server {
           msg.userId.length > 0 &&
           typeof msg.name === 'string'
         ) {
-          this.handleJoin(
-            { userId: msg.userId, name: msg.name, avatar: msg.avatar ?? '' },
+          await this.handleJoin(
+            {
+              userId: msg.userId,
+              name: msg.name,
+              avatar: msg.avatar ?? '',
+              accessToken: msg.accessToken,
+            },
             sender
           )
         }
@@ -104,7 +197,7 @@ export default class ImposterRoom implements Party.Server {
         break
       }
       case 'NEXT_ROUND':
-        if (this.userForConn(sender) === this.state.hostId) this.nextRound()
+        if (this.userForConn(sender) === this.state.hostId) await this.nextRound()
         break
       case 'BACK_TO_LOBBY':
         if (this.userForConn(sender) === this.state.hostId) this.backToLobby()
@@ -115,10 +208,28 @@ export default class ImposterRoom implements Party.Server {
     }
   }
 
-  handleJoin(
-    msg: { userId: string; name: string; avatar: string },
+  private async handleJoin(
+    msg: {
+      userId: string
+      name: string
+      avatar: string
+      accessToken?: string
+    },
     sender: Party.Connection
   ) {
+    if (joinVerifyEnabled(this.room.env)) {
+      const token = msg.accessToken
+      if (!token) {
+        sender.send(JSON.stringify({ type: 'ERROR', code: 'JOIN_NEED_TOKEN' }))
+        return
+      }
+      const ok = await verifyDiscordUserId(token, msg.userId)
+      if (!ok) {
+        sender.send(JSON.stringify({ type: 'ERROR', code: 'JOIN_VERIFY_FAILED' }))
+        return
+      }
+    }
+
     this.connToUser.set(sender.id, msg.userId)
 
     const isFirst = Object.keys(this.state.players).length === 0
@@ -138,6 +249,8 @@ export default class ImposterRoom implements Party.Server {
   startGame() {
     const ids = Object.keys(this.state.players)
     if (ids.length === 0) return
+
+    this.clearDiscussionTimer()
 
     const imposterId = ids[Math.floor(Math.random() * ids.length)]!
     const pair = WORD_PAIRS[Math.floor(Math.random() * WORD_PAIRS.length)]!
@@ -159,13 +272,7 @@ export default class ImposterRoom implements Party.Server {
     this.state.discussionEndsAt = Date.now() + DISCUSSION_SECONDS * 1000
 
     this.broadcast()
-
-    setTimeout(() => {
-      if (this.state.phase === 'discussion') {
-        this.state.phase = 'voting'
-        this.broadcast()
-      }
-    }, DISCUSSION_SECONDS * 1000)
+    this.scheduleDiscussionEnd()
   }
 
   handleVote(voterId: string, targetId: string) {
@@ -177,7 +284,17 @@ export default class ImposterRoom implements Party.Server {
     voter.hasVoted = true
     voter.votedFor = targetId
 
-    const allVoted = Object.values(this.state.players).every((p) => p.hasVoted)
+    this.tryCompleteVotingIfReady()
+  }
+
+  /** All *current* players have cast a vote */
+  private tryCompleteVotingIfReady() {
+    const players = Object.values(this.state.players)
+    if (players.length === 0) {
+      this.broadcast()
+      return
+    }
+    const allVoted = players.every((p) => p.hasVoted)
     if (allVoted) this.resolveVotes()
     else this.broadcast()
   }
@@ -196,20 +313,31 @@ export default class ImposterRoom implements Party.Server {
       return
     }
 
-    const [mostVotedId] = entries[0]!
+    const topCount = entries[0]![1]
+    const tiedForLead = entries.filter(([, c]) => c === topCount).map(([id]) => id)
+    const mostVotedId =
+      tiedForLead[Math.floor(Math.random() * tiedForLead.length)]!
     const wasImposter = this.state.players[mostVotedId]?.isImposter === true
 
     this.state.winner = wasImposter ? 'crew' : 'imposter'
     this.state.phase = 'reveal'
+
+    if (this.state.winner === 'crew') this.state.stats.crewWins += 1
+    else if (this.state.winner === 'imposter') this.state.stats.imposterWins += 1
+    this.state.stats.roundsCompleted += 1
+
+    void this.persistMeta()
     this.broadcast()
   }
 
-  nextRound() {
+  async nextRound() {
     this.state.round += 1
+    await this.persistMeta()
     this.startGame()
   }
 
   backToLobby() {
+    this.clearDiscussionTimer()
     for (const p of Object.values(this.state.players)) {
       p.isImposter = false
       p.hasVoted = false
@@ -225,8 +353,29 @@ export default class ImposterRoom implements Party.Server {
   }
 
   endGame() {
+    this.clearDiscussionTimer()
+    const { stats } = this.state
     this.state = this.defaultState()
+    this.state.stats = stats
+    void this.persistMeta()
     this.broadcast()
+  }
+
+  /**
+   * When someone leaves during voting, remove their vote and invalidate votes *for* them.
+   */
+  private cleanupVotesForDepartedUser(userId: string) {
+    delete this.state.votes[userId]
+    for (const voterId of Object.keys({ ...this.state.votes })) {
+      if (this.state.votes[voterId] === userId) {
+        delete this.state.votes[voterId]
+        const p = this.state.players[voterId]
+        if (p) {
+          p.hasVoted = false
+          p.votedFor = null
+        }
+      }
+    }
   }
 
   onClose(connection: Party.Connection) {
@@ -242,10 +391,17 @@ export default class ImposterRoom implements Party.Server {
         }
       }
       if (!stillConnected) {
+        if (this.state.phase === 'voting') {
+          this.cleanupVotesForDepartedUser(userId)
+        }
         delete this.state.players[userId]
         if (this.state.hostId === userId) {
           const remaining = Object.keys(this.state.players)
           this.state.hostId = remaining[0] ?? ''
+        }
+        if (this.state.phase === 'voting') {
+          this.tryCompleteVotingIfReady()
+          return
         }
       }
     }

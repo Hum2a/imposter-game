@@ -19,6 +19,11 @@ export default function App() {
       userId: auth.user.id,
       name: auth.user.global_name ?? auth.user.username,
       avatar: auth.user.avatar ?? '',
+      ...(auth.access_token &&
+      !auth.access_token.startsWith('browser-dev') &&
+      auth.access_token !== 'mock'
+        ? { accessToken: auth.access_token }
+        : {}),
     })
   }, [auth, gameState, send])
 
