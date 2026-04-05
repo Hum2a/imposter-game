@@ -139,7 +139,7 @@ In `server/partykit.json`, set `"JOIN_VERIFY": "true"` under `vars` (or override
 When the app runs **outside** Discord (normal browser), identity is:
 
 1. **Default:** stable `localStorage` user id + editable display name (top bar). Names are sent to Partykit on `JOIN`.
-2. **Optional:** set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Enable **Anonymous sign-ins** in the Supabase dashboard, run `supabase/migrations/001_web_profiles.sql`, then anonymous users sync `display_name` to the `web_profiles` table.
+2. **Optional:** set `VITE_SUPABASE_URL` and a client key: `VITE_SUPABASE_ANON_KEY` (legacy JWT) or `VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY` / `VITE_SUPABASE_PUBLISHABLE_KEY` as in the Supabase UI docs. Enable **Anonymous sign-ins** in the Supabase dashboard, run `supabase/migrations/001_web_profiles.sql`, then anonymous users sync `display_name` to the `web_profiles` table.
 
 Do **not** send Supabase JWTs as `accessToken` on `JOIN` — `JOIN_VERIFY` expects a **Discord** OAuth token only.
 

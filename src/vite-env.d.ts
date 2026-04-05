@@ -12,7 +12,11 @@ interface ImportMetaEnv {
   readonly VITE_DISCORD_MOCK?: string
   /** Optional: Supabase project URL for website anonymous auth + web_profiles */
   readonly VITE_SUPABASE_URL?: string
+  /** Legacy anon JWT from Project API settings */
   readonly VITE_SUPABASE_ANON_KEY?: string
+  /** Publishable key name used by Supabase UI / some shadcn snippets */
+  readonly VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY?: string
+  readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string
 }
 
 interface ImportMeta {
