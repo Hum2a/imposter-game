@@ -2,12 +2,19 @@ import { DiscordSDK } from '@discord/embedded-app-sdk'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isDiscordActivity } from '../lib/discord-context'
 import {
+  buildDiscordPartyRoomId,
+  readDiscordLobbySuffix,
+  writeDiscordLobbySuffix,
+} from '../lib/party-room'
+import {
+  createNewWebPartyRoom,
   disableWebCloudProfile,
   enableWebCloudProfile,
   initWebSession,
   makeWebAuthSession,
   readWebDisplayName,
   signInWebWithDiscord,
+  setWebPartyRoomFromCode,
   upsertWebProfileRow,
   writeWebDisplayName,
   type WebIdentityMode,
@@ -57,6 +64,11 @@ export function useDiscord() {
   const [discordSdk, setDiscordSdk] = useState<DiscordSDK | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [partyRoomId, setPartyRoomId] = useState<string | null>(null)
+  const [discordBaseRoom, setDiscordBaseRoom] = useState<string | null>(null)
+  const [discordLobbySuffix, setDiscordLobbySuffixState] = useState(() =>
+    typeof window !== 'undefined' ? readDiscordLobbySuffix() : ''
+  )
+  const [joinLobbyError, setJoinLobbyError] = useState<string | null>(null)
   const [embeddedDiscord] = useState(() => isDiscordActivity())
   const [webMode, setWebMode] = useState(false)
   const [webIdentityMode, setWebIdentityMode] = useState<WebIdentityMode>('guest')
@@ -123,6 +135,38 @@ export function useDiscord() {
   const clearWebProfileError = useCallback(() => setWebProfileError(null), [])
 
   useEffect(() => {
+    if (!embeddedDiscord || !discordBaseRoom) return
+    setPartyRoomId(
+      buildDiscordPartyRoomId(discordBaseRoom, discordLobbySuffix.trim() || null)
+    )
+  }, [embeddedDiscord, discordBaseRoom, discordLobbySuffix])
+
+  const joinWebPartyRoom = useCallback((raw: string) => {
+    if (!webModeRef.current) return
+    const id = setWebPartyRoomFromCode(raw)
+    if (!id) {
+      setJoinLobbyError('Use a room code with 4–16 letters or digits (A–Z, 2–9).')
+      return
+    }
+    setJoinLobbyError(null)
+    setPartyRoomId(id)
+  }, [])
+
+  const createNewWebLobby = useCallback(() => {
+    if (!webModeRef.current) return
+    setJoinLobbyError(null)
+    setPartyRoomId(createNewWebPartyRoom())
+  }, [])
+
+  const setDiscordLobbySuffix = useCallback((raw: string) => {
+    const trimmed = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
+    writeDiscordLobbySuffix(trimmed)
+    setDiscordLobbySuffixState(trimmed)
+  }, [])
+
+  const clearJoinLobbyError = useCallback(() => setJoinLobbyError(null), [])
+
+  useEffect(() => {
     const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID
     const forceMock = import.meta.env.VITE_DISCORD_MOCK === '1'
 
@@ -179,7 +223,7 @@ export function useDiscord() {
           sdk.instanceId ||
           (sdk.channelId ? `ch-${sdk.channelId}` : null) ||
           'main'
-        if (!cancelled) setPartyRoomId(roomId)
+        if (!cancelled) setDiscordBaseRoom(roomId)
 
         const { code } = await sdk.commands.authorize({
           client_id: clientId,
@@ -248,5 +292,11 @@ export function useDiscord() {
     disableWebCloud,
     signInDiscordOnWeb,
     refreshWebSession,
+    joinWebPartyRoom,
+    createNewWebLobby,
+    joinLobbyError,
+    clearJoinLobbyError,
+    discordLobbySuffix,
+    setDiscordLobbySuffix,
   }
 }

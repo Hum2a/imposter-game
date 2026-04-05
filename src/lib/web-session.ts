@@ -1,5 +1,12 @@
 import type { User } from '@supabase/supabase-js'
 import type { DiscordAuthSession } from '../types/discord-auth'
+import {
+  generateLobbyCode,
+  normalizeLobbyCode,
+  PARTY_ROOM_QUERY,
+  partyRoomIdFromNormalizedCode,
+  syncWebUrlToLobbyCode,
+} from './party-room'
 import { getSupabase } from './supabase-client'
 
 const SESSION_ROOM = 'imposter-dev-party-room'
@@ -140,6 +147,76 @@ export type WebSessionInit = {
   webIdentityMode: WebIdentityMode
 }
 
+/**
+ * Web/PWA: resolve PartyKit room from `?room=CODE`, session, or a new `lobby-*` id.
+ * Migrates legacy `browser-*` session ids to a shareable `lobby-*` code once.
+ */
+export function resolveWebPartyRoomId(): string {
+  if (typeof window === 'undefined') {
+    return partyRoomIdFromNormalizedCode(generateLobbyCode(6))
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  const q = params.get(PARTY_ROOM_QUERY)?.trim()
+  if (q) {
+    const n = normalizeLobbyCode(q)
+    if (n) {
+      const id = partyRoomIdFromNormalizedCode(n)
+      writeSession(SESSION_ROOM, id)
+      syncWebUrlToLobbyCode(n)
+      return id
+    }
+  }
+
+  const existing = readSession(SESSION_ROOM)
+  if (existing?.startsWith('lobby-')) {
+    const n = normalizeLobbyCode(existing.slice(6))
+    if (n) {
+      const id = partyRoomIdFromNormalizedCode(n)
+      writeSession(SESSION_ROOM, id)
+      syncWebUrlToLobbyCode(n)
+      return id
+    }
+  }
+
+  if (existing?.startsWith('browser-')) {
+    const n = generateLobbyCode(6)
+    const id = partyRoomIdFromNormalizedCode(n)
+    writeSession(SESSION_ROOM, id)
+    syncWebUrlToLobbyCode(n)
+    return id
+  }
+
+  if (existing) {
+    return existing
+  }
+
+  const n = generateLobbyCode(6)
+  const id = partyRoomIdFromNormalizedCode(n)
+  writeSession(SESSION_ROOM, id)
+  syncWebUrlToLobbyCode(n)
+  return id
+}
+
+/** Join a web lobby by pasted code; persists session and updates URL. Returns null if invalid. */
+export function setWebPartyRoomFromCode(raw: string): string | null {
+  const n = normalizeLobbyCode(raw)
+  if (!n) return null
+  const id = partyRoomIdFromNormalizedCode(n)
+  writeSession(SESSION_ROOM, id)
+  syncWebUrlToLobbyCode(n)
+  return id
+}
+
+/** New random web lobby; persists and updates URL. */
+export function createNewWebPartyRoom(): string {
+  const n = generateLobbyCode(6)
+  const id = partyRoomIdFromNormalizedCode(n)
+  writeSession(SESSION_ROOM, id)
+  syncWebUrlToLobbyCode(n)
+  return id
+}
+
 async function buildGuestSession(roomId: string): Promise<WebSessionInit> {
   const displayName = readWebDisplayName()
   let userId = readLocal(LOCAL_USER_ID)
@@ -159,11 +236,7 @@ async function buildGuestSession(roomId: string): Promise<WebSessionInit> {
  * (anonymous backup or Discord / other OAuth for a stable account).
  */
 export async function initWebSession(): Promise<WebSessionInit> {
-  let roomId = readSession(SESSION_ROOM)
-  if (!roomId) {
-    roomId = `browser-${crypto.randomUUID().slice(0, 8)}`
-    writeSession(SESSION_ROOM, roomId)
-  }
+  const roomId = resolveWebPartyRoomId()
 
   const displayName = readWebDisplayName()
   const supabase = getSupabase()

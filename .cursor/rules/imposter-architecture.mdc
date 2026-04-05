@@ -21,7 +21,7 @@ alwaysApply: true
 
 ## Client data flow
 
-- `useDiscord()` (name kept for history) returns `auth`, `partyRoomId`, `webMode`, `setWebDisplayName`, `isDiscordActivity`.
+- `useDiscord()` (name kept for history) returns `auth`, `partyRoomId`, `webMode`, `joinWebPartyRoom`, `createNewWebLobby`, Discord `discordLobbySuffix` / `setDiscordLobbySuffix`, etc.
 - `useParty(roomId, userId)` uses `partysocket` + `VITE_PARTYKIT_HOST`.
 - `App.tsx` sends `JOIN` with `userId` / name / avatar; sends `accessToken` **only** when `isDiscordActivity` is true and token is a real Discord OAuth token (not `browser-dev` / `mock`).
 
@@ -30,4 +30,4 @@ alwaysApply: true
 - Shared game types: `src/types/game.ts`. Keep server room types aligned when changing `GameState` / messages.
 - Do not commit secrets; `.env` and `.env.deploy` are gitignored. Use `.env.example` / `.env.deploy.example` as templates.
 - **Deploy from repo root:** `npm run deploy` reads `.env.deploy` and runs Worker (secrets + deploy), Partykit (`JOIN_VERIFY` via `--var`), and Pages (Vite build + `wrangler pages deploy`). See `scripts/deploy.mjs` and README.
-- **Room / lobby:** Partykit isolates by `room` string (`useParty`). Web currently picks one random session room; Discord uses instance/channel id. Planned: URL room codes, invites, join flow — see `docs/LAUNCH_PLAN.md` → *Product & engineering backlog*.
+- **Room / lobby:** Partykit isolates by `room` string (`useParty`). **Web:** `lobby-{CODE}` from `?room=`, `sessionStorage`, helpers in `src/lib/party-room.ts` + `resolveWebPartyRoomId()` in `web-session.ts`. **Discord Activity:** base instance/channel id, optional `{base}__{CODE}` suffix for split lobbies. Invite/join UI on `Lobby`. More ideas: `docs/LAUNCH_PLAN.md` backlog (G\*, X\*).

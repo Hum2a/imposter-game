@@ -36,6 +36,12 @@ export default function App() {
     disableWebCloud,
     signInDiscordOnWeb,
     isDiscordActivity,
+    joinWebPartyRoom,
+    createNewWebLobby,
+    joinLobbyError,
+    clearJoinLobbyError,
+    discordLobbySuffix,
+    setDiscordLobbySuffix,
   } = useDiscord()
   const partyHost = import.meta.env.VITE_PARTYKIT_HOST
   const { gameState, send } = useParty(partyRoomId ?? undefined, auth?.user.id)
@@ -134,7 +140,20 @@ export default function App() {
 
   switch (gameState.phase) {
     case 'lobby':
-      return shell(<Lobby {...props} />)
+      return shell(
+        <Lobby
+          {...props}
+          partyRoomId={partyRoomId ?? ''}
+          webMode={webMode}
+          isDiscordActivity={isDiscordActivity}
+          onJoinWebLobby={joinWebPartyRoom}
+          onCreateWebLobby={createNewWebLobby}
+          joinLobbyError={joinLobbyError}
+          onDismissJoinLobbyError={clearJoinLobbyError}
+          discordLobbySuffix={discordLobbySuffix}
+          onDiscordLobbySuffixChange={setDiscordLobbySuffix}
+        />
+      )
     case 'discussion':
       return shell(<Game {...props} />)
     case 'voting':

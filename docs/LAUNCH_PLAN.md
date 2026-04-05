@@ -9,7 +9,7 @@ Use this as the single execution checklist. Check items off as you go; keep [POS
 1. Work **phases in order** unless a note says “parallel.”
 2. Each task has **verify** steps — don’t skip; they catch miswired envs early.
 3. After **Phase E**, you are “launch-ready” for the **current** feature set; **Phase G** is the actual flip / announce.
-4. **[Product & engineering backlog](#product--engineering-backlog)** lists features not built yet (invites, multiple lobbies, polish). Prioritize items there before promising them at launch.
+4. **[Product & engineering backlog](#product--engineering-backlog)** tracks deeper polish (G\*, X\*, `/play/CODE` routes). Web invites + multi-lobby (L1–L5) are implemented; see that section for details.
 
 ---
 
@@ -184,15 +184,15 @@ Run all applicable rows; fix blockers before Phase G.
 
 ## Product & engineering backlog
 
-Features below are **not fully implemented** in the repo today, or are only partially covered. Use this as the master list when planning sprints; tick rows in your issue tracker, not necessarily here.
+Features below are the **master planning list**; P0 L1–L5 are done in client + `web-session` (see notes). Use your issue tracker for finer-grained tasks; tick rows there, not necessarily here.
 
 ### Current behavior (baseline)
 
 | Surface | How `partyRoomId` is chosen | Multiple lobbies? |
 |---------|----------------------------|-------------------|
-| **Web** (`src/lib/web-session.ts`) | One random `browser-…` id per **sessionStorage** tab session; no URL, no share UX | **De facto** many rooms exist in Partykit, but users can’t intentionally join the same one without copying storage / devtools |
-| **Discord Activity** (`src/hooks/useDiscord.ts`) | `instanceId` or `ch-{channelId}` or `main` | **One room per activity instance / channel** — everyone in that launch shares the same Partykit room |
-| **Partykit** (`src/hooks/useParty.ts`) | `PartySocket({ room: roomId })` — isolation is already **per `room` string** | Server already supports unlimited rooms; **client UX + routing** is what’s missing |
+| **Web** (`src/lib/web-session.ts`, `src/lib/party-room.ts`) | **`lobby-{CODE}`** (6-char A–Z / 2–9). **`?room=CODE`** on load, **`sessionStorage`**, URL synced with **`replaceState`**. Legacy `browser-*` sessions migrate once to a new `lobby-*` code. | **Yes** — join by code/link, **New lobby**, or paste URL. |
+| **Discord Activity** (`src/hooks/useDiscord.ts`) | Base: `instanceId` or `ch-{channelId}` or `main`. Optional **room code** (4+ chars) → PartyKit room **`{base}__{CODE}`** (persisted in `sessionStorage`). | **Yes** when a suffix is set; otherwise one room per instance/channel as before. |
+| **Partykit** (`src/hooks/useParty.ts`) | `PartySocket({ room: roomId })` — isolation is **per `room` string** | Unlimited rooms; server unchanged for L1–L5. |
 
 ---
 
@@ -200,12 +200,12 @@ Features below are **not fully implemented** in the repo today, or are only part
 
 | ID | Feature | Implementation notes |
 |----|---------|------------------------|
-| **L1** | **Room codes & URL** | Define format (e.g. 6–8 chars `A-Z0-9`, Partykit-safe). Read **`?room=CODE`** (and/or `/play/CODE`) on load **before** fixing `partyRoomId`. Persist choice in `sessionStorage` + sync URL via `history.replaceState` so refresh keeps lobby. |
-| **L2** | **Lift / control `partyRoomId` from init-only** | Today web session sets room once in `initWebSession`. Add **`setPartyRoomId` / `joinLobby(code)`** (e.g. in `useDiscord` or a dedicated `usePartyRoom` hook) that closes old socket and reconnects `useParty` with new id — may require resetting local game UI state when switching rooms mid-session. |
-| **L3** | **“Create lobby” vs “Join lobby”** | Pre-game screen or modal: **New game** → generate code, set URL, connect; **Join** → validate input, set room id, connect. Empty invalid code → user-facing error. |
-| **L4** | **Invite UI** | On **Lobby** screen: show **room code** + **Copy link** (`${origin}${pathname}?room=CODE}`) + optional “Copy code only”. Optional QR for in-person. |
-| **L5** | **Discord Activity + same channel, different lobby** (product choice) | **Option A:** Keep current model (one room per instance/channel) — document only. **Option B:** In-Activity field “Room code” synced with web (friends type same code to align `partyRoomId` even in Discord). Requires UI + deciding default when empty (fallback to `instanceId`). |
-| **L6** | **Host leaves / host transfer** | Today `hostId` may stick to a disconnected user. Define behavior: reassign host (next joiner or vote), or end lobby — changes in `server/src/room.ts` + client messages. |
+| **L1** | **Room codes & URL** | **Done.** `normalizeLobbyCode` (4–16 chars), `?room=CODE`, `resolveWebPartyRoomId()` + `sessionStorage` + `syncWebUrlToLobbyCode` — see `party-room.ts` / `web-session.ts`. |
+| **L2** | **Lift / control `partyRoomId` from init-only** | **Done.** `joinWebPartyRoom`, `createNewWebLobby` in `useDiscord` update state; `useParty` reconnects when `roomId` changes. |
+| **L3** | **“Create lobby” vs “Join lobby”** | **Done (in-lobby).** Lobby: **Join another lobby** form + **New lobby** (confirm). Invalid code → `joinLobbyError`. Optional later: dedicated pre-connect gate screen. |
+| **L4** | **Invite UI** | **Done.** Lobby shows code, **Copy link**, **Copy code** (`buildWebInviteUrl`). |
+| **L5** | **Discord Activity + same channel, different lobby** (product choice) | **Done (Option B).** Optional **Room code** field on lobby; `buildDiscordPartyRoomId`; empty/invalid short suffix → base room only. |
+| **L6** | **Host leaves / host transfer** | **Already in server:** `onClose` in `server/src/room.ts` reassigns `hostId` to the first remaining player when the host’s last connection drops. |
 
 **Suggested file touch list:** `src/lib/web-session.ts`, `src/hooks/useDiscord.ts`, `src/hooks/useParty.ts`, `src/App.tsx` (routing / gate), `src/screens/Lobby.tsx`, `server/src/room.ts` (if host rules change).
 
@@ -239,9 +239,9 @@ Features below are **not fully implemented** in the repo today, or are only part
 
 ### Suggested sequencing (opinion)
 
-1. **L1 → L2 → L3 → L4** (web invites + multi-lobby) — highest user-visible value.  
-2. **L5** once web flow is stable (Discord overlay or explicit “same as web” doc).  
-3. **L6** when playtesting shows host-drop pain.  
+1. ~~**L1 → L2 → L3 → L4**~~ — shipped.  
+2. ~~**L5**~~ — shipped (Discord optional suffix).  
+3. ~~**L6**~~ — covered by existing `onClose` host handoff; add UX copy only if playtesters are confused.  
 4. **G1–G5** in parallel or next sprint.  
 5. **X\*** after stable social launch.
 
