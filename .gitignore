@@ -1,0 +1,52 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+server/public/dist
+
+# Environment — never commit secrets
+.env
+.env.*
+!.env.example
+
+# Local Cloudflare Worker secrets (Wrangler)
+.dev.vars
+.wrangler
+
+# PartyKit
+.partykit
+
+# Logs & debug
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Vite / caches
+*.local
+.cache
+
+# Editors & OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.cursor
+
+# Test / coverage
+coverage
+.eslintcache

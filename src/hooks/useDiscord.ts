@@ -1,0 +1,194 @@
+import { DiscordSDK } from '@discord/embedded-app-sdk'
+import { useEffect, useState } from 'react'
+import { isDiscordActivity } from '../lib/discord-context'
+
+type Auth = Awaited<ReturnType<DiscordSDK['commands']['authenticate']>>
+
+type Participant = Awaited<
+  ReturnType<DiscordSDK['commands']['getInstanceConnectedParticipants']>
+>['participants'][number]
+
+const SESSION_USER = 'imposter-dev-user-id'
+const SESSION_ROOM = 'imposter-dev-party-room'
+
+function readSession(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function writeSession(key: string, value: string) {
+  try {
+    sessionStorage.setItem(key, value)
+  } catch {
+    /* private mode */
+  }
+}
+
+function makeBrowserAuth(userId: string): Auth {
+  return {
+    access_token: 'browser-dev',
+    user: {
+      id: userId,
+      username: 'DevUser',
+      discriminator: '0000',
+      public_flags: 0,
+      global_name: 'Browser dev',
+      avatar: null,
+    },
+    scopes: ['identify', 'guilds.members.read'],
+    expires: new Date(Date.now() + 86400000).toISOString(),
+    application: {
+      id: 'browser',
+      description: '',
+      name: 'Imposter (browser)',
+    },
+  }
+}
+
+function makeMockAuth(): Auth {
+  return {
+    access_token: 'mock',
+    user: {
+      id: 'mock-user',
+      username: 'dev',
+      discriminator: '0000',
+      public_flags: 0,
+      global_name: 'Local dev',
+    },
+    scopes: ['identify', 'guilds.members.read'],
+    expires: new Date(Date.now() + 86400000).toISOString(),
+    application: {
+      id: 'mock',
+      description: '',
+      name: 'Imposter (dev)',
+    },
+  }
+}
+
+function tokenExchangeUrl(): string {
+  const configured = import.meta.env.VITE_DISCORD_TOKEN_URL?.trim()
+  if (configured) return configured
+  return '/api/token'
+}
+
+export function useDiscord() {
+  const [auth, setAuth] = useState<Auth | null>(null)
+  const [participants, setParticipants] = useState<Participant[]>([])
+  const [discordSdk, setDiscordSdk] = useState<DiscordSDK | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [partyRoomId, setPartyRoomId] = useState<string | null>(null)
+  const [embeddedDiscord] = useState(() => isDiscordActivity())
+
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID
+    const forceMock = import.meta.env.VITE_DISCORD_MOCK === '1'
+
+    if (forceMock) {
+      setAuth(makeMockAuth())
+      setPartyRoomId('mock-room')
+      setParticipants([])
+      return
+    }
+
+    if (!embeddedDiscord) {
+      let userId = readSession(SESSION_USER)
+      if (!userId) {
+        userId = `browser-${crypto.randomUUID().slice(0, 8)}`
+        writeSession(SESSION_USER, userId)
+      }
+      let roomId = readSession(SESSION_ROOM)
+      if (!roomId) {
+        roomId = `browser-${crypto.randomUUID().slice(0, 8)}`
+        writeSession(SESSION_ROOM, roomId)
+      }
+      setAuth(makeBrowserAuth(userId))
+      setPartyRoomId(roomId)
+      setParticipants([])
+      return
+    }
+
+    if (!clientId) {
+      setError('Missing VITE_DISCORD_CLIENT_ID inside Discord Activity.')
+      return
+    }
+
+    const sdk = new DiscordSDK(clientId)
+    setDiscordSdk(sdk)
+
+    let cancelled = false
+    const onParticipants = (data: { participants: Participant[] }) => {
+      if (!cancelled) setParticipants(data.participants)
+    }
+
+    async function setup() {
+      try {
+        await sdk.ready()
+
+        const roomId =
+          sdk.instanceId ||
+          (sdk.channelId ? `ch-${sdk.channelId}` : null) ||
+          'main'
+        if (!cancelled) setPartyRoomId(roomId)
+
+        const { code } = await sdk.commands.authorize({
+          client_id: clientId,
+          response_type: 'code',
+          scope: ['identify', 'guilds.members.read'],
+        })
+
+        const tokenUrl = tokenExchangeUrl()
+        const res = await fetch(tokenUrl, {
+          method: 'POST',
+          body: JSON.stringify({ code }),
+          headers: { 'Content-Type': 'application/json' },
+        })
+
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}))
+          throw new Error(
+            (errBody as { error?: string }).error ??
+              `Token exchange failed (${res.status}). Set VITE_DISCORD_TOKEN_URL to your Worker URL if not using /api/token.`
+          )
+        }
+
+        const { access_token } = (await res.json()) as { access_token: string }
+        const authResult = await sdk.commands.authenticate({ access_token })
+        if (cancelled) return
+        setAuth(authResult)
+
+        const { participants: initial } =
+          await sdk.commands.getInstanceConnectedParticipants()
+        if (!cancelled) setParticipants(initial)
+
+        await sdk.subscribe('ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE', onParticipants)
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : 'Discord setup failed')
+        }
+      }
+    }
+
+    void setup()
+
+    return () => {
+      cancelled = true
+      try {
+        void sdk.unsubscribe('ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE', onParticipants)
+      } catch {
+        /* not subscribed yet */
+      }
+    }
+  }, [embeddedDiscord])
+
+  return {
+    auth,
+    participants,
+    discordSdk,
+    error,
+    partyRoomId,
+    isDiscordActivity: embeddedDiscord,
+  }
+}

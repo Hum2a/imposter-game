@@ -1,0 +1,11 @@
+# Discord token exchange for Embedded App SDK (Phase 5 / deploy).
+# Deploy: npx wrangler deploy
+# Secrets: wrangler secret put DISCORD_CLIENT_ID
+#         wrangler secret put DISCORD_CLIENT_SECRET
+
+name = "imposter-discord-oauth"
+main = "workers/discord-oauth-token.ts"
+compatibility_date = "2026-04-05"
+
+# Uncomment and set after first deploy if you use a custom workers.dev subdomain:
+# workers_dev = true
