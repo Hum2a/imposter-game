@@ -12,20 +12,24 @@ alwaysApply: false
 |--------|-----------|----------------|
 | Discord Activity | Embedded SDK + token Worker | `sdk.instanceId` or `ch-{channelId}` |
 | `VITE_DISCORD_MOCK=1` | Fixed mock user | `mock-room` |
-| Website (default) | `localStorage` `imposter-web-user-id` + display name in `imposter-web-display-name` | `sessionStorage` party room |
-| Website + Supabase | Anonymous Supabase user id (`signInAnonymously`) | same session room |
+| **Website — guest (default)** | `localStorage` `imposter-web-user-id` + `imposter-web-display-name` | `sessionStorage` party room |
+| **Website — cloud opt-in** | Supabase anonymous or OAuth (e.g. Discord); `imposter-web-cloud-opt-in` = `1` | same session room |
+| **Website — legacy** | If Supabase session exists and opt-in key unset → treated as opted-in once (`initWebSession` writes `1`) | same |
+
+Guest-first: no Supabase sign-in until the user chooses **Save progress online** or **Sign in with Discord** (`src/lib/web-session.ts`).
 
 ## Env vars (client / build)
 
 - `VITE_DISCORD_CLIENT_ID`, `VITE_PARTYKIT_HOST`, `VITE_DISCORD_TOKEN_URL` — Discord + Partykit.
-- `VITE_SUPABASE_URL` plus any of `VITE_SUPABASE_ANON_KEY`, `VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, or `VITE_SUPABASE_PUBLISHABLE_KEY` — optional; enables anonymous auth + `web_profiles` upserts from `src/lib/web-session.ts` (see `src/lib/supabase-client.ts`).
+- `VITE_SUPABASE_URL` plus any of `VITE_SUPABASE_ANON_KEY`, `VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, or `VITE_SUPABASE_PUBLISHABLE_KEY` — optional; enables optional cloud profiles + `web_profiles`.
 - `VITE_DISCORD_MOCK` — force mock.
 
 ## Supabase setup
 
-1. Create project; enable **Authentication → Anonymous sign-ins**.
-2. Run `supabase/migrations/001_web_profiles.sql` (CLI `db push` or SQL editor).
-3. Set `VITE_SUPABASE_*` in `.env` locally and in Cloudflare Pages build env.
+1. Create project; enable **Authentication → Anonymous sign-ins** (for “Save progress online”).
+2. For **Sign in with Discord** on the web: Auth → Providers → **Discord** (OAuth app + redirect URLs; include your site and Supabase callback URL).
+3. Run `supabase/migrations/001_web_profiles.sql` and `002_web_profiles_discord_link.sql` (or SQL editor).
+4. Set `VITE_SUPABASE_*` in `.env` / Pages build.
 
 ## Post-deploy checklist
 

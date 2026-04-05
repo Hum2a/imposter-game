@@ -23,6 +23,12 @@ export function getSupabase(): SupabaseClient | null {
   if (client) return client
   const url = import.meta.env.VITE_SUPABASE_URL!.trim()
   const key = getSupabasePublishableKey()!
-  client = createClient(url, key)
+  client = createClient(url, key, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  })
   return client
 }

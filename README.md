@@ -154,10 +154,13 @@ In `server/partykit.json`, set `"JOIN_VERIFY": "true"` under `vars` (or override
 
 ## Website auth & optional Supabase
 
-When the app runs **outside** Discord (normal browser), identity is:
+When the app runs **outside** Discord (normal browser):
 
-1. **Default:** stable `localStorage` user id + editable display name (top bar). Names are sent to Partykit on `JOIN`.
-2. **Optional:** set `VITE_SUPABASE_URL` and a client key: `VITE_SUPABASE_ANON_KEY` (legacy JWT) or `VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY` / `VITE_SUPABASE_PUBLISHABLE_KEY` as in the Supabase UI docs. Enable **Anonymous sign-ins** in the Supabase dashboard, run `supabase/migrations/001_web_profiles.sql`, then anonymous users sync `display_name` to the `web_profiles` table.
+1. **Default (guest):** stable `localStorage` user id + display name — no account, no Supabase calls until you opt in.
+2. **Optional cloud:** with Supabase configured, use **Save progress online** (anonymous auth) or **Sign in with Discord** (OAuth via Supabase Auth) for a stable user id and `web_profiles` row. **Play as guest only** signs out of Supabase and returns to the local id.
+3. **Discord Activity** is unchanged (Embedded SDK + Worker token exchange).
+
+Env: `VITE_SUPABASE_URL` and a client key (`VITE_SUPABASE_ANON_KEY` or publishable keys). Enable **Anonymous sign-ins** for cloud backup; enable the **Discord** provider in Supabase for web Discord login (set redirect URLs). Run `supabase/migrations/001_web_profiles.sql` and `002_web_profiles_discord_link.sql`.
 
 Do **not** send Supabase JWTs as `accessToken` on `JOIN` — `JOIN_VERIFY` expects a **Discord** OAuth token only.
 

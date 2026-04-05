@@ -6,6 +6,7 @@ import {
 } from './components/layout/AppStates'
 import { WebProfileControls } from './components/WebProfileControls'
 import { useDiscord } from './hooks/useDiscord'
+import { isSupabaseConfigured } from './lib/supabase-client'
 import { useParty } from './hooks/useParty'
 import Lobby from './screens/Lobby'
 import Game from './screens/Game'
@@ -21,8 +22,21 @@ function InlineCode({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
-  const { auth, error, partyRoomId, webMode, setWebDisplayName, isDiscordActivity } =
-    useDiscord()
+  const {
+    auth,
+    error,
+    partyRoomId,
+    webMode,
+    webIdentityMode,
+    webAuthBusy,
+    webProfileError,
+    clearWebProfileError,
+    setWebDisplayName,
+    enableWebCloud,
+    disableWebCloud,
+    signInDiscordOnWeb,
+    isDiscordActivity,
+  } = useDiscord()
   const partyHost = import.meta.env.VITE_PARTYKIT_HOST
   const { gameState, send } = useParty(partyRoomId ?? undefined, auth?.user.id)
 
@@ -104,6 +118,14 @@ export default function App() {
         <WebProfileControls
           displayName={auth.user.global_name ?? auth.user.username}
           onSave={setWebDisplayName}
+          identityMode={webIdentityMode}
+          supabaseConfigured={isSupabaseConfigured()}
+          busy={webAuthBusy}
+          profileError={webProfileError}
+          onDismissProfileError={clearWebProfileError}
+          onEnableCloud={enableWebCloud}
+          onDisableCloud={disableWebCloud}
+          onSignInDiscord={signInDiscordOnWeb}
         />
       ) : null}
       <div className="flex flex-1 flex-col">{body}</div>

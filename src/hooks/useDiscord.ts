@@ -2,11 +2,15 @@ import { DiscordSDK } from '@discord/embedded-app-sdk'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isDiscordActivity } from '../lib/discord-context'
 import {
+  disableWebCloudProfile,
+  enableWebCloudProfile,
   initWebSession,
   makeWebAuthSession,
   readWebDisplayName,
+  signInWebWithDiscord,
   upsertWebProfileRow,
   writeWebDisplayName,
+  type WebIdentityMode,
 } from '../lib/web-session'
 import type { DiscordAuthSession } from '../types/discord-auth'
 
@@ -48,8 +52,18 @@ export function useDiscord() {
   const [partyRoomId, setPartyRoomId] = useState<string | null>(null)
   const [embeddedDiscord] = useState(() => isDiscordActivity())
   const [webMode, setWebMode] = useState(false)
+  const [webIdentityMode, setWebIdentityMode] = useState<WebIdentityMode>('guest')
+  const [webAuthBusy, setWebAuthBusy] = useState(false)
+  const [webProfileError, setWebProfileError] = useState<string | null>(null)
   const webModeRef = useRef(false)
   webModeRef.current = webMode
+
+  const refreshWebSession = useCallback(async () => {
+    const session = await initWebSession()
+    setAuth(session.auth)
+    setPartyRoomId(session.partyRoomId)
+    setWebIdentityMode(session.webIdentityMode)
+  }, [])
 
   const setWebDisplayName = useCallback((name: string) => {
     if (!webModeRef.current) return
@@ -61,6 +75,45 @@ export function useDiscord() {
       return makeWebAuthSession(prev.user.id, display, prev.access_token)
     })
   }, [])
+
+  const enableWebCloud = useCallback(async () => {
+    setWebAuthBusy(true)
+    setWebProfileError(null)
+    try {
+      await enableWebCloudProfile()
+      await refreshWebSession()
+    } catch (e) {
+      setWebProfileError(e instanceof Error ? e.message : 'Could not enable online profile')
+    } finally {
+      setWebAuthBusy(false)
+    }
+  }, [refreshWebSession])
+
+  const disableWebCloud = useCallback(async () => {
+    setWebAuthBusy(true)
+    setWebProfileError(null)
+    try {
+      await disableWebCloudProfile()
+      await refreshWebSession()
+    } catch (e) {
+      setWebProfileError(e instanceof Error ? e.message : 'Could not switch to guest')
+    } finally {
+      setWebAuthBusy(false)
+    }
+  }, [refreshWebSession])
+
+  const signInDiscordOnWeb = useCallback(async () => {
+    setWebAuthBusy(true)
+    setWebProfileError(null)
+    try {
+      await signInWebWithDiscord()
+    } catch (e) {
+      setWebAuthBusy(false)
+      setWebProfileError(e instanceof Error ? e.message : 'Discord sign-in failed')
+    }
+  }, [])
+
+  const clearWebProfileError = useCallback(() => setWebProfileError(null), [])
 
   useEffect(() => {
     const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID
@@ -82,6 +135,7 @@ export function useDiscord() {
           if (cancelled) return
           setAuth(session.auth)
           setPartyRoomId(session.partyRoomId)
+          setWebIdentityMode(session.webIdentityMode)
           setParticipants([])
           setWebMode(true)
         })
@@ -177,8 +231,15 @@ export function useDiscord() {
     error,
     partyRoomId,
     isDiscordActivity: embeddedDiscord,
-    /** Browser / PWA path: show name editor and use local + optional Supabase identity */
     webMode,
+    webIdentityMode,
+    webAuthBusy,
+    webProfileError,
+    clearWebProfileError,
     setWebDisplayName,
+    enableWebCloud,
+    disableWebCloud,
+    signInDiscordOnWeb,
+    refreshWebSession,
   }
 }
