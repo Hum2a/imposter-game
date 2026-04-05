@@ -60,6 +60,11 @@ Details: [docs/STAGING.md](docs/STAGING.md).
 
 During the **discussion** phase, the Partykit room **re-broadcasts** full state about every **25 seconds** so clients refresh `discussionEndsAt` after tab backgrounding or minor clock skew. The phase still flips to voting when the server timer fires.
 
+### Disconnect grace & spectators
+
+- When a player’s **last** WebSocket to a room closes, the server keeps their row for **45 seconds** so a refresh can **`JOIN`** again without losing the round.
+- If someone opens the room **mid-round** and wasn’t in the game yet, they join as a **spectator** (no secret word, no vote) until the host **starts the next round** or **returns to lobby**.
+
 ---
 
 ## Deployment (recommended order)

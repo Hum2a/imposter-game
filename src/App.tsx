@@ -69,6 +69,7 @@ export default function App() {
         ? { accessToken: auth.access_token }
         : {}),
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- JOIN on socket open + stable identity fields (omit `auth` ref churn)
   }, [
     connection,
     socketOpenNonce,

@@ -23,7 +23,7 @@ alwaysApply: true
 
 - `useDiscord()` (name kept for history) returns `auth`, `partyRoomId`, `webMode`, `joinWebPartyRoom`, `createNewWebLobby`, Discord `discordLobbySuffix` / `setDiscordLobbySuffix`, etc.
 - `useParty(roomId, userId)` uses `partysocket` + `VITE_PARTYKIT_HOST`.
-- `App.tsx` sends `JOIN` only when `gameState.phase === 'lobby'`; sends `accessToken` **only** when `isDiscordActivity` is true and token is a real Discord OAuth token (not `browser-dev` / `mock`). Host can send `SET_NEXT_WORDS` / `CLEAR_NEXT_WORDS` in lobby.
+- `App.tsx` sends `JOIN` on every PartySocket **`open`** (and when identity fields change) so reconnects re-bind `connToUser`. Mid-round new users become **`isSpectator`** until `startGame` or `backToLobby`. Server **45s disconnect grace** before removing a player row. `accessToken` on `JOIN` only for real Discord OAuth when `JOIN_VERIFY` / Activity.
 
 ## Adding features
 
