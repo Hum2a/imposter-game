@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
-import { isSupabaseConfigured } from '../lib/supabase-client'
+
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
+import { isSupabaseConfigured } from '@/lib/supabase-client'
 
 type WebProfileControlsProps = {
   displayName: string
@@ -14,29 +20,42 @@ export function WebProfileControls({ displayName, onSave }: WebProfileControlsPr
   }, [displayName])
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 border-b border-zinc-800 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-300">
-      <span className="text-zinc-500">Web player</span>
-      <input
-        type="text"
-        value={draft}
-        maxLength={40}
-        onChange={(e) => setDraft(e.target.value)}
-        className="w-40 rounded border border-zinc-600 bg-zinc-950 px-2 py-1 text-zinc-100 outline-none focus:border-violet-500 sm:w-52"
-        placeholder="Display name"
-        aria-label="Display name"
-      />
-      <button
-        type="button"
-        onClick={() => onSave(draft)}
-        className="rounded bg-zinc-700 px-3 py-1 font-medium text-white hover:bg-zinc-600"
-      >
-        Save
-      </button>
-      {isSupabaseConfigured() ? (
-        <span className="text-xs text-emerald-600/90">Supabase sync on</span>
-      ) : (
-        <span className="text-xs text-zinc-600">Local guest (add Supabase env for cloud id)</span>
-      )}
-    </div>
+    <header className="border-b bg-card/90 shadow-sm backdrop-blur-sm">
+      <div className="mx-auto flex max-w-2xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-foreground">Web player</span>
+            <Separator orientation="vertical" className="hidden h-4 sm:block" />
+            {isSupabaseConfigured() ? (
+              <Badge variant="secondary" className="font-normal">
+                Cloud profile sync on
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="font-normal text-muted-foreground">
+                Local guest — add Supabase env for cloud id
+              </Badge>
+            )}
+          </div>
+          <div className="flex flex-col gap-2 sm:max-w-sm">
+            <Label htmlFor="web-display-name">Display name</Label>
+            <Input
+              id="web-display-name"
+              type="text"
+              value={draft}
+              maxLength={40}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="How others see you"
+              aria-label="Display name"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') onSave(draft)
+              }}
+            />
+          </div>
+        </div>
+        <Button type="button" className="shrink-0 sm:min-w-[5rem]" onClick={() => onSave(draft)}>
+          Save
+        </Button>
+      </div>
+    </header>
   )
 }

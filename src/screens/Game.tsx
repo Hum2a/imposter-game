@@ -1,11 +1,20 @@
 import { useEffect, useState } from 'react'
+import { Clock } from 'lucide-react'
+
+import { GameScreen } from '../components/layout/GameScreen'
+import { Badge } from '@/components/ui/badge'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import type { Player } from '../types/game'
 import type { AuthUserProps } from './types'
-import type { ClientMessage } from '../types/game'
 
 type GameProps = AuthUserProps & {
   me: Player
-  send: (msg: ClientMessage) => void
 }
 
 export default function Game({ gameState, me }: GameProps) {
@@ -22,27 +31,40 @@ export default function Game({ gameState, me }: GameProps) {
     ends != null ? Math.max(0, Math.ceil((ends - now) / 1000)) : null
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-8 px-4 py-10 text-center">
-      <div>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Discussion
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-zinc-100">Your word</h1>
+    <GameScreen className="text-center">
+      <div className="flex flex-col items-center gap-2">
+        <Badge variant="secondary">Discussion</Badge>
+        {remaining != null ? (
+          <Badge variant="outline" className="gap-1.5 font-mono text-sm tabular-nums">
+            <Clock className="size-3.5" aria-hidden />
+            Voting in {remaining}s
+          </Badge>
+        ) : null}
       </div>
 
-      <div className="rounded-2xl border border-violet-500/40 bg-violet-950/40 px-6 py-10">
-        <p className="text-4xl font-bold tracking-tight text-violet-200">{word}</p>
-      </div>
+      <Card className="overflow-hidden border-primary/25 bg-gradient-to-b from-card to-primary/5 shadow-md">
+        <CardHeader>
+          <CardTitle className="text-2xl sm:text-3xl">
+            {me.isImposter ? 'Your word (imposter)' : 'Your word'}
+          </CardTitle>
+          <CardDescription className="text-base">
+            {me.isImposter
+              ? 'You have a different word than the crew. Blend in without saying it outright.'
+              : 'Describe it without naming it — the imposter is listening.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pb-8">
+          <div className="rounded-xl border border-primary/30 bg-primary/10 px-6 py-10">
+            <p className="text-4xl font-bold tracking-tight text-primary sm:text-5xl">{word}</p>
+          </div>
+        </CardContent>
+      </Card>
 
-      {remaining != null ? (
-        <p className="text-lg text-zinc-400">
-          Voting in <span className="font-mono text-zinc-200">{remaining}s</span>
-        </p>
-      ) : null}
-
-      <p className="text-sm text-zinc-500">
-        Don’t say your word out loud — describe it without giving it away.
-      </p>
-    </div>
+      <Card className="border-dashed">
+        <CardContent className="pt-6 text-sm text-muted-foreground">
+          Tip: give clues that only someone who knows the real word would understand.
+        </CardContent>
+      </Card>
+    </GameScreen>
   )
 }

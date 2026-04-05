@@ -8,7 +8,7 @@ alwaysApply: true
 
 ## Stack
 
-- **Client:** Vite + React + TypeScript in repo root (`src/`). Tailwind v4 via `@tailwindcss/vite`.
+- **Client:** Vite + React + TypeScript in repo root (`src/`). Tailwind v4 via `@tailwindcss/vite`. **UI:** shadcn/ui in `src/components/ui/` — see rule `imposter-shadcn-ui.mdc`.
 - **Realtime game:** Partykit server in `server/` (`server/src/room.ts`, `server/partykit.json`).
 - **Discord Activity:** `@discord/embedded-app-sdk` in `src/hooks/useDiscord.ts` when `isDiscordActivity()` (iframe / `frame_id` / Discord UA).
 - **Website / PWA:** Same app; when not in Discord, `initWebSession()` in `src/lib/web-session.ts` — localStorage guest id and optional **Supabase anonymous** auth (`VITE_SUPABASE_*`).

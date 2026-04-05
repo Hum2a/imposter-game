@@ -18,7 +18,7 @@ alwaysApply: false
 ## Env vars (client / build)
 
 - `VITE_DISCORD_CLIENT_ID`, `VITE_PARTYKIT_HOST`, `VITE_DISCORD_TOKEN_URL` — Discord + Partykit.
-- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` — optional; enables anonymous auth + `web_profiles` upserts from `src/lib/web-session.ts`.
+- `VITE_SUPABASE_URL` plus any of `VITE_SUPABASE_ANON_KEY`, `VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, or `VITE_SUPABASE_PUBLISHABLE_KEY` — optional; enables anonymous auth + `web_profiles` upserts from `src/lib/web-session.ts` (see `src/lib/supabase-client.ts`).
 - `VITE_DISCORD_MOCK` — force mock.
 
 ## Supabase setup

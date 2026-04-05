@@ -1,0 +1,14 @@
+---
+description: Use shadcn/ui as the default UI layer for Imposter frontend
+globs: "**/*.tsx"
+alwaysApply: true
+---
+
+# shadcn/ui first
+
+- **Default to** primitives in `src/components/ui/` from [shadcn/ui](https://ui.shadcn.com): `Button`, `Card` (+ header/title/description/content/footer), `Input`, `Label`, `Badge`, `Separator`, `Alert`, etc.
+- **Add new pieces** with `npx shadcn@latest add <component>` (registry includes `@supabase` in `components.json` when needed).
+- **Avoid** one-off raw `<button>` / `<input>` / bordered `<div>` stacks when a ui component already fits — extend with `className` + `cn()` instead.
+- **Layout:** keep screens in `src/screens/`; shared wrappers live in `src/components/layout/` (e.g. `GameScreen`).
+- **Theming:** prefer semantic tokens (`bg-background`, `text-foreground`, `border-border`, `text-muted-foreground`, `bg-card`) so light/dark via `html.dark` stays consistent. Use `text-primary` / violet accents only for emphasis (imposter, host, selected vote).
+- **Icons:** `lucide-react` at `size={16}` or `className="size-4"` to match shadcn spacing.

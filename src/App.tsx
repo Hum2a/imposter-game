@@ -1,4 +1,9 @@
 import { useEffect, type ReactNode } from 'react'
+import {
+  AppConfigWarning,
+  AppErrorState,
+  AppLoadingState,
+} from './components/layout/AppStates'
 import { WebProfileControls } from './components/WebProfileControls'
 import { useDiscord } from './hooks/useDiscord'
 import { useParty } from './hooks/useParty'
@@ -6,6 +11,14 @@ import Lobby from './screens/Lobby'
 import Game from './screens/Game'
 import Voting from './screens/Voting'
 import Reveal from './screens/Reveal'
+
+function InlineCode({ children }: { children: ReactNode }) {
+  return (
+    <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+      {children}
+    </code>
+  )
+}
 
 export default function App() {
   const { auth, error, partyRoomId, webMode, setWebDisplayName, isDiscordActivity } =
@@ -32,65 +45,61 @@ export default function App() {
 
   if (error) {
     return (
-      <div className="flex min-h-svh flex-col items-center justify-center gap-2 bg-zinc-950 px-6 text-center">
-        <p className="text-red-400">{error}</p>
-        <p className="max-w-md text-sm text-zinc-500">
-          In Discord: set <code className="text-zinc-400">VITE_DISCORD_CLIENT_ID</code>, map{' '}
-          <code className="text-zinc-400">/api/token</code> to your Worker, and set{' '}
-          <code className="text-zinc-400">VITE_DISCORD_TOKEN_URL</code> to the full Worker URL
-          if the app origin is not the same as the token endpoint. Outside Discord, the app
-          uses a browser dev user automatically; use{' '}
-          <code className="text-zinc-400">VITE_DISCORD_MOCK=1</code> to force the fixed mock
-          user and room.
-        </p>
-      </div>
+      <AppErrorState
+        message={error}
+        hint={
+          <>
+            <p className="mb-3">
+              In Discord: set <InlineCode>VITE_DISCORD_CLIENT_ID</InlineCode>, map{' '}
+              <InlineCode>/api/token</InlineCode> to your Worker, and set{' '}
+              <InlineCode>VITE_DISCORD_TOKEN_URL</InlineCode> if the app origin differs from the
+              token endpoint.
+            </p>
+            <p>
+              In the browser, a dev user is used automatically. Use{' '}
+              <InlineCode>VITE_DISCORD_MOCK=1</InlineCode> for a fixed mock user and room.
+            </p>
+          </>
+        }
+      />
     )
   }
 
   if (!auth) {
-    return (
-      <div className="flex min-h-svh items-center justify-center bg-zinc-950 text-zinc-400">
-        Connecting…
-      </div>
-    )
+    return <AppLoadingState label="Connecting…" />
   }
 
   if (!partyHost) {
     return (
-      <div className="flex min-h-svh flex-col items-center justify-center gap-2 bg-zinc-950 px-6 text-center text-amber-400">
-        <p>Missing VITE_PARTYKIT_HOST</p>
-        <p className="text-sm text-zinc-500">
-          Run Partykit in <code className="text-zinc-400">server/</code> (
-          <code className="text-zinc-400">npm run dev</code>) and set{' '}
-          <code className="text-zinc-400">VITE_PARTYKIT_HOST=localhost:1999</code> in{' '}
-          <code className="text-zinc-400">.env</code>.
-        </p>
-      </div>
+      <AppConfigWarning
+        title="Game server not configured"
+        body="Partykit must be running and reachable so players can join the same room."
+        codeHint={
+          <>
+            Run Partykit in <InlineCode>server/</InlineCode> (
+            <InlineCode>npm run dev</InlineCode>), then set{' '}
+            <InlineCode>VITE_PARTYKIT_HOST=localhost:1999</InlineCode> in{' '}
+            <InlineCode>.env</InlineCode>.
+          </>
+        }
+      />
     )
   }
 
   if (!gameState) {
-    return (
-      <div className="flex min-h-svh items-center justify-center bg-zinc-950 text-zinc-400">
-        Connecting to game server…
-      </div>
-    )
+    return <AppLoadingState label="Connecting to game server…" />
   }
 
   const me = gameState.players[auth.user.id]
   if (!me) {
-    return (
-      <div className="flex min-h-svh items-center justify-center bg-zinc-950 text-zinc-400">
-        Joining room…
-      </div>
-    )
+    return <AppLoadingState label="Joining room…" />
   }
 
   const isHost = gameState.hostId === auth.user.id
   const props = { gameState, send, me, isHost, auth }
 
   const shell = (body: ReactNode) => (
-    <div className="flex min-h-svh flex-col bg-zinc-950">
+    <div className="flex min-h-svh flex-col bg-background text-foreground">
       {webMode ? (
         <WebProfileControls
           displayName={auth.user.global_name ?? auth.user.username}
@@ -112,7 +121,7 @@ export default function App() {
       return shell(<Reveal {...props} />)
     default:
       return shell(
-        <div className="flex flex-1 items-center justify-center text-zinc-400">
+        <div className="flex flex-1 items-center justify-center text-muted-foreground">
           Unknown phase
         </div>
       )
