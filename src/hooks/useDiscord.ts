@@ -13,6 +13,7 @@ import {
   changeWebAccountPassword,
   completeWebPasswordRecovery,
   createNewWebPartyRoom,
+  tryCreateWebPartyRoomWithCode,
   disableWebCloudProfile,
   enableWebCloudProfile,
   initWebSession,
@@ -29,6 +30,8 @@ import {
   writeWebDisplayName,
   type WebIdentityMode,
 } from '../lib/web-session'
+import { readWebAvatarPresetId, writeWebAvatarPresetId } from '../lib/web-avatar'
+import { webAvatarTokenFromPresetId } from '@/data/avatar-presets'
 import type { DiscordAuthSession } from '../types/discord-auth'
 
 type Participant = Awaited<
@@ -138,7 +141,17 @@ export function useDiscord() {
     setAuth((prev) => {
       if (!prev) return prev
       void upsertWebProfileRow(prev.user.id, display)
-      return makeWebAuthSession(prev.user.id, display, prev.access_token)
+      return makeWebAuthSession(prev.user.id, display, prev.access_token, prev.user.avatar)
+    })
+  }, [])
+
+  const setWebAvatarPreset = useCallback((presetId: string) => {
+    if (!webModeRef.current) return
+    writeWebAvatarPresetId(presetId)
+    const token = webAvatarTokenFromPresetId(presetId)
+    setAuth((prev) => {
+      if (!prev) return prev
+      return makeWebAuthSession(prev.user.id, readWebDisplayName(), prev.access_token, token)
     })
   }, [])
 
@@ -338,22 +351,37 @@ export function useDiscord() {
     )
   }, [embeddedDiscord, discordBaseRoom, discordLobbySuffix])
 
-  const joinWebPartyRoom = useCallback((raw: string) => {
-    if (!webModeRef.current) return
-    const id = setWebPartyRoomFromCode(raw)
-    if (!id) {
-      setJoinLobbyError('Use a room code with 4–16 letters or digits (A–Z, 2–9).')
-      return
-    }
-    setJoinLobbyError(null)
-    setPartyRoomId(id)
-  }, [])
+  const joinWebPartyRoom = useCallback(
+    (raw: string) => {
+      if (!webModeRef.current) return
+      const id = setWebPartyRoomFromCode(raw)
+      if (!id) {
+        setJoinLobbyError(t('lobby.joinCodeInvalid'))
+        return
+      }
+      setJoinLobbyError(null)
+      setPartyRoomId(id)
+    },
+    [t]
+  )
 
-  const createNewWebLobby = useCallback(() => {
-    if (!webModeRef.current) return
-    setJoinLobbyError(null)
-    setPartyRoomId(createNewWebPartyRoom())
-  }, [])
+  const createNewWebLobby = useCallback(
+    (customCode?: string) => {
+      if (!webModeRef.current) return
+      setJoinLobbyError(null)
+      if (customCode?.trim()) {
+        const id = tryCreateWebPartyRoomWithCode(customCode)
+        if (!id) {
+          setJoinLobbyError(t('lobby.invalidCustomRoomCode'))
+          return
+        }
+        setPartyRoomId(id)
+        return
+      }
+      setPartyRoomId(createNewWebPartyRoom())
+    },
+    [t]
+  )
 
   const setDiscordLobbySuffix = useCallback((raw: string) => {
     const trimmed = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
@@ -475,6 +503,11 @@ export function useDiscord() {
     }
   }, [embeddedDiscord])
 
+  const webAvatarPresetId =
+    auth?.user?.avatar?.startsWith('p:') === true
+      ? auth.user.avatar.slice(2)
+      : readWebAvatarPresetId()
+
   return {
     auth,
     participants,
@@ -490,6 +523,8 @@ export function useDiscord() {
     clearWebProfileError,
     clearWebProfileInfo,
     setWebDisplayName,
+    setWebAvatarPreset,
+    webAvatarPresetId,
     enableWebCloud,
     disableWebCloud,
     signInDiscordOnWeb,

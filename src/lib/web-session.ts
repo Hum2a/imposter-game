@@ -7,6 +7,7 @@ import {
   partyRoomIdFromNormalizedCode,
   syncWebUrlToLobbyCode,
 } from './party-room'
+import { webAvatarTokenForStoredPreset } from './web-avatar'
 import { getSupabase } from './supabase-client'
 
 const SESSION_ROOM = 'imposter-dev-party-room'
@@ -71,13 +72,21 @@ export function setCloudOptIn(enabled: boolean) {
   writeLocal(CLOUD_OPT_IN, enabled ? '1' : '0')
 }
 
+function resolveWebSessionAvatar(override?: string | null): string {
+  const t = override?.trim()
+  if (t) return t
+  return webAvatarTokenForStoredPreset()
+}
+
 export function makeWebAuthSession(
   userId: string,
   displayName: string,
-  accessToken: string
+  accessToken: string,
+  avatarOverride?: string | null
 ): DiscordAuthSession {
   const safeName = displayName.trim().slice(0, 40) || 'Guest'
   const username = safeName.replace(/\s+/g, '_').slice(0, 32) || 'guest'
+  const av = resolveWebSessionAvatar(avatarOverride)
   return {
     access_token: accessToken,
     user: {
@@ -86,7 +95,7 @@ export function makeWebAuthSession(
       discriminator: '0000',
       public_flags: 0,
       global_name: safeName,
-      avatar: null,
+      avatar: av,
     },
     scopes: ['identify', 'guilds.members.read'],
     expires: new Date(Date.now() + 86400000).toISOString(),
@@ -218,6 +227,19 @@ export function setWebPartyRoomFromCode(raw: string): string | null {
 /** New random web lobby; persists and updates URL. */
 export function createNewWebPartyRoom(): string {
   const n = generateLobbyCode(6)
+  const id = partyRoomIdFromNormalizedCode(n)
+  writeSession(SESSION_ROOM, id)
+  syncWebUrlToLobbyCode(n)
+  return id
+}
+
+/**
+ * Create / switch to a web lobby with a player-chosen code (4–16 chars).
+ * Returns null if the code is invalid.
+ */
+export function tryCreateWebPartyRoomWithCode(raw: string): string | null {
+  const n = normalizeLobbyCode(raw)
+  if (!n) return null
   const id = partyRoomIdFromNormalizedCode(n)
   writeSession(SESSION_ROOM, id)
   syncWebUrlToLobbyCode(n)
