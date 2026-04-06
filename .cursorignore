@@ -1,0 +1,53 @@
+﻿# Cursor indexing — trim noise & large trees (gitignore-style).
+# Remove or comment lines if you need a path in chat often.
+
+# Dependencies (largest win)
+node_modules/
+**/node_modules/
+
+# Build / bundle output
+dist/
+dist-ssr/
+server/public/dist/
+
+# Test & E2E artifacts
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# Caches & local tooling state
+.cache/
+.wrangler/
+.partykit/
+*.tsbuildinfo
+.eslintcache
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Secrets (do not index)
+.env
+.env.*
+!.env.example
+!.env.deploy.example
+!.env.deploy.staging.example
+
+# Lockfiles — huge JSON; comment these out if you often debug exact dependency versions
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.idea/
+
+# VCS (if indexed)
+.git/
