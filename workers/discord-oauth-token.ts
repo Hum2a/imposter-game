@@ -1,7 +1,7 @@
 /**
  * Cloudflare Worker — Discord OAuth2 token exchange + optional Partykit join JWT mint.
  *
- * Deploy: `npx wrangler deploy` from repo root (see wrangler.toml).
+ * Deploy: `npx wrangler deploy -c wrangler.worker.toml` from repo root.
  * Secrets: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `PARTYKIT_JWT_SECRET` (for `/api/party-jwt`)
  *
  * Discord URL mappings: `/api/token` and `/api/party-jwt` → this Worker (same host).

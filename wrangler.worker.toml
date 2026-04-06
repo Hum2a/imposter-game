@@ -1,0 +1,9 @@
+# Discord token exchange Worker — always use this file for deploy/secrets:
+#   npx wrangler deploy -c wrangler.worker.toml
+#   npx wrangler secret put DISCORD_CLIENT_ID -c wrangler.worker.toml
+#
+# (Root `wrangler.toml` is for Cloudflare Pages only.)
+
+name = "imposter-discord-oauth"
+main = "workers/discord-oauth-token.ts"
+compatibility_date = "2026-04-05"

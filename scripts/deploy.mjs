@@ -7,7 +7,7 @@
  *
  * Usage: node scripts/deploy.mjs <command>
  *   all       — worker → partykit → pages (recommended order)
- *   worker    — push Discord secrets + wrangler deploy
+ *   worker    — push Discord secrets + wrangler deploy -c wrangler.worker.toml
  *   partykit  — partykit deploy with JOIN_VERIFY from env
  *   pages     — Vite build with VITE_* from file + wrangler pages deploy
  *   sync      — only push Worker secrets (no deploys)
@@ -25,6 +25,9 @@ const serverDir = resolve(root, 'server')
 /** Avoid `npx` on Windows (spawn ENOENT); run local CLIs with `node` + entry file. */
 const wranglerCli = resolve(root, 'node_modules/wrangler/bin/wrangler.js')
 const partykitCli = resolve(serverDir, 'node_modules/partykit/dist/bin.mjs')
+
+/** Worker config is split out so root `wrangler.toml` can be Pages-only (Wrangler 4+). */
+const wranglerWorkerConfig = ['-c', 'wrangler.worker.toml']
 
 function assertCli(path, hint) {
   if (!existsSync(path)) {
@@ -116,7 +119,7 @@ function wranglerSecretPut(name, value, cwd = root) {
     return
   }
   console.log(`[deploy] wrangler secret put ${name}`)
-  runWrangler(['secret', 'put', name], { cwd, stdin: value })
+  runWrangler([...wranglerWorkerConfig, 'secret', 'put', name], { cwd, stdin: value })
 }
 
 function cmdSync(vars) {
@@ -134,7 +137,7 @@ function cmdWorker(vars) {
     deployArgs.push('--var', `DISCORD_REDIRECT_URI=${vars.DISCORD_REDIRECT_URI}`)
   }
   console.log('[deploy] wrangler deploy (token worker)')
-  runWrangler(deployArgs, { cwd: root })
+  runWrangler([...wranglerWorkerConfig, ...deployArgs], { cwd: root })
   console.log('[deploy] worker done')
 }
 

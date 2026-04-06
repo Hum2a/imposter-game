@@ -1,11 +1,8 @@
-# Discord token exchange for Embedded App SDK (Phase 5 / deploy).
-# Deploy: npx wrangler deploy
-# Secrets: wrangler secret put DISCORD_CLIENT_ID
-#         wrangler secret put DISCORD_CLIENT_SECRET
+# Cloudflare Pages — Wrangler 4+ expects `pages_build_output_dir` when this file exists
+# (stops the "missing pages_build_output_dir" warning on `wrangler pages deploy`).
+#
+# The Discord OAuth **Worker** lives in `wrangler.worker.toml`. Deploy it with:
+#   npx wrangler deploy -c wrangler.worker.toml
+# See `scripts/deploy.mjs` (uses `-c wrangler.worker.toml` for worker + secrets).
 
-name = "imposter-discord-oauth"
-main = "workers/discord-oauth-token.ts"
-compatibility_date = "2026-04-05"
-
-# Uncomment and set after first deploy if you use a custom workers.dev subdomain:
-# workers_dev = true
+pages_build_output_dir = "dist"

@@ -56,7 +56,7 @@ Use this as the single execution checklist. Check items off as you go; keep [POS
 - [x] **B4** — Worker deployed; `POST …/api/token` with `{}` returns **400** `{"error":"Missing code"}` (not 503 misconfig).
 - [x] **B5** — Token URL baked into the Pages build via `.env.deploy` during `npm run deploy`.
 - [x] **B6** — PartyKit deployed; production host matches deploy output (use **hostname only**, no `https://`, in `VITE_PARTYKIT_HOST` — e.g. `server.hum2a.partykit.dev`).
-- [x] **B7** — Pages deploy succeeded (Wrangler direct upload). **Note:** Wrangler may warn about root `wrangler.toml` lacking `pages_build_output_dir` — it is ignored for this deploy path; optional later: split Pages config or add field if you unify config.
+- [x] **B7** — Pages deploy succeeded (Wrangler direct upload). Root `wrangler.toml` sets `pages_build_output_dir`; Worker uses `wrangler.worker.toml` (`wrangler deploy -c …`).
 - [x] **B8** — `JOIN_VERIFY=false` on deploy (`partykit deploy --var`) for simplest launch; flip to `true` in `.env.deploy` + redeploy Partykit when you want Discord token verification on `JOIN`.
 
 **Recorded deploy outputs (update if you redeploy):**

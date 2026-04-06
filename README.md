@@ -76,7 +76,7 @@ Do these once; then point Discord at your production URLs (or a tunnel while tes
 1. Copy [`.env.deploy.example`](.env.deploy.example) to **`.env.deploy`** (gitignored). Fill `CF_PAGES_PROJECT_NAME`, all `VITE_*` values for production, `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`, `JOIN_VERIFY`, and optional `PARTYKIT_DEPLOY_NAME` / `DISCORD_REDIRECT_URI`.
 2. Log in once: `npx wrangler login` and `cd server && npx partykit login`.
 3. Run **`npm run deploy`** (or `npm run deploy:all`). This script:
-   - Pushes **`DISCORD_CLIENT_ID`** and **`DISCORD_CLIENT_SECRET`** to the Worker (`wrangler secret put`, non-interactive), then **`wrangler deploy`**
+   - Pushes **`DISCORD_CLIENT_ID`** and **`DISCORD_CLIENT_SECRET`** to the Worker (`wrangler secret put -c wrangler.worker.toml`, non-interactive), then **`wrangler deploy -c wrangler.worker.toml`**
    - Deploys Partykit with **`JOIN_VERIFY`** from the file (`partykit deploy --var …`)
    - Builds the Vite app with the same env merged in, then **`wrangler pages deploy dist`**
 
@@ -94,17 +94,19 @@ Granular commands: **`npm run deploy:sync`** (Worker secrets only), **`npm run d
 
 ### 2. Cloudflare Worker (Discord token exchange + optional party JWT)
 
-From the **repo root** (where `wrangler.toml` lives):
+Worker config is **`wrangler.worker.toml`** (root **`wrangler.toml`** is Pages-only so `wrangler pages deploy` satisfies Wrangler 4’s `pages_build_output_dir` check).
+
+From the **repo root**:
 
 ```bash
-npx wrangler deploy
+npx wrangler deploy -c wrangler.worker.toml
 ```
 
 Set secrets (prompts interactively):
 
 ```bash
-npx wrangler secret put DISCORD_CLIENT_ID
-npx wrangler secret put DISCORD_CLIENT_SECRET
+npx wrangler secret put DISCORD_CLIENT_ID -c wrangler.worker.toml
+npx wrangler secret put DISCORD_CLIENT_SECRET -c wrangler.worker.toml
 ```
 
 Optional: `DISCORD_REDIRECT_URI` in the Worker dashboard if your OAuth flow needs it.
@@ -156,7 +158,7 @@ For local testing through Discord, use **cloudflared** or **ngrok** on port `517
 | `npm run lint` | ESLint |
 | `npm run deploy` / `deploy:all` | Worker secrets + deploy → Partykit → Pages build + deploy (uses `.env.deploy`) |
 | `npm run deploy:sync` | Push Worker secrets only from `.env.deploy` |
-| `npm run deploy:worker` | Sync secrets + `wrangler deploy` |
+| `npm run deploy:worker` | Sync secrets + `wrangler deploy -c wrangler.worker.toml` |
 | `npm run deploy:partykit` | `partykit deploy` with `JOIN_VERIFY` from `.env.deploy` |
 | `npm run deploy:pages` | Build with `.env.deploy` merged + `wrangler pages deploy` |
 | `npm run deploy:token-worker` | Same as `deploy:worker` |
@@ -183,7 +185,7 @@ In `server/partykit.json`, set `"JOIN_VERIFY": "true"` under `vars` (or override
 
 When **`JOIN_JWT_REQUIRED=true`** on Partykit, clients must send a short-lived **`partyJwt`** on `JOIN` (no raw Discord `accessToken` to Partykit in that mode).
 
-1. Set **`PARTYKIT_JWT_SECRET`** on the Worker (`wrangler secret put` — included in `npm run deploy:sync` / `deploy:worker` from `.env.deploy`).
+1. Set **`PARTYKIT_JWT_SECRET`** on the Worker (`wrangler secret put -c wrangler.worker.toml` — included in `npm run deploy:sync` / `deploy:worker` from `.env.deploy`).
 2. Set **`JOIN_JWT_SECRET`** to the **same value** in `.env.deploy` (passed to `partykit deploy --var`).
 3. Map **`/api/party-jwt`** to the **same Worker** as `/api/token` in Discord URL mappings.
 4. Build the client with **`VITE_USE_PARTY_JWT=true`** (or `1`) so it mints a JWT before each `JOIN`.
