@@ -396,7 +396,7 @@ export default function Lobby({
           </CardHeader>
           <CardContent className="flex flex-col gap-6 px-6 pt-0">
           {!isHost ? (
-            <div className="w-full text-sm text-muted-foreground">
+            <div className="w-full space-y-2 text-sm text-muted-foreground">
               {gameState.hasCustomNextRound ? (
                 <p>{t('lobby.customWordsHost')}</p>
               ) : (
@@ -406,6 +406,9 @@ export default function Lobby({
                   })}
                 </p>
               )}
+              {gameState.gameSettings.newWordPairEachClueCycle ? (
+                <p className="text-xs">{t('lobby.newWordPairEachClueCycleGuestHint')}</p>
+              ) : null}
             </div>
           ) : null}
           {isHost ? (
@@ -634,6 +637,32 @@ export default function Lobby({
                   />
                 </div>
               </div>
+              <label
+                className={cn(
+                  'flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-muted/15 p-3 transition-colors hover:bg-muted/25'
+                )}
+              >
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 rounded border-input accent-primary"
+                  checked={gameState.gameSettings.newWordPairEachClueCycle}
+                  onChange={(e) => {
+                    onDismissPartyError?.()
+                    send({
+                      type: 'SET_GAME_SETTINGS',
+                      newWordPairEachClueCycle: e.target.checked,
+                    })
+                  }}
+                />
+                <span className="min-w-0 space-y-1">
+                  <span className="block text-sm font-medium text-foreground">
+                    {t('lobby.newWordPairEachClueCycleLabel')}
+                  </span>
+                  <span className="block text-xs leading-snug text-muted-foreground">
+                    {t('lobby.newWordPairEachClueCycleHelp')}
+                  </span>
+                </span>
+              </label>
             </div>
           ) : null}
           {isHost ? (

@@ -4,6 +4,7 @@ Captured from playtests. Items marked **done** in this pass are implemented in-r
 
 ## Shipped in the latest iteration
 
+- **Clue-round word mode (backlog):** host toggle **New random words each clue round** — when on, each “next clue round” after reveal draws a new pair from the lobby word pack and re-picks the imposter; first cycle still uses custom/initial pair; majority skip from voting keeps the same pair.
 - **Web lobby code:** choose a **custom shareable code** (4–12 alphanumeric) or **new random lobby**; join-by-code validation messages localized.
 - **Lobby layout:** **Players** and **Game settings** are **separate cards**; on large screens they sit in a **two-column grid** for better use of space.
 - **Web avatars:** preset **emoji avatars** (`p:${id}` on the wire), picker in **Account & profile**; `Avatar` renders emoji for preset tokens.
@@ -25,7 +26,7 @@ Captured from playtests. Items marked **done** in this pass are implemented in-r
 
 | Idea | Notes |
 |------|--------|
-| **More game modes** | e.g. new word every *clue cycle* vs per *round*, rotating host/imposter rules — needs `GameSettings` + server phase rules + UI. |
+| **More game modes** | **New word each clue cycle** is implemented (host checkbox in lobby). Still open: rotating host, turns order, other rule presets. |
 | **“Turns” / alternating modes** | New state machine (order, roles per turn). |
 | **Encrypt WebSocket “who is imposter”** | WSS already encrypts transport. Hiding `isImposter` from *other* clients requires **per-connection** server serialization (no shared broadcast) or trusted server-only UI — major protocol change; won’t stop a modified client. |
 | **Friends for logged-in users** | Needs product design + Supabase (or other) social graph, privacy, invites — not started. |
@@ -40,6 +41,6 @@ Captured from playtests. Items marked **done** in this pass are implemented in-r
 
 ## Suggested order for next sprint
 
-1. Game mode flags (reuse word for all clue cycles vs roll new pair each cycle).
+1. ~~Game mode flags (reuse word for all clue cycles vs roll new pair each cycle).~~ **Done** (`newWordPairEachClueCycle` in `GameSettings`).
 2. Optional stricter clue dictionary / hyphen rules if playtests want “one word” defined further.
 3. Friends / social — spec auth & data model first.

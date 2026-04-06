@@ -20,6 +20,7 @@ interface GameSettings {
   writeSeconds: number
   maxClueRounds: number
   voteSeconds: number
+  newWordPairEachClueCycle: boolean
 }
 
 type RevealReason = 'wrong_accusation' | 'caught_imposter' | null
@@ -93,6 +94,7 @@ function defaultGameSettings(): GameSettings {
     writeSeconds: DEFAULT_WRITE_SECONDS,
     maxClueRounds: DEFAULT_MAX_CLUE_ROUNDS,
     voteSeconds: DEFAULT_VOTE_SECONDS,
+    newWordPairEachClueCycle: false,
   }
 }
 
@@ -593,6 +595,7 @@ export default class ImposterRoom implements Party.Server {
           writeSeconds?: number
           maxClueRounds?: number
           voteSeconds?: number
+          newWordPairEachClueCycle?: boolean
         }
         if (this.userForConn(sender) === this.state.hostId && this.state.phase === 'lobby') {
           if (typeof settings.writeSeconds === 'number' && Number.isFinite(settings.writeSeconds)) {
@@ -615,6 +618,9 @@ export default class ImposterRoom implements Party.Server {
               MAX_VOTE_SECONDS,
               Math.max(MIN_VOTE_SECONDS, v)
             )
+          }
+          if (typeof settings.newWordPairEachClueCycle === 'boolean') {
+            this.state.gameSettings.newWordPairEachClueCycle = settings.newWordPairEachClueCycle
           }
           this.broadcast()
         }
@@ -678,6 +684,9 @@ export default class ImposterRoom implements Party.Server {
             this.privateClues = {}
             this.state.revealedClues = {}
             this.state.suspicion = {}
+            if (this.state.gameSettings.newWordPairEachClueCycle) {
+              this.rollNewPairAndImposterForClueCycle()
+            }
             this.state.phase = 'clue_write'
             this.state.clueEndsAt = Date.now() + this.state.gameSettings.writeSeconds * 1000
             this.scheduleClueEnd()
@@ -853,6 +862,33 @@ export default class ImposterRoom implements Party.Server {
       isSpectator: true,
     }
     this.broadcast()
+  }
+
+  /**
+   * Next clue cycle after host continues from reveal: optional new pack pair + new imposter.
+   * Skip-vote return to clues does not call this (same words / imposter).
+   */
+  private rollNewPairAndImposterForClueCycle() {
+    const ids = Object.keys(this.state.players).filter(
+      (id) => !this.state.players[id]!.isSpectator
+    )
+    if (ids.length === 0) return
+
+    const pack = getWordPack(this.state.wordPackId)
+    const pairs = pack.pairs
+    if (pairs.length === 0) return
+
+    const pick = pairs[Math.floor(Math.random() * pairs.length)]!
+    const [word, imposterWord] = pick
+    const imposterId = ids[Math.floor(Math.random() * ids.length)]!
+
+    for (const id of Object.keys(this.state.players)) {
+      const p = this.state.players[id]
+      if (!p || p.isSpectator) continue
+      p.isImposter = id === imposterId
+    }
+    this.state.word = word
+    this.state.imposterWord = imposterWord
   }
 
   startGame() {

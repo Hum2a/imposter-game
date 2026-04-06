@@ -25,6 +25,22 @@
     "titleTurnOff": "Desactivar efectos de sonido",
     "titleTurnOn": "Activar efectos de sonido (desactivado por defecto)"
   },
+  "theme": {
+    "label": "Tema",
+    "groupClassic": "Clásico",
+    "groupDarkStyles": "Estilos oscuros",
+    "groupLightStyles": "Estilos claros",
+    "system": "Sistema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "amongUs": "Tripulación (rojo y gris)",
+    "midnight": "Medianoche",
+    "brand": "Marca (rojo y negro)",
+    "dawn": "Amanecer (cálido)",
+    "sand": "Arena",
+    "lavender": "Lavanda",
+    "ocean": "Océano"
+  },
   "game": {
     "clueWrite": "Escribe tu pista",
     "spectator": "Espectador",
@@ -61,7 +77,8 @@
     "nextClueRound": "Siguiente ronda de pistas",
     "continueToVoting": "Continuar a votación",
     "waitHostNext": "Esperando al anfitrión para la siguiente ronda de pistas.",
-    "waitHostVoting": "Esperando al anfitrión para abrir la votación."
+    "waitHostVoting": "Esperando al anfitrión para abrir la votación.",
+    "newPairNextCycleHint": "Al pasar a la siguiente ronda de pistas, habrá palabras nuevas (y quizá un impostor distinto)."
   },
   "voting": {
     "voting": "Votación",
@@ -124,7 +141,10 @@
     "startGameHint": "Hace falta al menos un jugador (tú) para empezar.",
     "onlyHost": "Solo el anfitrión puede empezar. Pídele que pulse Empezar partida.",
     "gameRulesSection": "Reglas de ronda",
-    "gameRulesHelp": "Misma pareja de palabras toda la partida hasta la siguiente ronda. Tiempo de pista y cuántas rondas de pistas antes de votar.",
+    "gameRulesHelp": "Tiempo de pista, cuántas rondas de pista antes de votar y opción de palabras nuevas cada ronda (abajo). Lo habitual es una sola pareja hasta nueva partida desde el lobby.",
+    "newWordPairEachClueCycleLabel": "Palabras nuevas aleatorias cada ronda de pistas",
+    "newWordPairEachClueCycleHelp": "Tras revelar pistas, la «siguiente ronda de pistas» del anfitrión saca otra pareja del paquete del lobby y puede cambiar al impostor. La primera ronda sigue usando tu pareja personalizada o la aleatoria inicial. Si la mayoría vota saltar en votación, se mantienen las mismas palabras.",
+    "newWordPairEachClueCycleGuestHint": "El anfitrión activó palabras nuevas cada ronda de pista: habrá otra pareja (y quizá otro impostor) tras cada revelación hasta la votación.",
     "writeSecondsLabel": "Segundos para escribir la pista",
     "maxClueRoundsLabel": "Rondas de pista antes de votar",
     "gameSettingsTitle": "Ajustes de partida",
@@ -147,7 +167,7 @@
     "customRoomCodeHelp": "Opcional: elige un código corto que puedan escribir tus amigos. También sirve uno aleatorio."
   },
   "profile": {
-    "whereRoundControls": "Debajo de este panel, en el lobby, usa la tarjeta <gs>Ajustes de partida</gs> para paquetes de palabras, temporizadores, duración de votación, palabras personalizadas e iniciar partida (anfitrión). En pantallas anchas, <gs>Jugadores</gs> y <gs>Ajustes de partida</gs> van en columnas. Los modos de reglas alternativas (p. ej. palabra nueva cada ronda de pista) aún no están en el juego: están en la hoja de ruta.",
+    "whereRoundControls": "Debajo de este panel, en el lobby, la tarjeta <gs>Ajustes de partida</gs> tiene paquetes, temporizadores, opción de palabras nuevas por ronda de pista, e iniciar partida (anfitrión). En pantallas anchas, <gs>Jugadores</gs> y <gs>Ajustes de partida</gs> van en columnas. Otros modos (turnos, anfitrión rotativo, etc.) siguen en la hoja de ruta.",
     "avatarPresetLabel": "Avatar",
     "useDiscordProfilePicture": "Usar foto de perfil de Discord",
     "usingDiscordProfilePicture": "Estás usando tu avatar de Discord en la partida.",

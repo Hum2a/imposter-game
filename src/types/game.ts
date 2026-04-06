@@ -16,6 +16,12 @@ export interface GameSettings {
   maxClueRounds: number
   /** Seconds before non-voters auto-submit skip (voting phase). */
   voteSeconds: number
+  /**
+   * When true, each new clue cycle (after host continues from clue reveal) draws a new random
+   * pair from the lobby word pack and re-picks the imposter. First cycle still uses custom or
+   * initial random pair from game start. Skip-majority return to clues keeps the same pair.
+   */
+  newWordPairEachClueCycle: boolean
 }
 
 export type RevealReason = 'wrong_accusation' | 'caught_imposter' | null
@@ -96,7 +102,13 @@ export type ClientMessage =
   /** Host only, lobby — pick a random pair from the current pack as next custom words. */
   | { type: 'ROLL_PACK_PAIR' }
   /** Host only, lobby — clue timer length and cycles before final Continue → voting. */
-  | { type: 'SET_GAME_SETTINGS'; writeSeconds?: number; maxClueRounds?: number; voteSeconds?: number }
+  | {
+      type: 'SET_GAME_SETTINGS'
+      writeSeconds?: number
+      maxClueRounds?: number
+      voteSeconds?: number
+      newWordPairEachClueCycle?: boolean
+    }
   /** Non-spectator, clue_write — one submission per cycle (overwrite until deadline). */
   | { type: 'SUBMIT_CLUE'; text: string }
   /** Non-spectator, clue_reveal — increment suspicion on someone else’s clue. */

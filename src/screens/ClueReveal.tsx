@@ -77,6 +77,9 @@ export default function ClueReveal({
         <CardHeader>
           <CardTitle className="text-2xl">{t('clueReveal.title')}</CardTitle>
           <CardDescription>{t('clueReveal.desc')}</CardDescription>
+          {gameState.gameSettings.newWordPairEachClueCycle && !lastCycle ? (
+            <p className="pt-1 text-xs text-muted-foreground">{t('clueReveal.newPairNextCycleHint')}</p>
+          ) : null}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <ul className="flex flex-col gap-3">
