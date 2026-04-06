@@ -32,6 +32,14 @@ export default function Reveal({ gameState, isHost, send, auth, partyRoomId }: R
 
   useEffect(() => {
     if (!me || me.isSpectator) return
+    const activePlayers = Object.values(gameState.players).filter((p) => !p.isSpectator)
+    const playerCount = activePlayers.length
+    const imposterPlayer = activePlayers.find((p) => p.isImposter)
+    const voteWasSkip = me.votedFor === VOTE_SKIP_VALUE
+    const votedTargetName =
+      me.votedFor && me.votedFor !== VOTE_SKIP_VALUE
+        ? gameState.players[me.votedFor]?.name?.trim().slice(0, 80) ?? null
+        : null
     void recordPlayerRoundIfNeeded({
       partyRoomId,
       roundIndex: gameState.round,
@@ -39,8 +47,39 @@ export default function Reveal({ gameState, isHost, send, auth, partyRoomId }: R
       wasImposter: me.isImposter,
       votedFor: me.votedFor,
       revealReason: gameState.revealReason,
+      wasHost: isHost,
+      playerCount,
+      wordPackId: gameState.wordPackId,
+      clueCycle: gameState.clueCycle,
+      maxClueRounds: gameState.gameSettings.maxClueRounds,
+      writeSeconds: gameState.gameSettings.writeSeconds,
+      voteWasSkip,
+      imposterPlayerId: imposterPlayer?.id ?? null,
+      imposterDisplayName: imposterPlayer?.name?.trim().slice(0, 80) ?? null,
+      votedTargetName,
+      roomCrewWins: gameState.stats.crewWins,
+      roomImposterWins: gameState.stats.imposterWins,
+      roomRoundsCompleted: gameState.stats.roundsCompleted,
     })
-  }, [partyRoomId, gameState.round, gameState.winner, gameState.revealReason, me])
+  }, [
+    partyRoomId,
+    gameState.round,
+    gameState.winner,
+    gameState.revealReason,
+    gameState.wordPackId,
+    gameState.clueCycle,
+    gameState.gameSettings.maxClueRounds,
+    gameState.gameSettings.writeSeconds,
+    gameState.stats.crewWins,
+    gameState.stats.imposterWins,
+    gameState.stats.roundsCompleted,
+    gameState.players,
+    isHost,
+    me?.id,
+    me?.isSpectator,
+    me?.isImposter,
+    me?.votedFor,
+  ])
 
   const winnerLabel =
     gameState.winner === 'crew'

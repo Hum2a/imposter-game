@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { LogIn, LogOut, User, Users } from 'lucide-react'
 
 import { WebAccountSettingsSection } from '@/components/WebAccountSettingsSection'
+import { WebGameHistoryCard } from '@/components/WebGameHistoryCard'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,7 +16,6 @@ import {
   WEB_PASSWORD_MIN_LENGTH,
 } from '@/lib/password-policy'
 import { fetchPlayerStats, type PlayerStatsSnapshot } from '@/lib/player-stats'
-import { fetchRecentPlayerRounds, type PlayerRoundRow } from '@/lib/record-player-round'
 import type { WebIdentityMode } from '@/lib/web-session'
 
 type WebProfileControlsProps = {
@@ -80,7 +80,6 @@ export function WebProfileControls({
 }: WebProfileControlsProps) {
   const { t } = useTranslation()
   const [draft, setDraft] = useState(displayName)
-  const [roundHistory, setRoundHistory] = useState<PlayerRoundRow[] | null>(null)
   const [playerStats, setPlayerStats] = useState<PlayerStatsSnapshot | null>(null)
   const [emailMode, setEmailMode] = useState<'signIn' | 'signUp'>('signIn')
   const [emailDraft, setEmailDraft] = useState('')
@@ -92,20 +91,6 @@ export function WebProfileControls({
   }, [displayName])
 
   const isGuest = identityMode === 'guest'
-
-  useEffect(() => {
-    if (isGuest || !supabaseConfigured) {
-      setRoundHistory(null)
-      return
-    }
-    let cancelled = false
-    void fetchRecentPlayerRounds(12).then((rows) => {
-      if (!cancelled) setRoundHistory(rows)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [isGuest, supabaseConfigured, identityMode])
 
   useEffect(() => {
     if (isGuest || !supabaseConfigured) {
@@ -440,45 +425,7 @@ export function WebProfileControls({
           </Card>
         ) : null}
 
-        {supabaseConfigured && !isGuest ? (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t('profile.roundHistoryTitle')}</CardTitle>
-              <CardDescription>{t('profile.roundHistoryDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {roundHistory === null ? (
-                <p className="text-sm text-muted-foreground">{t('profile.roundHistoryLoading')}</p>
-              ) : roundHistory.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('profile.roundHistoryEmpty')}</p>
-              ) : (
-                <ul className="max-h-48 space-y-1 overflow-y-auto text-sm text-muted-foreground">
-                  {roundHistory.map((r) => {
-                    const reason =
-                      r.reveal_reason === 'wrong_accusation'
-                        ? t('profile.roundTagWrong')
-                        : r.reveal_reason === 'caught_imposter'
-                          ? t('profile.roundTagCaught')
-                          : ''
-                    return (
-                      <li key={r.id}>
-                        {t('profile.roundLine', {
-                          n: r.round_index,
-                          winner: r.winner,
-                          role: r.was_imposter
-                            ? t('profile.roundRoleImposter')
-                            : t('profile.roundRoleCrew'),
-                          vote: r.voted_for ? t('profile.roundVote') : '',
-                          reason,
-                        })}
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        ) : null}
+        {supabaseConfigured && !isGuest ? <WebGameHistoryCard /> : null}
       </div>
     </header>
   )
