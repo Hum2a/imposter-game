@@ -38,6 +38,14 @@ PartyKit `ImposterRoom` applies a **sliding-window limit** on `JOIN` messages pe
 
 Clients receive `ERROR` with code `JOIN_RATE_LIMITED` when over limit.
 
+## Clue text (`CLUE_STRICT_WORD`)
+
+By default, submitted clues must be a **single run of Unicode letters** (`\p{L}`): no spaces, digits, hyphens, underscores, or emoji. The server sends `clueStrictWord: true` in state so the client can filter input the same way.
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `CLUE_STRICT_WORD` | on | Set to `false` / `0` to allow any single non-whitespace token (1–40 chars), e.g. `ice-cream` or `007`. |
+
 ## Threat model (short)
 
 - Modified clients can always lie about UI; server rules and verified joins are the source of truth for identity.

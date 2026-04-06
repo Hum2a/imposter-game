@@ -4,6 +4,7 @@ Captured from playtests. Items marked **done** in this pass are implemented in-r
 
 ## Shipped in the latest iteration
 
+- **Strict clues (default):** clues must be **letters only** (`\p{L}`), 1–40 chars, no spaces. PartyKit env **`CLUE_STRICT_WORD=false`** restores lenient single-token clues (hyphens, digits). Server exposes **`clueStrictWord`** in game state; clue screen strips non-letters when strict. Errors: `CLUE_STRICT_REJECTED` vs `INVALID_CLUE`.
 - **Clue-round word mode (backlog):** host toggle **New random words each clue round** — when on, each “next clue round” after reveal draws a new pair from the lobby word pack and re-picks the imposter; first cycle still uses custom/initial pair; majority skip from voting keeps the same pair.
 - **Web lobby code:** choose a **custom shareable code** (4–12 alphanumeric) or **new random lobby**; join-by-code validation messages localized.
 - **Lobby layout:** **Players** and **Game settings** are **separate cards**; on large screens they sit in a **two-column grid** for better use of space.
@@ -42,5 +43,5 @@ Captured from playtests. Items marked **done** in this pass are implemented in-r
 ## Suggested order for next sprint
 
 1. ~~Game mode flags (reuse word for all clue cycles vs roll new pair each cycle).~~ **Done** (`newWordPairEachClueCycle` in `GameSettings`).
-2. Optional stricter clue dictionary / hyphen rules if playtests want “one word” defined further.
+2. ~~Optional stricter clue dictionary / hyphen rules~~ **Done** (default strict letters-only; `CLUE_STRICT_WORD=false` for lenient).
 3. Friends / social — spec auth & data model first.

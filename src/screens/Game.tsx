@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { sanitizeClueDraft } from '@/lib/clue-input'
 import type { ClientMessage, Player } from '../types/game'
 import type { AuthUserProps } from './types'
 
@@ -58,8 +59,9 @@ export default function Game({
   const remaining =
     ends != null ? Math.max(0, Math.ceil((ends - now) / 1000)) : null
   const submitted = gameState.cluesSubmitted?.[me.id] === true
+  const strictClue = gameState.clueStrictWord === true
   const setClueDraft = (raw: string) => {
-    setDraft(raw.replace(/\s/g, '').slice(0, 40))
+    setDraft(sanitizeClueDraft(raw, strictClue))
   }
 
   const submitClue = () => {
@@ -74,6 +76,8 @@ export default function Game({
         return t('game.clueProfanity')
       case 'INVALID_CLUE':
         return t('game.invalidClue')
+      case 'CLUE_STRICT_REJECTED':
+        return t('game.invalidClueStrict')
       default:
         return null
     }
@@ -171,7 +175,12 @@ export default function Game({
       <Card className="text-left">
         <CardHeader>
           <CardTitle className="text-lg">{t('game.submitClueTitle')}</CardTitle>
-          <CardDescription>{t('game.submitClueDesc')}</CardDescription>
+          <CardDescription>
+            {t('game.submitClueDesc')}
+            {strictClue ? (
+              <span className="mt-1 block text-foreground/90">{t('game.clueStrictHint')}</span>
+            ) : null}
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {submitted ? (

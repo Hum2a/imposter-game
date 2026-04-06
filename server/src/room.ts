@@ -141,6 +141,13 @@ function profanityFilterEnabled(env: Record<string, unknown>): boolean {
   return v === 'true' || v === true || v === '1'
 }
 
+/** When true (default), clues must be one run of Unicode letters only (no digits, hyphens, punctuation). Set `CLUE_STRICT_WORD=false` for legacy lenient clues. */
+function strictClueWordEnabled(env: Record<string, unknown>): boolean {
+  const v = env.CLUE_STRICT_WORD
+  if (v === 'false' || v === false || v === '0') return false
+  return true
+}
+
 async function verifyDiscordUserId(
   accessToken: string,
   expectedUserId: string
@@ -164,11 +171,17 @@ function normalizeWordPair(
   return { word, imposterWord }
 }
 
-function normalizeClueText(raw: string): string | null {
+const STRICT_CLUE_LETTERS_ONLY = /^[\p{L}]+$/u
+
+type ClueValidation = { ok: string } | { err: 'INVALID_CLUE' | 'CLUE_STRICT_REJECTED' }
+
+function validateClueText(raw: string, env: Record<string, unknown>): ClueValidation {
   const t = raw.trim().slice(0, WORD_MAX_LEN)
-  if (t.length < WORD_MIN_LEN) return null
-  if (/\s/.test(t)) return null
-  return t
+  if (t.length < WORD_MIN_LEN || /\s/.test(t)) return { err: 'INVALID_CLUE' }
+  if (strictClueWordEnabled(env) && !STRICT_CLUE_LETTERS_ONLY.test(t)) {
+    return { err: 'CLUE_STRICT_REJECTED' }
+  }
+  return { ok: t }
 }
 
 export default class ImposterRoom implements Party.Server {
@@ -447,6 +460,7 @@ export default class ImposterRoom implements Party.Server {
       base.myClue = undefined
       base.cluesSubmitted = undefined
     }
+    base.clueStrictWord = strictClueWordEnabled(this.room.env)
     return base
   }
 
@@ -632,11 +646,12 @@ export default class ImposterRoom implements Party.Server {
         if (this.state.phase !== 'clue_write') break
         const player = this.state.players[uid]
         if (!player || player.isSpectator) break
-        const clue = normalizeClueText(msg.text)
-        if (!clue) {
-          sender.send(JSON.stringify({ type: 'ERROR', code: 'INVALID_CLUE' }))
+        const validated = validateClueText(msg.text, this.room.env)
+        if ('err' in validated) {
+          sender.send(JSON.stringify({ type: 'ERROR', code: validated.err }))
           break
         }
+        const clue = validated.ok
         if (profanityFilterEnabled(this.room.env) && textFailsProfanityFilter(clue)) {
           sender.send(JSON.stringify({ type: 'ERROR', code: 'CLUE_PROFANITY' }))
           break

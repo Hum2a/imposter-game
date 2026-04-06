@@ -128,6 +128,7 @@ export function useParty(roomId: string | undefined, userId: string | undefined)
             g.cluesSubmitted && typeof g.cluesSubmitted === 'object'
               ? (g.cluesSubmitted as Record<string, boolean>)
               : undefined,
+          clueStrictWord: typeof g.clueStrictWord === 'boolean' ? g.clueStrictWord : undefined,
         })
       } catch {
         /* ignore */

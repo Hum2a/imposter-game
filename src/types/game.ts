@@ -69,6 +69,11 @@ export interface GameState {
   /** Bumps when a new voting session starts. */
   voteSession: number
   /**
+   * Server-driven: when true, clues must be letters only (Unicode `\p{L}`), no hyphens/digits/etc.
+   * Omitted on very old servers; treat as lenient client-side if missing.
+   */
+  clueStrictWord?: boolean
+  /**
    * Personalized: during clue_write, only this connection’s submitted clue (if any).
    * Omitted in other phases.
    */

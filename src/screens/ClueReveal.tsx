@@ -43,6 +43,8 @@ export default function ClueReveal({
         return t('game.clueProfanity')
       case 'INVALID_CLUE':
         return t('game.invalidClue')
+      case 'CLUE_STRICT_REJECTED':
+        return t('game.invalidClueStrict')
       default:
         return null
     }
