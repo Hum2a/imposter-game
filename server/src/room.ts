@@ -1,15 +1,22 @@
 import type * as Party from 'partykit/server'
 import { verifyPartyJoinJwt } from './join-jwt'
 import { DEFAULT_WORD_PACK_ID, getWordPack, isValidPackId } from './word-packs'
-import { pairFailsProfanityFilter } from './word-profanity'
+import { pairFailsProfanityFilter, textFailsProfanityFilter } from './word-profanity'
 
-type Phase = 'lobby' | 'discussion' | 'voting' | 'reveal'
+type Phase = 'lobby' | 'clue_write' | 'clue_reveal' | 'voting' | 'reveal'
 
 interface RoomStats {
   roundsCompleted: number
   crewWins: number
   imposterWins: number
 }
+
+interface GameSettings {
+  writeSeconds: number
+  maxClueRounds: number
+}
+
+type RevealReason = 'wrong_accusation' | 'caught_imposter' | null
 
 interface Player {
   id: string
@@ -36,26 +43,43 @@ interface GameState {
   votes: Record<string, string>
   round: number
   winner: 'crew' | 'imposter' | null
-  discussionEndsAt: number | null
+  clueEndsAt: number | null
   stats: RoomStats
   hasCustomNextRound: boolean
-  /** Which curated pack is used for random draws (no custom pair). */
   wordPackId: string
+  gameSettings: GameSettings
+  clueCycle: number
+  revealedClues: Record<string, string>
+  suspicion: Record<string, number>
+  revealReason: RevealReason
+  /** Increments each time voting starts (skip return or call vote); clients can key UI. */
+  voteSession: number
 }
 
 const STORAGE_STATS = 'imposter:stats:v1'
 const STORAGE_ROUND = 'imposter:round:v1'
 
-const DISCUSSION_SECONDS = 60
-/** Re-broadcast state during discussion so clients resync `discussionEndsAt` after tab sleep / skew. */
-const DISCUSSION_RESYNC_MS = 25_000
-/** Keep player row after last socket closes so refresh/reconnect can `JOIN` without losing the round. */
+const VOTE_SKIP = '__SKIP__'
+
+const DEFAULT_WRITE_SECONDS = 20
+const DEFAULT_MAX_CLUE_ROUNDS = 5
+const MIN_WRITE_SECONDS = 10
+const MAX_WRITE_SECONDS = 120
+const MIN_CLUE_ROUNDS = 1
+const MAX_CLUE_ROUNDS = 20
+
+/** Re-broadcast during clue_write so clients resync `clueEndsAt` after tab sleep / skew. */
+const CLUE_RESYNC_MS = 25_000
 const DISCONNECT_GRACE_MS = 45_000
 const WORD_MAX_LEN = 40
 const WORD_MIN_LEN = 1
 
 function defaultStats(): RoomStats {
   return { roundsCompleted: 0, crewWins: 0, imposterWins: 0 }
+}
+
+function defaultGameSettings(): GameSettings {
+  return { writeSeconds: DEFAULT_WRITE_SECONDS, maxClueRounds: DEFAULT_MAX_CLUE_ROUNDS }
 }
 
 function joinVerifyEnabled(env: Record<string, unknown>): boolean {
@@ -101,16 +125,21 @@ function normalizeWordPair(
   return { word, imposterWord }
 }
 
+function normalizeClueText(raw: string): string | null {
+  const t = raw.trim().slice(0, WORD_MAX_LEN)
+  if (t.length < WORD_MIN_LEN) return null
+  return t
+}
+
 export default class ImposterRoom implements Party.Server {
   state: GameState
-  /** PartyKit socket id → Discord / app user id */
   private readonly connToUser = new Map<string, string>()
-  private discussionTimer: ReturnType<typeof setTimeout> | null = null
-  private discussionResync: ReturnType<typeof setInterval> | null = null
-  /** Not broadcast — avoids spoiling both words to everyone in the lobby. */
+  private clueTimer: ReturnType<typeof setTimeout> | null = null
+  private clueResync: ReturnType<typeof setInterval> | null = null
   private nextCustomPair: NextRoundWords | null = null
-  /** userId → timer to remove them after grace if they don’t reconnect */
   private readonly disconnectGrace = new Map<string, ReturnType<typeof setTimeout>>()
+  /** Server-only during clue_write; copied to `revealedClues` on reveal. */
+  private privateClues: Record<string, string> = {}
 
   constructor(readonly room: Party.Room) {
     this.state = this.defaultState()
@@ -147,58 +176,139 @@ export default class ImposterRoom implements Party.Server {
       votes: {},
       round: 1,
       winner: null,
-      discussionEndsAt: null,
+      clueEndsAt: null,
       stats: defaultStats(),
       hasCustomNextRound: false,
       wordPackId: DEFAULT_WORD_PACK_ID,
+      gameSettings: defaultGameSettings(),
+      clueCycle: 1,
+      revealedClues: {},
+      suspicion: {},
+      revealReason: null,
+      voteSession: 0,
     }
   }
 
-  private clearDiscussionScheduling() {
-    if (this.discussionTimer) {
-      clearTimeout(this.discussionTimer)
-      this.discussionTimer = null
+  private clearClueScheduling() {
+    if (this.clueTimer) {
+      clearTimeout(this.clueTimer)
+      this.clueTimer = null
     }
-    if (this.discussionResync) {
-      clearInterval(this.discussionResync)
-      this.discussionResync = null
+    if (this.clueResync) {
+      clearInterval(this.clueResync)
+      this.clueResync = null
     }
   }
 
-  private scheduleDiscussionEnd() {
-    this.clearDiscussionScheduling()
-    const ends = this.state.discussionEndsAt
-    if (!ends || this.state.phase !== 'discussion') return
+  private scheduleClueEnd() {
+    this.clearClueScheduling()
+    const ends = this.state.clueEndsAt
+    if (!ends || this.state.phase !== 'clue_write') return
     const ms = ends - Date.now()
     if (ms <= 0) {
-      this.state.phase = 'voting'
+      this.finishClueWritePhase()
       void this.persistMeta()
       this.broadcast()
       return
     }
-    this.discussionTimer = setTimeout(() => {
-      this.discussionTimer = null
-      if (this.discussionResync) {
-        clearInterval(this.discussionResync)
-        this.discussionResync = null
+    this.clueTimer = setTimeout(() => {
+      this.clueTimer = null
+      if (this.clueResync) {
+        clearInterval(this.clueResync)
+        this.clueResync = null
       }
-      if (this.state.phase === 'discussion') {
-        this.state.phase = 'voting'
+      if (this.state.phase === 'clue_write') {
+        this.finishClueWritePhase()
         void this.persistMeta()
         this.broadcast()
       }
     }, ms)
 
-    this.discussionResync = setInterval(() => {
-      if (this.state.phase !== 'discussion') {
-        if (this.discussionResync) {
-          clearInterval(this.discussionResync)
-          this.discussionResync = null
+    this.clueResync = setInterval(() => {
+      if (this.state.phase !== 'clue_write') {
+        if (this.clueResync) {
+          clearInterval(this.clueResync)
+          this.clueResync = null
         }
         return
       }
       this.broadcast()
-    }, DISCUSSION_RESYNC_MS)
+    }, CLUE_RESYNC_MS)
+  }
+
+  /** Merge private clues into broadcast state and open reveal phase. */
+  private finishClueWritePhase() {
+    this.clearClueScheduling()
+    const revealed: Record<string, string> = {}
+    for (const p of Object.values(this.state.players)) {
+      if (p.isSpectator) continue
+      const v = this.privateClues[p.id]
+      revealed[p.id] = v !== undefined ? v : ''
+    }
+    this.state.revealedClues = revealed
+    this.state.clueEndsAt = null
+    this.state.phase = 'clue_reveal'
+  }
+
+  private startVotingPhase() {
+    this.clearClueScheduling()
+    for (const p of Object.values(this.state.players)) {
+      p.hasVoted = false
+      p.votedFor = null
+    }
+    this.state.votes = {}
+    this.state.voteSession += 1
+    this.state.phase = 'voting'
+  }
+
+  /** Majority skip: skipCount * 2 > n (strict majority of eligible voters). */
+  private enterClueWriteAfterSkip() {
+    this.clearClueScheduling()
+    for (const p of Object.values(this.state.players)) {
+      p.hasVoted = false
+      p.votedFor = null
+    }
+    this.state.votes = {}
+    this.privateClues = {}
+    this.state.revealedClues = {}
+    this.state.suspicion = {}
+    this.state.phase = 'clue_write'
+    this.state.clueEndsAt = Date.now() + this.state.gameSettings.writeSeconds * 1000
+    this.scheduleClueEnd()
+  }
+
+  private tryEarlyClueReveal() {
+    if (this.state.phase !== 'clue_write') return
+    const active = Object.values(this.state.players).filter((p) => !p.isSpectator)
+    if (active.length === 0) return
+    const allIn = active.every((p) => this.privateClues[p.id] !== undefined)
+    if (!allIn) return
+    this.finishClueWritePhase()
+    void this.persistMeta()
+    this.broadcast()
+  }
+
+  private serializeForViewer(viewerId: string | undefined): Record<string, unknown> {
+    const base: Record<string, unknown> = { ...this.state }
+    if (this.state.phase === 'clue_write') {
+      const cluesSubmitted: Record<string, boolean> = {}
+      for (const p of Object.values(this.state.players)) {
+        if (p.isSpectator) continue
+        cluesSubmitted[p.id] = this.privateClues[p.id] !== undefined
+      }
+      base.cluesSubmitted = cluesSubmitted
+      base.revealedClues = {}
+      if (viewerId) {
+        const mine = this.privateClues[viewerId]
+        base.myClue = mine !== undefined ? mine : null
+      } else {
+        base.myClue = null
+      }
+    } else {
+      base.myClue = undefined
+      base.cluesSubmitted = undefined
+    }
+    return base
   }
 
   private async persistMeta() {
@@ -211,7 +321,8 @@ export default class ImposterRoom implements Party.Server {
   }
 
   onConnect(conn: Party.Connection) {
-    conn.send(JSON.stringify(this.state))
+    const uid = this.connToUser.get(conn.id)
+    conn.send(JSON.stringify(this.serializeForViewer(uid)))
   }
 
   async onMessage(message: string, sender: Party.Connection) {
@@ -222,11 +333,15 @@ export default class ImposterRoom implements Party.Server {
       name?: string
       avatar?: string
       targetId?: string
+      skip?: boolean
       accessToken?: string
       partyJwt?: string
       word?: string
       imposterWord?: string
       packId?: string
+      text?: string
+      writeSeconds?: number
+      maxClueRounds?: number
     }
 
     switch (msg.type) {
@@ -262,7 +377,12 @@ export default class ImposterRoom implements Party.Server {
         break
       case 'CAST_VOTE': {
         const voterId = this.userForConn(sender)
-        if (voterId && msg.targetId) this.handleVote(voterId, msg.targetId)
+        if (!voterId) break
+        if (msg.skip === true) {
+          this.handleVote(voterId, VOTE_SKIP)
+        } else if (typeof msg.targetId === 'string' && msg.targetId.length > 0) {
+          this.handleVote(voterId, msg.targetId)
+        }
         break
       }
       case 'NEXT_ROUND':
@@ -331,6 +451,84 @@ export default class ImposterRoom implements Party.Server {
           this.broadcast()
         }
         break
+      case 'SET_GAME_SETTINGS':
+        if (this.userForConn(sender) === this.state.hostId && this.state.phase === 'lobby') {
+          if (typeof msg.writeSeconds === 'number' && Number.isFinite(msg.writeSeconds)) {
+            const w = Math.round(msg.writeSeconds)
+            this.state.gameSettings.writeSeconds = Math.min(
+              MAX_WRITE_SECONDS,
+              Math.max(MIN_WRITE_SECONDS, w)
+            )
+          }
+          if (typeof msg.maxClueRounds === 'number' && Number.isFinite(msg.maxClueRounds)) {
+            const m = Math.round(msg.maxClueRounds)
+            this.state.gameSettings.maxClueRounds = Math.min(
+              MAX_CLUE_ROUNDS,
+              Math.max(MIN_CLUE_ROUNDS, m)
+            )
+          }
+          this.broadcast()
+        }
+        break
+      case 'SUBMIT_CLUE': {
+        const uid = this.userForConn(sender)
+        if (!uid || typeof msg.text !== 'string') break
+        if (this.state.phase !== 'clue_write') break
+        const player = this.state.players[uid]
+        if (!player || player.isSpectator) break
+        const clue = normalizeClueText(msg.text)
+        if (!clue) {
+          sender.send(JSON.stringify({ type: 'ERROR', code: 'INVALID_CLUE' }))
+          break
+        }
+        if (profanityFilterEnabled(this.room.env) && textFailsProfanityFilter(clue)) {
+          sender.send(JSON.stringify({ type: 'ERROR', code: 'CLUE_PROFANITY' }))
+          break
+        }
+        this.privateClues[uid] = clue
+        this.tryEarlyClueReveal()
+        this.broadcast()
+        break
+      }
+      case 'BUMP_SUSPICION': {
+        const uid = this.userForConn(sender)
+        if (!uid || typeof msg.targetId !== 'string') break
+        if (this.state.phase !== 'clue_reveal') break
+        const me = this.state.players[uid]
+        if (!me || me.isSpectator) break
+        if (msg.targetId === uid) break
+        if (!this.state.players[msg.targetId] || this.state.players[msg.targetId]!.isSpectator)
+          break
+        this.state.suspicion[msg.targetId] = (this.state.suspicion[msg.targetId] ?? 0) + 1
+        this.broadcast()
+        break
+      }
+      case 'CONTINUE_CLUE_REVEAL':
+        if (this.userForConn(sender) === this.state.hostId && this.state.phase === 'clue_reveal') {
+          if (this.state.clueCycle >= this.state.gameSettings.maxClueRounds) {
+            this.startVotingPhase()
+          } else {
+            this.state.clueCycle += 1
+            this.privateClues = {}
+            this.state.revealedClues = {}
+            this.state.suspicion = {}
+            this.state.phase = 'clue_write'
+            this.state.clueEndsAt = Date.now() + this.state.gameSettings.writeSeconds * 1000
+            this.scheduleClueEnd()
+          }
+          this.broadcast()
+        }
+        break
+      case 'CALL_VOTE': {
+        const uid = this.userForConn(sender)
+        if (!uid) break
+        const pl = this.state.players[uid]
+        if (!pl || pl.isSpectator) break
+        if (this.state.phase !== 'clue_write' && this.state.phase !== 'clue_reveal') break
+        this.startVotingPhase()
+        this.broadcast()
+        break
+      }
     }
   }
 
@@ -356,7 +554,6 @@ export default class ImposterRoom implements Party.Server {
     return false
   }
 
-  /** After grace: remove player, fix host, voting cleanup. */
   private finalizePlayerDisconnect(userId: string) {
     if (this.userHasOpenConnection(userId)) return
     if (!this.state.players[userId]) return
@@ -364,6 +561,7 @@ export default class ImposterRoom implements Party.Server {
     if (this.state.phase === 'voting') {
       this.cleanupVotesForDepartedUser(userId)
     }
+    delete this.privateClues[userId]
     delete this.state.players[userId]
     if (this.state.hostId === userId) {
       const remaining = Object.keys(this.state.players)
@@ -373,6 +571,9 @@ export default class ImposterRoom implements Party.Server {
     if (this.state.phase === 'voting') {
       this.tryCompleteVotingIfReady()
       return
+    }
+    if (this.state.phase === 'clue_write') {
+      this.tryEarlyClueReveal()
     }
     this.broadcast()
   }
@@ -486,7 +687,7 @@ export default class ImposterRoom implements Party.Server {
     const ids = Object.keys(this.state.players)
     if (ids.length === 0) return
 
-    this.clearDiscussionScheduling()
+    this.clearClueScheduling()
 
     const imposterId = ids[Math.floor(Math.random() * ids.length)]!
     let word: string
@@ -516,17 +717,26 @@ export default class ImposterRoom implements Party.Server {
     this.state.imposterWord = imposterWord
     this.state.votes = {}
     this.state.winner = null
-    this.state.phase = 'discussion'
-    this.state.discussionEndsAt = Date.now() + DISCUSSION_SECONDS * 1000
+    this.state.revealReason = null
+    this.privateClues = {}
+    this.state.revealedClues = {}
+    this.state.suspicion = {}
+    this.state.clueCycle = 1
+    this.state.phase = 'clue_write'
+    this.state.clueEndsAt = Date.now() + this.state.gameSettings.writeSeconds * 1000
 
     this.broadcast()
-    this.scheduleDiscussionEnd()
+    this.scheduleClueEnd()
   }
 
   handleVote(voterId: string, targetId: string) {
     if (this.state.phase !== 'voting') return
     const voter = this.state.players[voterId]
     if (!voter || voter.hasVoted || voter.isSpectator) return
+    if (targetId !== VOTE_SKIP) {
+      const target = this.state.players[targetId]
+      if (!target || target.isSpectator || targetId === voterId) return
+    }
 
     this.state.votes[voterId] = targetId
     voter.hasVoted = true
@@ -535,7 +745,6 @@ export default class ImposterRoom implements Party.Server {
     this.tryCompleteVotingIfReady()
   }
 
-  /** All *current* players have cast a vote */
   private tryCompleteVotingIfReady() {
     const players = Object.values(this.state.players)
     const voters = players.filter((p) => !p.isSpectator)
@@ -549,15 +758,35 @@ export default class ImposterRoom implements Party.Server {
   }
 
   resolveVotes() {
+    const voters = Object.values(this.state.players).filter((p) => !p.isSpectator)
+    const n = voters.length
+    if (n === 0) {
+      this.broadcast()
+      return
+    }
+
+    const skipCount = voters.filter((p) => this.state.votes[p.id] === VOTE_SKIP).length
+    const strictMajoritySkip = skipCount * 2 > n
+
+    if (strictMajoritySkip) {
+      this.enterClueWriteAfterSkip()
+      this.broadcast()
+      return
+    }
+
     const tally: Record<string, number> = {}
-    for (const targetId of Object.values(this.state.votes)) {
-      tally[targetId] = (tally[targetId] || 0) + 1
+    for (const v of voters) {
+      const t = this.state.votes[v.id]
+      if (t && t !== VOTE_SKIP) {
+        tally[t] = (tally[t] || 0) + 1
+      }
     }
 
     const entries = Object.entries(tally).sort((a, b) => b[1] - a[1])
     if (entries.length === 0) {
       this.state.phase = 'reveal'
       this.state.winner = null
+      this.state.revealReason = null
       this.broadcast()
       return
     }
@@ -569,6 +798,7 @@ export default class ImposterRoom implements Party.Server {
     const wasImposter = this.state.players[mostVotedId]?.isImposter === true
 
     this.state.winner = wasImposter ? 'crew' : 'imposter'
+    this.state.revealReason = wasImposter ? 'caught_imposter' : 'wrong_accusation'
     this.state.phase = 'reveal'
 
     if (this.state.winner === 'crew') this.state.stats.crewWins += 1
@@ -586,7 +816,8 @@ export default class ImposterRoom implements Party.Server {
   }
 
   backToLobby() {
-    this.clearDiscussionScheduling()
+    this.clearClueScheduling()
+    this.privateClues = {}
     for (const p of Object.values(this.state.players)) {
       p.isImposter = false
       p.hasVoted = false
@@ -597,15 +828,21 @@ export default class ImposterRoom implements Party.Server {
     this.state.imposterWord = ''
     this.state.votes = {}
     this.state.winner = null
-    this.state.discussionEndsAt = null
+    this.state.clueEndsAt = null
+    this.state.revealedClues = {}
+    this.state.suspicion = {}
+    this.state.clueCycle = 1
+    this.state.revealReason = null
+    this.state.voteSession = 0
     this.state.phase = 'lobby'
     this.broadcast()
   }
 
   endGame() {
-    this.clearDiscussionScheduling()
+    this.clearClueScheduling()
     this.clearAllDisconnectGrace()
     this.nextCustomPair = null
+    this.privateClues = {}
     const { stats } = this.state
     this.state = this.defaultState()
     this.state.stats = stats
@@ -613,9 +850,6 @@ export default class ImposterRoom implements Party.Server {
     this.broadcast()
   }
 
-  /**
-   * When someone leaves during voting, remove their vote and invalidate votes *for* them.
-   */
   private cleanupVotesForDepartedUser(userId: string) {
     delete this.state.votes[userId]
     for (const voterId of Object.keys({ ...this.state.votes })) {
@@ -651,7 +885,10 @@ export default class ImposterRoom implements Party.Server {
   }
 
   broadcast() {
-    this.room.broadcast(JSON.stringify(this.state))
+    for (const conn of this.room.getConnections()) {
+      const uid = this.connToUser.get(conn.id)
+      conn.send(JSON.stringify(this.serializeForViewer(uid)))
+    }
   }
 }
 

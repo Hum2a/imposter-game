@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { recordPlayerRoundIfNeeded } from '@/lib/record-player-round'
+import { VOTE_SKIP_VALUE } from '../types/game'
 import type { AuthUserProps } from './types'
 import type { ClientMessage } from '../types/game'
 
@@ -44,7 +45,9 @@ export default function Reveal({ gameState, isHost, send, auth, partyRoomId }: R
     gameState.winner === 'crew'
       ? t('reveal.crewWins')
       : gameState.winner === 'imposter'
-        ? t('reveal.imposterWins')
+        ? gameState.revealReason === 'wrong_accusation'
+          ? t('reveal.wrongAccusation')
+          : t('reveal.imposterWins')
         : t('reveal.noVotes')
 
   return (
@@ -122,7 +125,8 @@ export default function Reveal({ gameState, isHost, send, auth, partyRoomId }: R
           <ul className="space-y-2 text-sm">
             {Object.entries(gameState.votes).map(([voterId, targetId]) => {
               const voter = gameState.players[voterId]
-              const target = gameState.players[targetId]
+              const target =
+                targetId === VOTE_SKIP_VALUE ? null : gameState.players[targetId]
               return (
                 <li
                   key={voterId}
@@ -132,7 +136,11 @@ export default function Reveal({ gameState, isHost, send, auth, partyRoomId }: R
                     {voter?.name ?? voterId}
                   </span>
                   <span className="text-muted-foreground">→</span>
-                  <span>{target?.name ?? targetId}</span>
+                  <span>
+                    {targetId === VOTE_SKIP_VALUE
+                      ? t('voting.skipVote')
+                      : (target?.name ?? targetId)}
+                  </span>
                 </li>
               )
             })}

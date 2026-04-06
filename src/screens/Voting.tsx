@@ -15,9 +15,9 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import type { Player } from '../types/game'
+import type { ClientMessage, Player } from '../types/game'
+import { VOTE_SKIP_VALUE } from '../types/game'
 import type { AuthUserProps } from './types'
-import type { ClientMessage } from '../types/game'
 import { useSfx } from '../sfx/use-sfx'
 import { lightVoteHaptic } from '../lib/haptics'
 import { trackEvent } from '../lib/analytics'
@@ -27,10 +27,12 @@ type VotingProps = AuthUserProps & {
   send: (msg: ClientMessage) => void
 }
 
+type Selection = 'skip' | string
+
 export default function Voting({ gameState, me, send }: VotingProps) {
   const { t } = useTranslation()
   const { play } = useSfx()
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Selection | null>(null)
   const players = Object.values(gameState.players)
   const isSpectator = me.isSpectator === true
   const votingPlayers = players.filter((p) => !p.isSpectator)
@@ -41,7 +43,17 @@ export default function Voting({ gameState, me, send }: VotingProps) {
     trackEvent('VoteSubmit')
     play('vote')
     lightVoteHaptic()
-    send({ type: 'CAST_VOTE', targetId: selected })
+    if (selected === 'skip') {
+      send({ type: 'CAST_VOTE', skip: true })
+    } else {
+      send({ type: 'CAST_VOTE', targetId: selected })
+    }
+  }
+
+  const voteLine = (p: Player) => {
+    if (!p.hasVoted) return t('voting.thinking')
+    if (p.votedFor === VOTE_SKIP_VALUE) return t('voting.skipped')
+    return t('voting.voted')
   }
 
   if (isSpectator) {
@@ -62,9 +74,7 @@ export default function Voting({ gameState, me, send }: VotingProps) {
                 <li key={p.id} className="flex items-center gap-2">
                   <Avatar user={{ id: p.id, name: p.name, avatar: p.avatar }} size={36} />
                   <span className="font-medium text-foreground">{p.name}</span>
-                  <span>
-                    — {p.hasVoted ? t('voting.voted') : t('voting.thinking')}
-                  </span>
+                  <span>— {voteLine(p)}</span>
                 </li>
               ))}
             </ul>
@@ -88,11 +98,23 @@ export default function Voting({ gameState, me, send }: VotingProps) {
             {t('voting.whoImposter')}
           </CardTitle>
           <CardDescription>
-            {t('voting.instructions')}
+            {t('voting.instructionsV2')}
             {me.hasVoted ? t('voting.voteLocked') : ''}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-4">
+          <Button
+            type="button"
+            variant={selected === 'skip' ? 'default' : 'outline'}
+            disabled={me.hasVoted}
+            role="radio"
+            aria-checked={!me.hasVoted ? selected === 'skip' : undefined}
+            aria-label={t('voting.skipAria')}
+            className="min-h-11 w-full justify-center text-base font-medium"
+            onClick={() => setSelected('skip')}
+          >
+            {t('voting.skipVote')}
+          </Button>
           <div
             className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3"
             role="radiogroup"
@@ -136,11 +158,13 @@ export default function Voting({ gameState, me, send }: VotingProps) {
             aria-label={
               me.hasVoted
                 ? t('voting.confirmAriaVoted')
-                : selected
-                  ? t('voting.confirmAriaFor', {
-                      name: players.find((x) => x.id === selected)?.name ?? 'player',
-                    })
-                  : t('voting.confirmAriaSelect')
+                : selected === 'skip'
+                  ? t('voting.confirmAriaSkip')
+                  : selected
+                    ? t('voting.confirmAriaFor', {
+                        name: players.find((x) => x.id === selected)?.name ?? 'player',
+                      })
+                    : t('voting.confirmAriaSelect')
             }
             onClick={confirm}
           >
@@ -162,9 +186,7 @@ export default function Voting({ gameState, me, send }: VotingProps) {
                   <CircleDot className="size-3.5 shrink-0 opacity-40" aria-hidden />
                 )}
                 <span className="font-medium text-foreground">{p.name}</span>
-                <span>
-                  — {p.hasVoted ? t('voting.voted') : t('voting.thinking')}
-                </span>
+                <span>— {voteLine(p)}</span>
               </li>
             ))}
           </ul>

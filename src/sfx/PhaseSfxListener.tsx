@@ -12,7 +12,9 @@ export function PhaseSfxListener({ phase }: { phase: Phase }) {
   useEffect(() => {
     const was = prev.current
     if (was !== null && was !== phase) {
-      if (phase === 'discussion' && was === 'lobby') play('round')
+      if (phase === 'clue_write' && was === 'lobby') play('round')
+      if (phase === 'clue_write' && was === 'voting') play('round')
+      if (phase === 'clue_write' && was === 'reveal') play('round')
       if (phase === 'reveal' && was === 'voting') play('reveal')
     }
     prev.current = phase

@@ -15,6 +15,7 @@ import { fetchPartyJoinJwt, usePartyJoinJwtEnabled } from './lib/party-jwt-mint'
 import { PhaseSfxListener, SfxProvider, SfxToggle } from './sfx'
 import Lobby from './screens/Lobby'
 import Game from './screens/Game'
+import ClueReveal from './screens/ClueReveal'
 import Voting from './screens/Voting'
 import Reveal from './screens/Reveal'
 import type { Phase } from './types/game'
@@ -287,10 +288,30 @@ export default function App() {
         />,
         gameState.phase
       )
-    case 'discussion':
-      return shell(<Game {...props} />, gameState.phase)
+    case 'clue_write':
+      return shell(
+        <Game
+          key={`clue-${gameState.round}-${gameState.clueCycle}`}
+          {...props}
+          partyErrorCode={partyErrorCode}
+          onDismissPartyError={clearPartyError}
+        />,
+        gameState.phase
+      )
+    case 'clue_reveal':
+      return shell(
+        <ClueReveal
+          {...props}
+          partyErrorCode={partyErrorCode}
+          onDismissPartyError={clearPartyError}
+        />,
+        gameState.phase
+      )
     case 'voting':
-      return shell(<Voting {...props} />, gameState.phase)
+      return shell(
+        <Voting key={gameState.voteSession} {...props} />,
+        gameState.phase
+      )
     case 'reveal':
       return shell(<Reveal {...props} partyRoomId={partyRoomId ?? ''} />, gameState.phase)
     default:

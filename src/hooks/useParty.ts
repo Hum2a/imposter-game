@@ -1,13 +1,32 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import PartySocket from 'partysocket'
 import { DEFAULT_WORD_PACK_ID } from '../data/word-pack-options'
-import type { ClientMessage, GameState, RoomStats } from '../types/game'
+import type { ClientMessage, GameSettings, GameState, RoomStats } from '../types/game'
 
 const defaultStats = (): RoomStats => ({
   roundsCompleted: 0,
   crewWins: 0,
   imposterWins: 0,
 })
+
+const defaultGameSettings = (): GameSettings => ({
+  writeSeconds: 20,
+  maxClueRounds: 5,
+})
+
+function mergeGameSettings(raw: unknown): GameSettings {
+  const d = defaultGameSettings()
+  if (!raw || typeof raw !== 'object') return d
+  const g = raw as Record<string, unknown>
+  const ws = g.writeSeconds
+  const mr = g.maxClueRounds
+  return {
+    writeSeconds:
+      typeof ws === 'number' && Number.isFinite(ws) ? Math.min(120, Math.max(10, Math.round(ws))) : d.writeSeconds,
+    maxClueRounds:
+      typeof mr === 'number' && Number.isFinite(mr) ? Math.min(20, Math.max(1, Math.round(mr))) : d.maxClueRounds,
+  }
+}
 
 export type PartyConnectionState = 'idle' | 'connecting' | 'open' | 'closed'
 
@@ -36,7 +55,6 @@ export function useParty(roomId: string | undefined, userId: string | undefined)
     })
 
     socketRef.current = ws
-    /* Show connecting immediately when the room or user changes; open/close handlers drive the rest. */
     /* eslint-disable-next-line react-hooks/set-state-in-effect -- PartySocket lifecycle; must reset phase before async open */
     setSocketPhase('connecting')
     setPartyErrorCode(null)
@@ -64,6 +82,14 @@ export function useParty(roomId: string | undefined, userId: string | undefined)
         const g = raw as Partial<GameState>
         if (typeof g.phase !== 'string') return
         setPartyErrorCode(null)
+
+        const rr = g.revealReason
+        const revealReason =
+          rr === 'wrong_accusation' || rr === 'caught_imposter' ? rr : null
+
+        const clueEndsAt =
+          g.clueEndsAt === null || typeof g.clueEndsAt === 'number' ? g.clueEndsAt : null
+
         setGameState({
           ...(g as GameState),
           stats: { ...defaultStats(), ...g.stats },
@@ -72,6 +98,25 @@ export function useParty(roomId: string | undefined, userId: string | undefined)
             typeof g.wordPackId === 'string' && g.wordPackId.length > 0
               ? g.wordPackId
               : DEFAULT_WORD_PACK_ID,
+          gameSettings: mergeGameSettings(g.gameSettings),
+          clueCycle: typeof g.clueCycle === 'number' && g.clueCycle >= 1 ? g.clueCycle : 1,
+          clueEndsAt,
+          revealedClues:
+            g.revealedClues && typeof g.revealedClues === 'object'
+              ? (g.revealedClues as Record<string, string>)
+              : {},
+          suspicion:
+            g.suspicion && typeof g.suspicion === 'object'
+              ? (g.suspicion as Record<string, number>)
+              : {},
+          revealReason,
+          voteSession: typeof g.voteSession === 'number' && g.voteSession >= 0 ? g.voteSession : 0,
+          myClue:
+            g.myClue === null || typeof g.myClue === 'string' ? g.myClue : undefined,
+          cluesSubmitted:
+            g.cluesSubmitted && typeof g.cluesSubmitted === 'object'
+              ? (g.cluesSubmitted as Record<string, boolean>)
+              : undefined,
         })
       } catch {
         /* ignore */

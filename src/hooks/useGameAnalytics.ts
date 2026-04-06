@@ -19,8 +19,19 @@ export function useGameAnalytics(gameState: GameState | null, userId: string | u
     if (p === 'lobby' && prev !== 'lobby') {
       trackEvent('LobbyJoin')
     }
-    if (p === 'discussion' && prev !== 'discussion') {
-      trackEvent('RoundStart', { round: gameState.round })
+    if (p === 'clue_write' && prev !== 'clue_write') {
+      if (prev === 'lobby' || prev === 'reveal') {
+        trackEvent('RoundStart', { round: gameState.round })
+      }
+      if (prev === 'voting') {
+        trackEvent('VoteSkipMajority', { round: gameState.round })
+      }
+      if (prev === 'clue_reveal') {
+        trackEvent('ClueCycleStart', { round: gameState.round, cycle: gameState.clueCycle })
+      }
+    }
+    if (p === 'clue_reveal' && prev !== 'clue_reveal') {
+      trackEvent('ClueReveal', { round: gameState.round, cycle: gameState.clueCycle })
     }
     if (p === 'voting' && prev !== 'voting') {
       trackEvent('VotingStart', { round: gameState.round })

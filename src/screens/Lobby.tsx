@@ -480,6 +480,52 @@ export default function Lobby({
             </div>
           ) : null}
           {isHost ? (
+            <div className="w-full space-y-3 border-b border-border pb-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {t('lobby.gameRulesSection')}
+              </p>
+              <p className="text-sm text-muted-foreground">{t('lobby.gameRulesHelp')}</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="write-seconds">{t('lobby.writeSecondsLabel')}</Label>
+                  <Input
+                    id="write-seconds"
+                    type="number"
+                    min={10}
+                    max={120}
+                    key={`ws-${gameState.gameSettings.writeSeconds}`}
+                    defaultValue={String(gameState.gameSettings.writeSeconds)}
+                    className="tabular-nums"
+                    onBlur={(e) => {
+                      const v = parseInt(e.target.value, 10)
+                      if (Number.isNaN(v)) return
+                      onDismissPartyError?.()
+                      send({ type: 'SET_GAME_SETTINGS', writeSeconds: v })
+                    }}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="max-clue-rounds">{t('lobby.maxClueRoundsLabel')}</Label>
+                  <Input
+                    id="max-clue-rounds"
+                    type="number"
+                    min={1}
+                    max={20}
+                    key={`mr-${gameState.gameSettings.maxClueRounds}`}
+                    defaultValue={String(gameState.gameSettings.maxClueRounds)}
+                    className="tabular-nums"
+                    onBlur={(e) => {
+                      const v = parseInt(e.target.value, 10)
+                      if (Number.isNaN(v)) return
+                      onDismissPartyError?.()
+                      send({ type: 'SET_GAME_SETTINGS', maxClueRounds: v })
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : null}
+          {isHost ? (
             <>
               <Button
                 type="button"
