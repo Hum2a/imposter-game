@@ -163,6 +163,7 @@
     "nextRound": "Next round",
     "backLobby": "Back to lobby",
     "nextRoundAria": "Start next round with a new word",
+    "nextRoundRotatesHostHint": "With rotating host on, the next player in order becomes host for controls (next clue round, voting, etc.).",
     "backLobbyAria": "Return everyone to the lobby",
     "waitingHost": "Waiting for the host to start the next round or return to the lobby."
   },
@@ -194,6 +195,9 @@
     "newWordPairEachClueCycleLabel": "New random words each clue round",
     "newWordPairEachClueCycleHelp": "After each clue reveal, the host’s “next clue round” draws a new pair from the lobby word pack and may pick a new imposter. The first clue round still uses your custom or initial random pair. Majority skip on a vote keeps the same words.",
     "newWordPairEachClueCycleGuestHint": "The host turned on new random words each clue round — expect a fresh pair (and maybe a new imposter) after each reveal until voting.",
+    "rotateHostEachRoundLabel": "Rotate host each round",
+    "rotateHostEachRoundHelp": "After each full round (reveal → Next round), host passes to the next non-spectator in a stable order. Spectators are skipped.",
+    "rotateHostEachRoundGuestHint": "The host turned on rotating host — whoever is host after “Next round” may change.",
     "writeSecondsLabel": "Seconds to write a clue",
     "maxClueRoundsLabel": "Clue rounds before voting",
     "voteSecondsLabel": "Seconds to vote (then auto-skip)",

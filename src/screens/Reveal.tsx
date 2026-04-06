@@ -240,6 +240,11 @@ export default function Reveal({ gameState, isHost, send, auth, partyRoomId }: R
             >
               {t('reveal.nextRound')}
             </Button>
+            {gameState.gameSettings.rotateHostEachRound ? (
+              <p className="w-full text-xs text-muted-foreground sm:order-last sm:basis-full">
+                {t('reveal.nextRoundRotatesHostHint')}
+              </p>
+            ) : null}
             <Button
               type="button"
               size="lg"

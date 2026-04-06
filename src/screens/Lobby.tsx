@@ -409,6 +409,9 @@ export default function Lobby({
               {gameState.gameSettings.newWordPairEachClueCycle ? (
                 <p className="text-xs">{t('lobby.newWordPairEachClueCycleGuestHint')}</p>
               ) : null}
+              {gameState.gameSettings.rotateHostEachRound ? (
+                <p className="text-xs">{t('lobby.rotateHostEachRoundGuestHint')}</p>
+              ) : null}
             </div>
           ) : null}
           {isHost ? (
@@ -660,6 +663,32 @@ export default function Lobby({
                   </span>
                   <span className="block text-xs leading-snug text-muted-foreground">
                     {t('lobby.newWordPairEachClueCycleHelp')}
+                  </span>
+                </span>
+              </label>
+              <label
+                className={cn(
+                  'flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-muted/15 p-3 transition-colors hover:bg-muted/25'
+                )}
+              >
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 rounded border-input accent-primary"
+                  checked={gameState.gameSettings.rotateHostEachRound}
+                  onChange={(e) => {
+                    onDismissPartyError?.()
+                    send({
+                      type: 'SET_GAME_SETTINGS',
+                      rotateHostEachRound: e.target.checked,
+                    })
+                  }}
+                />
+                <span className="min-w-0 space-y-1">
+                  <span className="block text-sm font-medium text-foreground">
+                    {t('lobby.rotateHostEachRoundLabel')}
+                  </span>
+                  <span className="block text-xs leading-snug text-muted-foreground">
+                    {t('lobby.rotateHostEachRoundHelp')}
                   </span>
                 </span>
               </label>

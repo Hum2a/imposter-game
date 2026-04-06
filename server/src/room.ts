@@ -21,6 +21,7 @@ interface GameSettings {
   maxClueRounds: number
   voteSeconds: number
   newWordPairEachClueCycle: boolean
+  rotateHostEachRound: boolean
 }
 
 type RevealReason = 'wrong_accusation' | 'caught_imposter' | null
@@ -95,6 +96,7 @@ function defaultGameSettings(): GameSettings {
     maxClueRounds: DEFAULT_MAX_CLUE_ROUNDS,
     voteSeconds: DEFAULT_VOTE_SECONDS,
     newWordPairEachClueCycle: false,
+    rotateHostEachRound: false,
   }
 }
 
@@ -610,6 +612,7 @@ export default class ImposterRoom implements Party.Server {
           maxClueRounds?: number
           voteSeconds?: number
           newWordPairEachClueCycle?: boolean
+          rotateHostEachRound?: boolean
         }
         if (this.userForConn(sender) === this.state.hostId && this.state.phase === 'lobby') {
           if (typeof settings.writeSeconds === 'number' && Number.isFinite(settings.writeSeconds)) {
@@ -635,6 +638,9 @@ export default class ImposterRoom implements Party.Server {
           }
           if (typeof settings.newWordPairEachClueCycle === 'boolean') {
             this.state.gameSettings.newWordPairEachClueCycle = settings.newWordPairEachClueCycle
+          }
+          if (typeof settings.rotateHostEachRound === 'boolean') {
+            this.state.gameSettings.rotateHostEachRound = settings.rotateHostEachRound
           }
           this.broadcast()
         }
@@ -1039,8 +1045,24 @@ export default class ImposterRoom implements Party.Server {
     this.broadcast()
   }
 
+  /** Next non-spectator host in stable sorted player-id order (for rotate-host mode). */
+  private rotateHostAmongEligible() {
+    const ids = Object.keys(this.state.players)
+      .filter((id) => !this.state.players[id]!.isSpectator)
+      .sort()
+    if (ids.length < 2) return
+    const cur = this.state.hostId
+    let idx = ids.indexOf(cur)
+    if (idx < 0) idx = 0
+    else idx = (idx + 1) % ids.length
+    this.state.hostId = ids[idx]!
+  }
+
   async nextRound() {
     this.state.round += 1
+    if (this.state.gameSettings.rotateHostEachRound) {
+      this.rotateHostAmongEligible()
+    }
     await this.persistMeta()
     this.startGame()
   }

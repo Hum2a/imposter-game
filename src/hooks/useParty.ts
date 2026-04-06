@@ -14,6 +14,7 @@ const defaultGameSettings = (): GameSettings => ({
   maxClueRounds: 5,
   voteSeconds: 90,
   newWordPairEachClueCycle: false,
+  rotateHostEachRound: false,
 })
 
 function mergeGameSettings(raw: unknown): GameSettings {
@@ -24,6 +25,7 @@ function mergeGameSettings(raw: unknown): GameSettings {
   const mr = g.maxClueRounds
   const vs = g.voteSeconds
   const nw = g.newWordPairEachClueCycle
+  const rh = g.rotateHostEachRound
   return {
     writeSeconds:
       typeof ws === 'number' && Number.isFinite(ws) ? Math.min(120, Math.max(10, Math.round(ws))) : d.writeSeconds,
@@ -33,6 +35,7 @@ function mergeGameSettings(raw: unknown): GameSettings {
       typeof vs === 'number' && Number.isFinite(vs) ? Math.min(180, Math.max(15, Math.round(vs))) : d.voteSeconds,
     newWordPairEachClueCycle:
       typeof nw === 'boolean' ? nw : d.newWordPairEachClueCycle,
+    rotateHostEachRound: typeof rh === 'boolean' ? rh : d.rotateHostEachRound,
   }
 }
 

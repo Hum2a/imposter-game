@@ -22,6 +22,11 @@ export interface GameSettings {
    * initial random pair from game start. Skip-majority return to clues keeps the same pair.
    */
   newWordPairEachClueCycle: boolean
+  /**
+   * When true, pressing **Next round** on the reveal screen moves host to the next non-spectator
+   * (stable alphabetical order by player id) before starting the new game.
+   */
+  rotateHostEachRound: boolean
 }
 
 export type RevealReason = 'wrong_accusation' | 'caught_imposter' | null
@@ -113,6 +118,7 @@ export type ClientMessage =
       maxClueRounds?: number
       voteSeconds?: number
       newWordPairEachClueCycle?: boolean
+      rotateHostEachRound?: boolean
     }
   /** Non-spectator, clue_write — one submission per cycle (overwrite until deadline). */
   | { type: 'SUBMIT_CLUE'; text: string }

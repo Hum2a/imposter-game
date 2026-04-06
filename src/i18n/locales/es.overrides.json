@@ -130,6 +130,7 @@
     "nextRound": "Siguiente ronda",
     "backLobby": "Volver al lobby",
     "nextRoundAria": "Empezar otra ronda con palabras nuevas",
+    "nextRoundRotatesHostHint": "Con anfitrión rotativo, el siguiente jugador en orden será anfitrión para los controles (siguiente ronda de pistas, votación, etc.).",
     "backLobbyAria": "Devolver a todos al lobby",
     "waitingHost": "Esperando al anfitrión para otra ronda o volver al lobby."
   },
