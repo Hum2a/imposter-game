@@ -22,15 +22,16 @@ Captured from playtests. Items marked **done** in this pass are implemented in-r
 - **Reveal breakdown:** clearer colors for crew vs imposter words; vote rows tinted by skip vs accusation vs “voted imposter.”
 - **Select / dropdown text:** `select option` uses `foreground` / `card` in global CSS.
 - **Palette + themes:** teal / violet-leaning defaults; **theme** toggle cycles **System → Light → Dark** (stored in `localStorage` under `imposter-theme-preference`). Comment in `index.css` for future `data-brand` packs.
+- **Rotating host:** host toggle **Rotate host each round** — after reveal, **Next round** advances `hostId` to the next non-spectator in stable sorted player order (`rotateHostEachRound` in `GameSettings`).
 
 ## Larger / not done (keep as roadmap)
 
 | Idea | Notes |
 |------|--------|
-| **More game modes** | **New word each clue cycle** is implemented (host checkbox in lobby). Still open: rotating host, turns order, other rule presets. |
+| **More game modes** | **New word each clue cycle** and **rotating host** are implemented (lobby checkboxes). Still open: strict turn order, other rule presets. |
 | **“Turns” / alternating modes** | New state machine (order, roles per turn). |
 | **Encrypt WebSocket “who is imposter”** | WSS already encrypts transport. Hiding `isImposter` from *other* clients requires **per-connection** server serialization (no shared broadcast) or trusted server-only UI — major protocol change; won’t stop a modified client. |
-| **Friends for logged-in users** | Needs product design + Supabase (or other) social graph, privacy, invites — not started. |
+| **Friends for logged-in users** | See `docs/FRIENDS_ROADMAP.md` — product + Supabase social graph, privacy, invites — not started. |
 | **Richer round timeline UI** | Timeline of phases, per-clue events — mostly client + maybe server event log. |
 
 ## Security / ops (documented; tighten in prod)
@@ -44,4 +45,4 @@ Captured from playtests. Items marked **done** in this pass are implemented in-r
 
 1. ~~Game mode flags (reuse word for all clue cycles vs roll new pair each cycle).~~ **Done** (`newWordPairEachClueCycle` in `GameSettings`).
 2. ~~Optional stricter clue dictionary / hyphen rules~~ **Done** (default strict letters-only; `CLUE_STRICT_WORD=false` for lenient).
-3. Friends / social — spec auth & data model first.
+3. Friends / social — follow `docs/FRIENDS_ROADMAP.md` (auth, data model, MVP scope).
