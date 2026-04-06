@@ -167,6 +167,13 @@ html.dark #social .button-icon {
   body {
     @apply bg-background text-foreground;
   }
+  /* Native <select> popups use the UA color scheme; without this, dark pages can get a light menu with inherited light text. */
+  html.dark select {
+    color-scheme: dark;
+  }
+  html:not(.dark) select {
+    color-scheme: light;
+  }
 }
 
 #root {
