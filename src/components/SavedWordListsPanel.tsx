@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ConfirmModal } from '@/components/ConfirmModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -36,6 +37,7 @@ export function SavedWordListsPanel({
   const [saveName, setSaveName] = useState('')
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState<{ tone: 'ok' | 'err'; i18nKey: string } | null>(null)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -113,9 +115,8 @@ export function SavedWordListsPanel({
     showMessage('lobby.savedListsEditorOk', 'ok')
   }
 
-  const handleDelete = async () => {
+  const performDelete = async () => {
     if (!selectedId) return
-    if (!window.confirm(t('lobby.savedListsDeleteConfirm'))) return
     setBusy(true)
     const ok = await deleteSavedWordList(selectedId)
     setBusy(false)
@@ -129,6 +130,7 @@ export function SavedWordListsPanel({
   }
 
   return (
+    <Fragment>
     <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {t('lobby.savedListsSection')}
@@ -187,7 +189,7 @@ export function SavedWordListsPanel({
               size="sm"
               className="min-h-11 text-destructive hover:text-destructive"
               disabled={!selectedId || busy}
-              onClick={handleDelete}
+              onClick={() => setDeleteModalOpen(true)}
             >
               {t('lobby.savedListsDelete')}
             </Button>
@@ -229,5 +231,16 @@ export function SavedWordListsPanel({
         </p>
       ) : null}
     </div>
+    <ConfirmModal
+      open={deleteModalOpen}
+      onOpenChange={setDeleteModalOpen}
+      title={t('lobby.savedListsDeleteTitle')}
+      description={t('lobby.savedListsDeleteDesc')}
+      confirmLabel={t('common.delete')}
+      cancelLabel={t('common.cancel')}
+      variant="destructive"
+      onConfirm={() => void performDelete()}
+    />
+    </Fragment>
   )
 }

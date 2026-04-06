@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, CircleDot, Clock } from 'lucide-react'
 
+import { ConfirmModal } from '@/components/ConfirmModal'
 import { Avatar } from '../components/Avatar'
 import { GameScreen } from '../components/layout/GameScreen'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +36,7 @@ export default function Voting({ gameState, me, isHost, send }: VotingProps) {
   const { play } = useSfx()
   const [now, setNow] = useState(() => Date.now())
   const [selected, setSelected] = useState<Selection | null>(null)
+  const [endGameModalOpen, setEndGameModalOpen] = useState(false)
   const players = Object.values(gameState.players)
 
   useEffect(() => {
@@ -101,6 +103,7 @@ export default function Voting({ gameState, me, isHost, send }: VotingProps) {
   }
 
   return (
+    <Fragment>
     <GameScreen>
       <Card className="transition-shadow duration-200 motion-reduce:transition-none">
         <CardHeader className="text-center sm:text-left">
@@ -222,9 +225,7 @@ export default function Voting({ gameState, me, isHost, send }: VotingProps) {
               type="button"
               variant="destructive"
               className="min-h-11 w-full sm:max-w-xs sm:self-center"
-              onClick={() => {
-                if (window.confirm(t('clueReveal.endGameConfirm'))) send({ type: 'END_GAME' })
-              }}
+              onClick={() => setEndGameModalOpen(true)}
             >
               {t('clueReveal.endGameHost')}
             </Button>
@@ -232,5 +233,16 @@ export default function Voting({ gameState, me, isHost, send }: VotingProps) {
         </CardFooter>
       </Card>
     </GameScreen>
+    <ConfirmModal
+      open={endGameModalOpen}
+      onOpenChange={setEndGameModalOpen}
+      title={t('clueReveal.endGameModalTitle')}
+      description={t('clueReveal.endGameConfirm')}
+      confirmLabel={t('clueReveal.endGameHost')}
+      cancelLabel={t('common.cancel')}
+      variant="destructive"
+      onConfirm={() => send({ type: 'END_GAME' })}
+    />
+    </Fragment>
   )
 }

@@ -15,6 +15,11 @@
     "joinRateLimited": "Demasiados intentos de entrada",
     "joinRateLimitedBody": "Esta sala limita por un momento cuántas veces se puede unir alguien. Espera unos segundos y recarga la página, o inténtalo de nuevo con una conexión estable."
   },
+  "common": {
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "delete": "Eliminar"
+  },
   "sfx": {
     "soundOn": "Sonido activado",
     "soundOff": "Sonido desactivado",
@@ -63,6 +68,10 @@
     "invalidClue": "Una sola palabra sin espacios, entre 1 y 40 caracteres.",
     "invalidClueStrict": "Solo letras (tildes valen) — sin números, guiones, emoji ni signos.",
     "clueStrictHint": "Pistas estrictas: una palabra solo con letras.",
+    "callVote": "Pedir votación ya",
+    "endGame": "Terminar partida",
+    "endGameModalTitle": "¿Terminar la partida?",
+    "endGameConfirm": "Se acaba la partida y la sala vuelve al lobby. Las estadísticas de esta sesión siguen en el marcador.",
     "tabHidden": "Pestaña en segundo plano — el temporizador sigue en el servidor. Vuelve antes de que se acabe el tiempo.",
     "timerSyncing": "Sincronizando temporizador…"
   },
@@ -80,7 +89,10 @@
     "continueToVoting": "Continuar a votación",
     "waitHostNext": "Esperando al anfitrión para la siguiente ronda de pistas.",
     "waitHostVoting": "Esperando al anfitrión para abrir la votación.",
-    "newPairNextCycleHint": "Al pasar a la siguiente ronda de pistas, habrá palabras nuevas (y quizá un impostor distinto)."
+    "newPairNextCycleHint": "Al pasar a la siguiente ronda de pistas, habrá palabras nuevas (y quizá un impostor distinto).",
+    "endGameHost": "Terminar partida",
+    "endGameModalTitle": "¿Terminar partida?",
+    "endGameConfirm": "¿Devolver a todos al lobby y borrar la ronda actual?"
   },
   "voting": {
     "voting": "Votación",
@@ -170,7 +182,12 @@
     "customRoomCodePlaceholder": "ej. VIERNES",
     "newRandomLobbyButton": "Nueva sala aleatoria",
     "createLobbyWithCode": "Crear sala con este código",
-    "customRoomCodeHelp": "Opcional: elige un código corto que puedan escribir tus amigos. También sirve uno aleatorio."
+    "customRoomCodeHelp": "Opcional: elige un código corto que puedan escribir tus amigos. También sirve uno aleatorio.",
+    "newLobbyModalTitle": "¿Empezar una sala nueva?",
+    "newLobbyModalDesc": "Saldrás de esta sala y entrarás en una vacía.",
+    "newLobbyConfirmAction": "Nueva sala",
+    "savedListsDeleteTitle": "¿Eliminar esta lista guardada?",
+    "savedListsDeleteDesc": "Se quitará de tu cuenta en línea."
   },
   "profile": {
     "showPanelAria": "Abrir cuenta y perfil para cambiar nombre, avatar y opciones de acceso",

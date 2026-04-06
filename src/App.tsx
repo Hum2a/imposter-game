@@ -6,6 +6,7 @@ import {
   AppLoadingState,
 } from './components/layout/AppStates'
 import { PasswordRecoveryOverlay } from './components/PasswordRecoveryOverlay'
+import { PhaseScreenTransition } from './components/PhaseScreenTransition'
 import { WebProfileControls } from './components/WebProfileControls'
 import { useDiscord } from './hooks/useDiscord'
 import { useGameAnalytics } from './hooks/useGameAnalytics'
@@ -336,65 +337,67 @@ export default function App() {
             />
           </>
         ) : null}
-        <div className="flex flex-1 flex-col">{body}</div>
+        <div className="flex min-h-0 flex-1 flex-col">{body}</div>
       </SfxProvider>
     </div>
   )
 
-  switch (gameState.phase) {
-    case 'lobby':
-      return shell(
-        <Lobby
-          {...props}
-          partyRoomId={partyRoomId ?? ''}
-          webMode={webMode}
-          isDiscordActivity={isDiscordActivity}
-          onJoinWebLobby={joinWebPartyRoom}
-          onCreateWebLobby={createNewWebLobby}
-          joinLobbyError={joinLobbyError}
-          onDismissJoinLobbyError={clearJoinLobbyError}
-          discordLobbySuffix={discordLobbySuffix}
-          onDiscordLobbySuffixChange={setDiscordLobbySuffix}
-          partyErrorCode={partyErrorCode}
-          onDismissPartyError={clearPartyError}
-          savedWordListsEnabled={
-            webMode && isSupabaseConfigured() && webIdentityMode !== 'guest'
-          }
-        />,
-        gameState.phase
-      )
-    case 'clue_write':
-      return shell(
-        <Game
-          key={`clue-${gameState.round}-${gameState.clueCycle}`}
-          {...props}
-          partyErrorCode={partyErrorCode}
-          onDismissPartyError={clearPartyError}
-        />,
-        gameState.phase
-      )
-    case 'clue_reveal':
-      return shell(
-        <ClueReveal
-          {...props}
-          partyErrorCode={partyErrorCode}
-          onDismissPartyError={clearPartyError}
-        />,
-        gameState.phase
-      )
-    case 'voting':
-      return shell(
-        <Voting key={gameState.voteSession} {...props} />,
-        gameState.phase
-      )
-    case 'reveal':
-      return shell(<Reveal {...props} partyRoomId={partyRoomId ?? ''} />, gameState.phase)
-    default:
-      return shell(
-        <div className="flex flex-1 items-center justify-center text-muted-foreground">
-          {t('app.unknownPhase')}
-        </div>,
-        gameState.phase
-      )
+  const phaseBody = (p: Phase) => {
+    switch (p) {
+      case 'lobby':
+        return (
+          <Lobby
+            {...props}
+            partyRoomId={partyRoomId ?? ''}
+            webMode={webMode}
+            isDiscordActivity={isDiscordActivity}
+            onJoinWebLobby={joinWebPartyRoom}
+            onCreateWebLobby={createNewWebLobby}
+            joinLobbyError={joinLobbyError}
+            onDismissJoinLobbyError={clearJoinLobbyError}
+            discordLobbySuffix={discordLobbySuffix}
+            onDiscordLobbySuffixChange={setDiscordLobbySuffix}
+            partyErrorCode={partyErrorCode}
+            onDismissPartyError={clearPartyError}
+            savedWordListsEnabled={
+              webMode && isSupabaseConfigured() && webIdentityMode !== 'guest'
+            }
+          />
+        )
+      case 'clue_write':
+        return (
+          <Game
+            key={`clue-${gameState.round}-${gameState.clueCycle}`}
+            {...props}
+            partyErrorCode={partyErrorCode}
+            onDismissPartyError={clearPartyError}
+          />
+        )
+      case 'clue_reveal':
+        return (
+          <ClueReveal
+            {...props}
+            partyErrorCode={partyErrorCode}
+            onDismissPartyError={clearPartyError}
+          />
+        )
+      case 'voting':
+        return <Voting key={gameState.voteSession} {...props} />
+      case 'reveal':
+        return <Reveal {...props} partyRoomId={partyRoomId ?? ''} />
+      default:
+        return (
+          <div className="flex flex-1 items-center justify-center text-muted-foreground">
+            {t('app.unknownPhase')}
+          </div>
+        )
+    }
   }
+
+  return shell(
+    <PhaseScreenTransition phase={gameState.phase}>
+      {(p) => phaseBody(p)}
+    </PhaseScreenTransition>,
+    gameState.phase
+  )
 }

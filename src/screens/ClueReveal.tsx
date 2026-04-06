@@ -1,6 +1,8 @@
+import { Fragment, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, ThumbsDown } from 'lucide-react'
 
+import { ConfirmModal } from '@/components/ConfirmModal'
 import { Avatar } from '../components/Avatar'
 import { GameScreen } from '../components/layout/GameScreen'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -33,6 +35,7 @@ export default function ClueReveal({
   onDismissPartyError,
 }: ClueRevealProps) {
   const { t } = useTranslation()
+  const [endGameModalOpen, setEndGameModalOpen] = useState(false)
   const players = Object.values(gameState.players).filter((p) => !p.isSpectator)
   const isSpectator = me.isSpectator === true
   const lastCycle = gameState.clueCycle >= gameState.gameSettings.maxClueRounds
@@ -51,6 +54,7 @@ export default function ClueReveal({
   })()
 
   return (
+    <Fragment>
     <GameScreen>
       {partyErr ? (
         <Alert variant="destructive">
@@ -164,9 +168,7 @@ export default function ClueReveal({
             type="button"
             variant="destructive"
             className="min-h-11 w-full sm:w-auto"
-            onClick={() => {
-              if (window.confirm(t('clueReveal.endGameConfirm'))) send({ type: 'END_GAME' })
-            }}
+            onClick={() => setEndGameModalOpen(true)}
           >
             {t('clueReveal.endGameHost')}
           </Button>
@@ -186,5 +188,16 @@ export default function ClueReveal({
         )}
       </div>
     </GameScreen>
+    <ConfirmModal
+      open={endGameModalOpen}
+      onOpenChange={setEndGameModalOpen}
+      title={t('clueReveal.endGameModalTitle')}
+      description={t('clueReveal.endGameConfirm')}
+      confirmLabel={t('clueReveal.endGameHost')}
+      cancelLabel={t('common.cancel')}
+      variant="destructive"
+      onConfirm={() => send({ type: 'END_GAME' })}
+    />
+    </Fragment>
   )
 }

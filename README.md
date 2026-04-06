@@ -1,231 +1,153 @@
-# Imposter (Discord Activity)
+<div align="center">
 
-Real-time “imposter” word game for [Discord Activities](https://discord.com/developers/docs/activities/overview): React + Vite client, [Partykit](https://partykit.io/) game server, Discord Embedded App SDK, and a small Cloudflare Worker for OAuth token exchange.
+# Imposter
 
-## Prerequisites
+**Real-time word imposter game** for [**Discord Activities**](https://discord.com/developers/docs/activities/overview) and the **open web** — React + Vite, [PartyKit](https://partykit.io/) multiplayer, Discord Embedded App SDK, Cloudflare Pages + Worker, optional Supabase profiles and stats.
 
-- Node.js **20+**
-- A [Discord application](https://discord.com/developers/applications) with **Activities** enabled
-- [Cloudflare](https://dash.cloudflare.com/) account (Pages + Workers)
-- [Partykit](https://partykit.io/) account (CLI login for deploy)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19-087EA4?logo=react&logoColor=white)](https://react.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Local development
+**[Documentation hub](./docs/README.md)** · **[Contributing](./CONTRIBUTING.md)** · **[Security](./SECURITY.md)** · **[Launch plan](./docs/LAUNCH_PLAN.md)**
 
-```bash
-npm install
-cd server && npm install && cd ..
-```
-
-Copy `.env.example` to `.env` and fill in values (see below).
-
-Terminal 1 — Partykit:
-
-```bash
-cd server && npm run dev
-```
-
-Terminal 2 — Vite (from repo root):
-
-```bash
-npm run dev
-```
-
-Outside Discord, the app detects a normal browser and uses a **dev user** stored in `sessionStorage` (display name + optional Supabase profile in the **web profile** header). **`VITE_DISCORD_MOCK=1` turns that header off** and pins a fixed “Local dev” user and `mock-room` — use only for Playwright/e2e or quick UI tests; remove it for normal local play with login/name controls.
-
-For Discord auth in dev, add `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` to `.env` so the Vite dev server can handle `POST /api/token`.
-
-## Environment variables
-
-| Variable | Where | Purpose |
-|----------|--------|---------|
-| `VITE_DISCORD_CLIENT_ID` | Client / Pages build | Discord application ID (public) |
-| `VITE_PARTYKIT_HOST` | Client / Pages build | Partykit host, e.g. `localhost:1999` or `your-project.yourname.partykit.dev` |
-| `VITE_DISCORD_TOKEN_URL` | Client / Pages build | Full URL of token Worker `POST` for **browser / PWA**. **Inside Discord Activity** the app always uses mapped **`/api/token`** (set URL mappings in the portal). |
-| `VITE_DISCORD_MOCK` | Optional | `1` = fixed mock user + room; **hides web profile** (name / sign-in). For e2e only. |
-| `DISCORD_CLIENT_ID` | Vite dev only | Same as app ID; used by dev token plugin |
-| `DISCORD_CLIENT_SECRET` | Vite dev only | **Never** expose as `VITE_*` |
-| `DISCORD_REDIRECT_URI` | Worker / dev | Only if Discord requires it for your OAuth setup |
-| `VITE_PLAUSIBLE_DOMAIN` | Optional | Enables [Plausible](https://plausible.io/) script + custom events (`AppOpen`, `LobbyJoin`, `RoundStart`, `ClueCycleStart`, `ClueReveal`, `VoteSkipMajority`, `VotingStart`, `VoteSubmit`, `RoundEnd`, `PartyError`, `JoinLobbyError`, `ClientError` incl. global handlers). Leave unset for no third-party analytics. |
-| `VITE_PLAUSIBLE_SCRIPT_URL` | Optional | Override Plausible script URL (self-hosted installs). |
-
-### Staging (non-production)
-
-Use a separate Pages project / Partykit host / Discord app so prod URL mappings stay stable. Copy [`.env.deploy.staging.example`](.env.deploy.staging.example) to **`.env.deploy.staging`** (gitignored) and deploy with:
-
-`DEPLOY_ENV_FILE=.env.deploy.staging node scripts/deploy.mjs all`
-
-Details: [docs/STAGING.md](docs/STAGING.md).
-
-### Discussion timer (server)
-
-During the **clue_write** phase, the Partykit room **re-broadcasts** full state about every **25 seconds** so clients refresh `clueEndsAt` after tab backgrounding or minor clock skew. The phase moves to **clue_reveal** when the timer fires or everyone has submitted.
-
-### Disconnect grace & spectators
-
-- When a player’s **last** WebSocket to a room closes, the server keeps their row for **45 seconds** so a refresh can **`JOIN`** again without losing the round.
-- If someone opens the room **mid-round** and wasn’t in the game yet, they join as a **spectator** (no secret word, no vote) until the host **starts the next round** or **returns to lobby**.
+</div>
 
 ---
 
-## Deployment (recommended order)
+## Why this stack?
 
-Do these once; then point Discord at your production URLs (or a tunnel while testing).
+| Layer | Choice | Role |
+|--------|--------|------|
+| **UI** | React 19, Vite 8, Tailwind v4, shadcn/ui | Fast client; works in Discord iframe and browser |
+| **Realtime** | PartyKit | Authoritative game room, WebSocket sync |
+| **Discord OAuth** | Cloudflare Worker | Token exchange; never ship client secrets to the browser |
+| **Hosting** | Cloudflare Pages | Static app + URL mappings for Activities |
+| **Accounts (web)** | Supabase (optional) | Anonymous / email / Discord link, round history, saved word lists |
 
-### 0. One-command deploy (from repo root)
-
-1. Copy [`.env.deploy.example`](.env.deploy.example) to **`.env.deploy`** (gitignored). Fill `CF_PAGES_PROJECT_NAME`, all `VITE_*` values for production, `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`, `JOIN_VERIFY`, and optional `PARTYKIT_DEPLOY_NAME` / `DISCORD_REDIRECT_URI`.
-2. Log in once: `npx wrangler login` and `cd server && npx partykit login`.
-3. Run **`npm run deploy`** (or `npm run deploy:all`). This script:
-   - Pushes **`DISCORD_CLIENT_ID`** and **`DISCORD_CLIENT_SECRET`** to the Worker (`wrangler secret put -c wrangler.worker.toml`, non-interactive), then **`wrangler deploy -c wrangler.worker.toml`**
-   - Deploys Partykit with **`JOIN_VERIFY`** from the file (`partykit deploy --var …`)
-   - Builds the Vite app with the same env merged in, then **`wrangler pages deploy dist`**
-
-Granular commands: **`npm run deploy:sync`** (Worker secrets only), **`npm run deploy:worker`**, **`npm run deploy:partykit`**, **`npm run deploy:pages`**.
-
-**Note:** `VITE_*` variables are **build-time** for the static client; they are applied when `deploy:pages` / `deploy` runs `npm run build`, not via `wrangler pages secret` (those secrets are for Pages Functions only).
-
-### 1. Discord Developer Portal
-
-1. Open your application → **OAuth2** → copy **Client ID** and create a **Client Secret** (store only in Worker secrets / local `.env`, not in git).
-2. Under **Activities**, enable the feature and note settings for URL mappings (next steps).
-3. For production, you will map:
-   - **Root** → your static app URL (e.g. Cloudflare Pages).
-   - **`/api/token`** (or your chosen path) → your token Worker URL (see step 2).
-4. Under **General Information** (or your app’s legal section), set **Terms of Service** and **Privacy Policy** to your deployed URLs: `https://<your-domain>/terms` and `https://<your-domain>/privacy` (see [docs/DISCORD_ACTIVITY_URLS.md](docs/DISCORD_ACTIVITY_URLS.md) for Interactions / Linked Roles fields and a full checklist).
-
-### 2. Cloudflare Worker (Discord token exchange + optional party JWT)
-
-Worker config is **`wrangler.worker.toml`**. Root **`wrangler.toml`** is Pages-only: it sets **`name`** (your Pages project) and **`pages_build_output_dir`** as required by Wrangler 4. Keep **`name`** in sync with **`CF_PAGES_PROJECT_NAME`** in `.env.deploy`.
-
-From the **repo root**:
-
-```bash
-npx wrangler deploy -c wrangler.worker.toml
+```mermaid
+flowchart LR
+  subgraph players [Players]
+    A[Discord Activity]
+    B[Web browser]
+  end
+  subgraph cf [Cloudflare]
+    Pages[Pages static app]
+    W[Worker /api/token]
+  end
+  PK[PartyKit game server]
+  A --> Pages
+  B --> Pages
+  Pages --> W
+  Pages --> PK
 ```
 
-Set secrets (prompts interactively):
+---
+
+## Quick start
+
+**Requirements:** Node **20+**, npm.
 
 ```bash
-npx wrangler secret put DISCORD_CLIENT_ID -c wrangler.worker.toml
-npx wrangler secret put DISCORD_CLIENT_SECRET -c wrangler.worker.toml
+git clone <your-fork-or-repo-url>.git
+cd imposter-game
+npm install && cd server && npm install && cd ..
+cp .env.example .env
+# Edit .env — see table below and .env.example comments
 ```
 
-Optional: `DISCORD_REDIRECT_URI` in the Worker dashboard if your OAuth flow needs it.
+| Terminal | Command |
+|----------|---------|
+| **1 — game server** | `npm run dev:party` |
+| **2 — client** | `npm run dev` |
 
-After deploy, Wrangler prints a URL such as `https://imposter-discord-oauth.<account>.workers.dev`. Your client must POST to:
+Open the URL Vite prints (usually `http://localhost:5173`). Outside Discord you get a **guest / web profile** flow; for Discord auth in dev, configure `DISCORD_CLIENT_ID` + `DISCORD_CLIENT_SECRET` in `.env` so `POST /api/token` works locally.
 
-`https://…workers.dev/api/token`
+**Playwright / CI:** `VITE_DISCORD_MOCK=1` pins a mock user and hides the web profile bar — use only for automated tests, not normal play.
 
-Set **`VITE_DISCORD_TOKEN_URL`** to that full URL in Cloudflare Pages (step 4), unless you proxy `/api/token` on the same origin as the app.
+---
 
-### 3. Partykit (game server)
+## Environment variables (essentials)
 
-```bash
-cd server
-npx partykit login   # first time only
-npm run deploy       # or: npx partykit deploy
-```
+Full reference lives in **[`.env.example`](./.env.example)**. These are the ones you touch first:
 
-Note the production host (e.g. `something.username.partykit.dev`). Set **`VITE_PARTYKIT_HOST`** in Pages to that host **without** a protocol (same format as local: `host:port` or hostname).
+| Variable | Scope | Purpose |
+|----------|--------|---------|
+| `VITE_DISCORD_CLIENT_ID` | Client build | Discord application ID |
+| `VITE_PARTYKIT_HOST` | Client build | PartyKit host, e.g. `localhost:1999` or `your-party.username.partykit.dev` |
+| `VITE_DISCORD_TOKEN_URL` | Client build | Worker URL for token exchange in **browser/PWA**; inside Discord the app uses mapped **`/api/token`** |
+| `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | Vite dev + Worker | Server-side OAuth (secret never `VITE_*`) |
+| `VITE_SUPABASE_URL` + anon/publishable key | Optional web | Cloud profile, history, saved lists — see migrations in `supabase/migrations/` |
 
-**Browser origins (optional):** In `.env.deploy`, set **`ALLOWED_WEB_ORIGINS`** to a comma-separated list of full origins for your live site (e.g. `https://imposter-game.site`). Leave empty to allow all origins. When non-empty, **`https://<CLIENT_ID>.discordsays.com`** is still allowed for Discord Activities unless you set **`ALLOW_DISCORD_ACTIVITY_ORIGINS=false`**. If you point local Vite at production Partykit with an allowlist enabled, add `http://127.0.0.1:5173` (and/or `http://localhost:5173`) to the list.
+**Production deploy** uses **`.env.deploy`** (from [`.env.deploy.example`](./.env.deploy.example)) and `npm run deploy` — exact order and portal steps are in **[`docs/LAUNCH_PLAN.md`](./docs/LAUNCH_PLAN.md)**.
 
-### 4. Cloudflare Pages (frontend)
-
-1. Connect this GitHub repo to **Cloudflare Pages**.
-2. **Build command:** `npm run build`
-3. **Build output directory:** `dist`
-4. **Root directory:** `/` (repository root)
-5. Add **environment variables** for production builds:
-   - `VITE_DISCORD_CLIENT_ID`
-   - `VITE_PARTYKIT_HOST` (Partykit production host)
-   - `VITE_DISCORD_TOKEN_URL` (Worker `/api/token` URL unless same-origin)
-
-Redeploy Pages when env vars change (they are baked in at build time).
-
-### 5. Discord URL mappings & testing
-
-1. In the Developer Portal, set **URL mappings** for your Activity to your **Pages** URL.
-2. Map **`/api/token`** to your Worker URL (or ensure `VITE_DISCORD_TOKEN_URL` matches what you expose).
-3. Join a voice channel, launch the Activity, and test with two accounts.
-
-For local testing through Discord, use **cloudflared** or **ngrok** on port `5173` and temporary URL mappings, as in your project plan.
+---
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Vite dev server |
-| `npm run dev:party` | Partykit dev (`server/`) |
-| `npm run build` | Production client build |
+| `npm run dev:party` | PartyKit dev (`server/`) |
+| `npm run build` | Production client build (`tsc` + Vite) |
 | `npm run lint` | ESLint |
-| `npm run deploy` / `deploy:all` | Worker secrets + deploy → Partykit → Pages build + deploy (uses `.env.deploy`) |
-| `npm run deploy:sync` | Push Worker secrets only from `.env.deploy` |
-| `npm run deploy:worker` | Sync secrets + `wrangler deploy -c wrangler.worker.toml` |
-| `npm run deploy:partykit` | `partykit deploy` with `JOIN_VERIFY` from `.env.deploy` |
-| `npm run deploy:pages` | Build with `.env.deploy` merged + `wrangler pages deploy` |
-| `npm run deploy:token-worker` | Same as `deploy:worker` |
-| `npm run assets:brand` | Regenerate `public/*.png` from `logo.svg` / `favicon.svg` (requires `sharp`) |
-| `npm run gen:sfx` | Regenerate `public/sounds/*.wav` for optional UI sounds |
-| `npm run test:e2e` | Playwright (smoke + i18n + mock game-flow). **Local:** run PartyKit on `127.0.0.1:1999` (`npm run dev:party`) before tests, or CI starts it for you. Preview build uses `VITE_DISCORD_MOCK=1`. |
+| `npm run test:e2e` | Playwright (start PartyKit on `127.0.0.1:1999` locally first) |
+| `npm run deploy` | Worker secrets + Partykit + Pages (uses `.env.deploy`) |
+| `npm run deploy:worker` / `deploy:partykit` / `deploy:pages` | Granular deploy steps |
+| `npm run assets:brand` | Regenerate PNGs from SVGs (`sharp`) |
+| `npm run gen:sfx` | Regenerate UI sound WAVs |
 
-## Security
+---
 
-- Do **not** commit `.env`, **`.env.deploy`**, or client secrets. Use `.env.example` and `.env.deploy.example` as templates only.
-- The Worker holds `DISCORD_CLIENT_SECRET`. The browser only ever sees `VITE_*` and the short-lived user token from Discord after exchange.
+## Documentation map
 
-### Optional: verify `JOIN` with Discord
+| Doc | Use when |
+|-----|----------|
+| [**docs/README.md**](docs/README.md) | Index of all guides |
+| [**docs/LAUNCH_PLAN.md**](docs/LAUNCH_PLAN.md) | Shipping to production (phases, Discord portal, verify) |
+| [**docs/STAGING.md**](docs/STAGING.md) | Staging env + `DEPLOY_ENV_FILE` |
+| [**docs/DISCORD_ACTIVITY_URLS.md**](docs/DISCORD_ACTIVITY_URLS.md) | URL mappings, legal URLs, checklist |
+| [**docs/SECURITY.md**](docs/SECURITY.md) | `JOIN` hardening, JWT mode, rate limits |
+| [**docs/POST_LAUNCH.md**](docs/POST_LAUNCH.md) | Post-deploy smoke checks |
 
-In `server/partykit.json`, set `"JOIN_VERIFY": "true"` under `vars` (or override in the Partykit dashboard when deployed). The client then sends `accessToken` on `JOIN`; the room checks `GET https://discord.com/api/v10/users/@me` matches `userId`. Turn this on for production if you want a basic guard against spoofed user IDs (still not as strong as your own signed session tokens).
+---
 
-### Sound effects (client)
+## Project layout
 
-- **Off by default.** Use the **Sound** control in the top bar to enable short cues (round start, vote confirm, reveal). Preference is stored in `localStorage` (`imposter_sfx_enabled`).
-- **Reduce motion:** when the OS prefers reduced motion, sounds and vote haptics do not run even if Sound is on.
-- **Regenerate WAVs:** `npm run gen:sfx` writes `public/sounds/*.wav` (sine blips; safe to replace with your own files at the same paths).
+```
+imposter-game/
+├── src/                 # React app (screens, hooks, i18n, components)
+├── server/              # PartyKit project (room logic, word packs)
+├── workers/             # Cloudflare Worker source (token / JWT)
+├── e2e/                 # Playwright tests
+├── scripts/             # deploy.mjs, release helpers, assets
+├── supabase/migrations/ # Optional SQL for web profiles / stats / lists
+├── docs/                # Runbooks and checklists
+└── public/              # Static assets, sounds, legal pages
+```
 
-### Optional: Party join JWT (R9)
+---
 
-When **`JOIN_JWT_REQUIRED=true`** on Partykit, clients must send a short-lived **`partyJwt`** on `JOIN` (no raw Discord `accessToken` to Partykit in that mode).
+## Security & privacy
 
-1. Set **`PARTYKIT_JWT_SECRET`** on the Worker (`wrangler secret put -c wrangler.worker.toml` — included in `npm run deploy:sync` / `deploy:worker` from `.env.deploy`).
-2. Set **`JOIN_JWT_SECRET`** to the **same value** in `.env.deploy` (passed to `partykit deploy --var`).
-3. Map **`/api/party-jwt`** to the **same Worker** as `/api/token` in Discord URL mappings.
-4. Build the client with **`VITE_USE_PARTY_JWT=true`** (or `1`) so it mints a JWT before each `JOIN`.
+- Never commit **`.env`**, **`.env.deploy`**, or Discord **client secrets**.
+- Prefer **`JOIN_VERIFY`** and/or **party JWT** for production rooms exposed on the public internet — see [**docs/SECURITY.md**](docs/SECURITY.md).
+- **Vulnerability reports:** [**SECURITY.md**](SECURITY.md) (private disclosure).
 
-### Optional: per-user round history (Supabase R8)
+---
 
-After **`003_player_rounds.sql`** (and optional **`005_player_rounds_reveal_reason.sql`** for outcome tags in history) is applied, users with a Supabase session get one row per round (after reveal). **`006_player_stats.sql`** adds aggregated **Your stats** (wins/losses by role), updated by a trigger on each `player_rounds` insert. **`007_player_rounds_enrichment.sql`** adds optional snapshot columns (host, player count, pack, clue settings, vote details, imposter name, room record). **`008_player_usage_events.sql`** adds an append-only **`player_usage_events`** table (RLS) for product analytics; the client records **`round_recorded`** after each successful round insert and **`lobby_joined`** when a player appears in room state. **`009_player_usage_views.sql`** adds **`v_player_usage_events_daily`** and **`v_player_usage_round_recorded_daily`** for SQL dashboards. The web profile shows **Game history** with expandable rows and **Load more** pagination; word pack ids map to localized labels. Guests are unchanged.
+## Contributing
 
-### i18n (R10)
+See [**CONTRIBUTING.md**](CONTRIBUTING.md) for local setup, checks, and PR expectations.
 
-Strings live in **`src/i18n/locales/en.json`**. Add locales by registering new resources in **`src/i18n/config.ts`**.
-
-### Word packs & optional profanity filter (Partykit)
-
-- **Packs:** Curated pairs live in `server/src/word-packs.ts`. The host picks a pack in the lobby (`wordPackId` in broadcast state). **Deploy** Partykit after changing packs or message handling.
-- **Client labels:** `src/data/word-pack-options.ts` — keep **`id` values identical** to server pack ids.
-- **`WORD_PROFANITY_FILTER`:** Set to `true` in `partykit.json` / deploy vars (see `.env.deploy.example`) to reject some custom pairs on `SET_NEXT_WORDS` (token list in `server/src/word-profanity.ts`). Default off; not a full moderation solution.
-
-## Website auth & optional Supabase
-
-When the app runs **outside** Discord (normal browser):
-
-1. **Default (guest):** stable `localStorage` user id + display name — no account, no Supabase calls until you opt in.
-2. **Optional cloud:** with Supabase configured, use **Save progress online** (anonymous auth), **email sign-up / sign-in**, or **Sign in with Discord** (OAuth via Supabase Auth) for a stable user id and `web_profiles` row. **Play as guest only** signs out of Supabase and returns to the local id.
-3. **Discord Activity** is unchanged (Embedded SDK + Worker token exchange).
-
-Env: `VITE_SUPABASE_URL` and a client key (`VITE_SUPABASE_ANON_KEY` or publishable keys). Enable **Anonymous sign-ins** for cloud backup; enable **Email** (and configure confirmation / redirect URLs if required); enable the **Discord** provider for web Discord login (set redirect URLs). Password reset links should redirect to your app origin (same as email confirmation); the client opens a **Set a new password** dialog when it detects a recovery session. Signed-in email users get **Account & security** in the web header (change password with current-password check, change email with Supabase confirmation flow, optional reset link to their address). Run `supabase/migrations/` SQL in order (`001`–`009` as needed): profiles, Discord link column, round history, saved word lists, optional **reveal_reason**, **player_stats**, enriched **player_rounds** snapshots, **player_usage_events**, and read-only views **`v_player_usage_events_daily`** / **`v_player_usage_round_recorded_daily`** for SQL dashboards (RLS still applies per user; service role sees all).
-
-Do **not** send Supabase JWTs as `accessToken` on `JOIN` — `JOIN_VERIFY` expects a **Discord** OAuth token only.
-
-Cursor agents: see `.cursor/rules/` for architecture and auth notes.
-
-## After deploy
-
-- **[docs/LAUNCH_PLAN.md](docs/LAUNCH_PLAN.md)** — step-by-step plan from now until launch (phases A–H, test matrix, commands), plus **product backlog** (lobby invites, multi-lobby UX, host transfer, polish).
-- [docs/POST_LAUNCH.md](docs/POST_LAUNCH.md) — shorter verification and follow-up checklist.
+---
 
 ## License
 
-Add a `LICENSE` file when you publish the repo (e.g. MIT), or keep the project private.
+[MIT](LICENSE) — see file for full text. If you fork for your own Discord app, update branding and legal pages under `public/` to match your product.
+
+---
+
+## Acknowledgements
+
+Built with [PartyKit](https://partykit.io/), [Discord Embedded App SDK](https://github.com/discord/embedded-app-sdk), [Cloudflare Workers & Pages](https://developers.cloudflare.com/), and [Supabase](https://supabase.com/) (optional).

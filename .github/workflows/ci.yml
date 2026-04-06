@@ -5,36 +5,61 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - name: Install & lint & build (client)
-        env:
-          VITE_DISCORD_CLIENT_ID: '0'
-          VITE_PARTYKIT_HOST: localhost:1999
-          VITE_DISCORD_TOKEN_URL: https://example.com/api/token
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+
+      - name: Install dependencies (client + server)
         run: |
           npm ci
+          npm ci --prefix server
+
+      - name: Lint & build client
+        env:
+          VITE_DISCORD_CLIENT_ID: '0'
+          VITE_PARTYKIT_HOST: 127.0.0.1:1999
+          VITE_DISCORD_TOKEN_URL: https://example.com/api/token
+        run: |
           npm run lint
           npm run build
-      - name: Install Playwright browser
+
+      - name: Typecheck Partykit server
+        working-directory: server
+        run: npx tsc --noEmit -p .
+
+      - name: Start PartyKit (e2e dependency)
+        run: |
+          npm run dev --prefix server &
+          npx wait-on tcp:127.0.0.1:1999 -t 120000
+
+      - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
-      - name: E2E smoke
+
+      - name: E2E tests
         env:
           CI: true
           VITE_DISCORD_CLIENT_ID: '0'
-          VITE_PARTYKIT_HOST: localhost:1999
+          VITE_DISCORD_MOCK: '1'
+          VITE_PARTYKIT_HOST: 127.0.0.1:1999
           VITE_DISCORD_TOKEN_URL: https://example.com/api/token
         run: npm run test:e2e
-      - name: Install & typecheck (Partykit server)
-        working-directory: server
-        run: |
-          npm ci
-          npx tsc --noEmit -p .

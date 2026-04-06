@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { Fragment, useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Avatar } from '../components/Avatar'
 import { GameScreen } from '../components/layout/GameScreen'
@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { WORD_PACK_OPTIONS } from '../data/word-pack-options'
 import { wordPackHint, wordPackLabel } from '@/lib/word-pack-i18n'
 import { buildWebInviteUrl, displayInviteCodeFromPartyRoomId } from '../lib/party-room'
+import { ConfirmModal } from '@/components/ConfirmModal'
 import { SavedWordListsPanel } from '@/components/SavedWordListsPanel'
 import { parseFirstPastedPair } from '../lib/paste-word-pairs'
 import { cn } from '@/lib/utils'
@@ -67,6 +68,7 @@ export default function Lobby({
   const [imposterWord, setImposterWord] = useState('')
   const [pasteText, setPasteText] = useState('')
   const [pasteHint, setPasteHint] = useState<string | null>(null)
+  const [newLobbyModalOpen, setNewLobbyModalOpen] = useState(false)
 
   const webShareCode = partyRoomId.startsWith('lobby-')
     ? displayInviteCodeFromPartyRoomId(partyRoomId)
@@ -99,6 +101,7 @@ export default function Lobby({
   }, [])
 
   return (
+    <Fragment>
     <GameScreen>
       <div className="flex flex-col items-center gap-4 sm:items-start">
         <img
@@ -185,12 +188,7 @@ export default function Lobby({
                         variant="ghost"
                         size="sm"
                         className="text-muted-foreground"
-                        onClick={() => {
-                          if (window.confirm(t('lobby.newLobbyConfirm'))) {
-                            setCustomCreateCode('')
-                            onCreateWebLobby()
-                          }
-                        }}
+                        onClick={() => setNewLobbyModalOpen(true)}
                       >
                         {t('lobby.newRandomLobbyButton')}
                       </Button>
@@ -272,12 +270,7 @@ export default function Lobby({
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        if (window.confirm(t('lobby.newLobbyConfirm'))) {
-                          setCustomCreateCode('')
-                          onCreateWebLobby()
-                        }
-                      }}
+                      onClick={() => setNewLobbyModalOpen(true)}
                     >
                       {t('lobby.newRandomLobbyButton')}
                     </Button>
@@ -718,5 +711,20 @@ export default function Lobby({
         </Card>
       </div>
     </GameScreen>
+    {onCreateWebLobby ? (
+      <ConfirmModal
+        open={newLobbyModalOpen}
+        onOpenChange={setNewLobbyModalOpen}
+        title={t('lobby.newLobbyModalTitle')}
+        description={t('lobby.newLobbyModalDesc')}
+        confirmLabel={t('lobby.newLobbyConfirmAction')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={() => {
+          setCustomCreateCode('')
+          onCreateWebLobby()
+        }}
+      />
+    ) : null}
+    </Fragment>
   )
 }

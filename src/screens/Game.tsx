@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Clock } from 'lucide-react'
 
+import { ConfirmModal } from '@/components/ConfirmModal'
 import { GameScreen } from '../components/layout/GameScreen'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -41,6 +42,7 @@ export default function Game({
   const [tabHidden, setTabHidden] = useState(
     () => typeof document !== 'undefined' && document.visibilityState === 'hidden'
   )
+  const [endGameModalOpen, setEndGameModalOpen] = useState(false)
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 500)
@@ -111,6 +113,7 @@ export default function Game({
   }
 
   return (
+    <Fragment>
     <GameScreen className="text-center">
       <div className="flex flex-col items-center gap-2">
         <Badge variant="secondary">{t('game.clueWrite')}</Badge>
@@ -236,9 +239,7 @@ export default function Game({
               type="button"
               variant="destructive"
               className="min-h-11 w-full sm:w-auto"
-              onClick={() => {
-                if (window.confirm(t('game.endGameConfirm'))) send({ type: 'END_GAME' })
-              }}
+              onClick={() => setEndGameModalOpen(true)}
             >
               {t('game.endGame')}
             </Button>
@@ -252,5 +253,16 @@ export default function Game({
         </p>
       ) : null}
     </GameScreen>
+    <ConfirmModal
+      open={endGameModalOpen}
+      onOpenChange={setEndGameModalOpen}
+      title={t('game.endGameModalTitle')}
+      description={t('game.endGameConfirm')}
+      confirmLabel={t('game.endGame')}
+      cancelLabel={t('common.cancel')}
+      variant="destructive"
+      onConfirm={() => send({ type: 'END_GAME' })}
+    />
+    </Fragment>
   )
 }

@@ -1,35 +1,52 @@
-# Runs on version tags: full lint, build, server tsc, and Playwright smoke.
-# Wire GitHub → Cloudflare deploy separately (Wrangler/Pages secrets) when ready.
+# Runs on version tags: lint, build, server tsc, Playwright (PartyKit started like CI).
+# Deploy to Cloudflare remains separate (Wrangler/Pages secrets on your account).
 name: Release verify
 
 on:
   push:
     tags: ['v*']
 
+concurrency:
+  group: release-verify-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - name: Client install, lint, build
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+
+      - name: Install dependencies (client + server)
+        run: |
+          npm ci
+          npm ci --prefix server
+
+      - name: Lint & build client
         env:
           VITE_DISCORD_CLIENT_ID: '0'
-          VITE_PARTYKIT_HOST: localhost:1999
+          VITE_PARTYKIT_HOST: 127.0.0.1:1999
           VITE_DISCORD_TOKEN_URL: https://example.com/api/token
         run: |
-          npm ci
           npm run lint
           npm run build
-      - name: Partykit server typecheck
+
+      - name: Typecheck Partykit server
         working-directory: server
-        run: |
-          npm ci
-          npx tsc --noEmit -p .
-      - name: Playwright
+        run: npx tsc --noEmit -p .
+
+      - name: Start PartyKit & Playwright
         env:
           CI: true
           VITE_DISCORD_CLIENT_ID: '0'
@@ -37,7 +54,6 @@ jobs:
           VITE_PARTYKIT_HOST: 127.0.0.1:1999
           VITE_DISCORD_TOKEN_URL: https://example.com/api/token
         run: |
-          npm ci --prefix server
           npm run dev --prefix server &
           npx wait-on tcp:127.0.0.1:1999 -t 120000
           npx playwright install --with-deps chromium

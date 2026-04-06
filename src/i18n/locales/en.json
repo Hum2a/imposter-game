@@ -31,6 +31,11 @@
   "states": {
     "quickFix": "Quick fix"
   },
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete"
+  },
   "theme": {
     "label": "Theme",
     "groupClassic": "Classic",
@@ -89,6 +94,7 @@
     "clueStrictHint": "This room uses strict clues: one word, letters only.",
     "callVote": "Call vote now",
     "endGame": "End game",
+    "endGameModalTitle": "End the match?",
     "endGameConfirm": "End the match and reset the room to lobby? Stats for this session stay in the scoreboard.",
     "tabHidden": "Tab in background — the timer still runs on the server. Come back before time runs out.",
     "tipTitle": "Tip: give clues that only someone who knows the real word would understand.",
@@ -110,6 +116,7 @@
     "waitHostVoting": "Waiting for the host to open voting.",
     "newPairNextCycleHint": "Fresh words (and maybe a new imposter) are drawn when the host starts the next clue round.",
     "endGameHost": "End match",
+    "endGameModalTitle": "End match?",
     "endGameConfirm": "Reset everyone to the lobby and clear the current round?"
   },
   "voting": {
@@ -226,7 +233,9 @@
     "copied": "Copied!",
     "copyCode": "Copy code",
     "newLobby": "New lobby",
-    "newLobbyConfirm": "Start a new lobby? You will leave this room and join an empty one.",
+    "newLobbyModalTitle": "Start a new lobby?",
+    "newLobbyModalDesc": "You will leave this room and join an empty one.",
+    "newLobbyConfirmAction": "Start new lobby",
     "friendsBlurb": "Friends can open this link or enter the code to join the same lobby.",
     "roomFormat": "Shareable codes use the lobby- format; open the site from a normal link to get one.",
     "joinAnother": "Join another lobby",
@@ -258,7 +267,8 @@
     "savedListsRandom": "Random pair from list",
     "savedListsToEditor": "Put list in paste box",
     "savedListsDelete": "Delete list",
-    "savedListsDeleteConfirm": "Delete this saved list from your account?",
+    "savedListsDeleteTitle": "Delete this saved list?",
+    "savedListsDeleteDesc": "It will be removed from your online account.",
     "savedListsSaveName": "Name for new list",
     "savedListsSaveNamePh": "e.g. Party night",
     "savedListsSaveFromBox": "Save pairs from paste box",
