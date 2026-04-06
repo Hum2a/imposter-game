@@ -30,7 +30,7 @@ Terminal 2 — Vite (from repo root):
 npm run dev
 ```
 
-Outside Discord, the app detects a normal browser and uses a **dev user** stored in `sessionStorage`. Set `VITE_DISCORD_MOCK=1` if you want a fixed mock user and room.
+Outside Discord, the app detects a normal browser and uses a **dev user** stored in `sessionStorage` (display name + optional Supabase profile in the **web profile** header). **`VITE_DISCORD_MOCK=1` turns that header off** and pins a fixed “Local dev” user and `mock-room` — use only for Playwright/e2e or quick UI tests; remove it for normal local play with login/name controls.
 
 For Discord auth in dev, add `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` to `.env` so the Vite dev server can handle `POST /api/token`.
 
@@ -41,7 +41,7 @@ For Discord auth in dev, add `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` to 
 | `VITE_DISCORD_CLIENT_ID` | Client / Pages build | Discord application ID (public) |
 | `VITE_PARTYKIT_HOST` | Client / Pages build | Partykit host, e.g. `localhost:1999` or `your-project.yourname.partykit.dev` |
 | `VITE_DISCORD_TOKEN_URL` | Client / Pages build | Full URL of token Worker `POST` for **browser / PWA**. **Inside Discord Activity** the app always uses mapped **`/api/token`** (set URL mappings in the portal). |
-| `VITE_DISCORD_MOCK` | Optional | Set to `1` to force mock user + room |
+| `VITE_DISCORD_MOCK` | Optional | `1` = fixed mock user + room; **hides web profile** (name / sign-in). For e2e only. |
 | `DISCORD_CLIENT_ID` | Vite dev only | Same as app ID; used by dev token plugin |
 | `DISCORD_CLIENT_SECRET` | Vite dev only | **Never** expose as `VITE_*` |
 | `DISCORD_REDIRECT_URI` | Worker / dev | Only if Discord requires it for your OAuth setup |

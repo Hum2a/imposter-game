@@ -31,6 +31,8 @@ function InlineCode({ children }: { children?: ReactNode }) {
   )
 }
 
+const DISCORD_MOCK_ENABLED = import.meta.env.VITE_DISCORD_MOCK === '1'
+
 export default function App() {
   const { t } = useTranslation()
   const partyJwtMode = usePartyJoinJwtEnabled()
@@ -254,6 +256,20 @@ export default function App() {
 
   const shell = (body: ReactNode, phase: Phase) => (
     <div className="flex min-h-svh flex-col bg-background text-foreground">
+      {DISCORD_MOCK_ENABLED && !isDiscordActivity ? (
+        <div
+          className="border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-950 dark:text-amber-100"
+          role="note"
+        >
+          <Trans
+            i18nKey="app.mockModeBanner"
+            components={{
+              code0: <InlineCode />,
+              code1: <InlineCode />,
+            }}
+          />
+        </div>
+      ) : null}
       {connection === 'closed' ? (
         <div
           className="border-b border-amber-500/40 bg-amber-500/15 px-4 py-2 text-center text-sm text-amber-950 dark:text-amber-100"

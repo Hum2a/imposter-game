@@ -10,7 +10,8 @@
     "joiningRoundDesc": "Si la partida ya empezó, verás como espectador hasta el próximo lobby o ronda.",
     "joiningRoom": "Entrando a la sala…",
     "gameServerNotConfigured": "Servidor del juego no configurado",
-    "gameServerNotConfiguredBody": "PartyKit debe estar en marcha y accesible para que los jugadores entren a la misma sala."
+    "gameServerNotConfiguredBody": "PartyKit debe estar en marcha y accesible para que los jugadores entren a la misma sala.",
+    "mockModeBanner": "Tienes <code0>VITE_DISCORD_MOCK=1</code0> — la barra de perfil web (nombre, inicio de sesión, nube) está desactivada y verás el jugador fijo «Local dev». Quita o desactiva esa variable en <code1>.env</code1> y reinicia el servidor de desarrollo."
   },
   "sfx": {
     "soundOn": "Sonido activado",
