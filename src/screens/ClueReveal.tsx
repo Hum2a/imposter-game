@@ -157,6 +157,18 @@ export default function ClueReveal({
         {isHost ? (
           <Button
             type="button"
+            variant="destructive"
+            className="min-h-11 w-full sm:w-auto"
+            onClick={() => {
+              if (window.confirm(t('clueReveal.endGameConfirm'))) send({ type: 'END_GAME' })
+            }}
+          >
+            {t('clueReveal.endGameHost')}
+          </Button>
+        ) : null}
+        {isHost ? (
+          <Button
+            type="button"
             className="min-h-11 w-full sm:w-auto"
             onClick={() => send({ type: 'CONTINUE_CLUE_REVEAL' })}
           >

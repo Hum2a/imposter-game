@@ -6,6 +6,7 @@ import App from './App.tsx'
 import { PrivacyPage } from './legal/PrivacyPage'
 import { TermsPage } from './legal/TermsPage'
 import { initAnalytics, trackEvent } from './lib/analytics'
+import { initTheme } from './lib/theme'
 
 function normalizePath(pathname: string) {
   const p = pathname.replace(/\/+$/, '') || '/'
@@ -45,12 +46,7 @@ if (typeof window !== 'undefined') {
   })
 }
 
-const darkMq = window.matchMedia('(prefers-color-scheme: dark)')
-function syncThemeClass() {
-  document.documentElement.classList.toggle('dark', darkMq.matches)
-}
-syncThemeClass()
-darkMq.addEventListener('change', syncThemeClass)
+initTheme()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

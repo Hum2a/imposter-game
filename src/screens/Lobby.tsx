@@ -490,7 +490,7 @@ export default function Lobby({
                 {t('lobby.gameRulesSection')}
               </p>
               <p className="text-sm text-muted-foreground">{t('lobby.gameRulesHelp')}</p>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="write-seconds">{t('lobby.writeSecondsLabel')}</Label>
                   <Input
@@ -524,6 +524,24 @@ export default function Lobby({
                       if (Number.isNaN(v)) return
                       onDismissPartyError?.()
                       send({ type: 'SET_GAME_SETTINGS', maxClueRounds: v })
+                    }}
+                  />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
+                  <Label htmlFor="vote-seconds">{t('lobby.voteSecondsLabel')}</Label>
+                  <Input
+                    id="vote-seconds"
+                    type="number"
+                    min={15}
+                    max={180}
+                    key={`vs-${gameState.gameSettings.voteSeconds}`}
+                    defaultValue={String(gameState.gameSettings.voteSeconds)}
+                    className="tabular-nums"
+                    onBlur={(e) => {
+                      const v = parseInt(e.target.value, 10)
+                      if (Number.isNaN(v)) return
+                      onDismissPartyError?.()
+                      send({ type: 'SET_GAME_SETTINGS', voteSeconds: v })
                     }}
                   />
                 </div>

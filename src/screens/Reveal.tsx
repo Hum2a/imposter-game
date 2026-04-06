@@ -163,16 +163,16 @@ export default function Reveal({ gameState, isHost, send, auth, partyRoomId }: R
           <CardDescription>{t('reveal.wordsDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          <div className="flex flex-col gap-1 rounded-lg border bg-muted/30 px-4 py-3">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="flex flex-col gap-1 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-4 py-3">
+            <span className="text-xs font-medium uppercase tracking-wide text-emerald-900/80 dark:text-emerald-100/80">
               {t('reveal.crewWord')}
             </span>
             <span className="text-lg font-semibold text-foreground">
               {gameState.word || '—'}
             </span>
           </div>
-          <div className="flex flex-col gap-1 rounded-lg border bg-muted/30 px-4 py-3">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="flex flex-col gap-1 rounded-lg border border-rose-500/25 bg-rose-500/10 px-4 py-3">
+            <span className="text-xs font-medium uppercase tracking-wide text-rose-900/80 dark:text-rose-100/80">
               {t('reveal.imposterWord')}
             </span>
             <span className="text-lg font-semibold text-foreground">
@@ -193,17 +193,24 @@ export default function Reveal({ gameState, isHost, send, auth, partyRoomId }: R
               const voter = gameState.players[voterId]
               const target =
                 targetId === VOTE_SKIP_VALUE ? null : gameState.players[targetId]
+              const skip = targetId === VOTE_SKIP_VALUE
+              const votedImposter = !skip && target?.isImposter === true
+              const borderClass = skip
+                ? 'border-l-amber-500/80 bg-amber-500/5'
+                : votedImposter
+                  ? 'border-l-emerald-500/80 bg-emerald-500/5'
+                  : 'border-l-primary/50 bg-primary/5'
               return (
                 <li
                   key={voterId}
-                  className="flex flex-wrap items-baseline gap-x-2 rounded-md border border-transparent px-2 py-1.5 transition-colors duration-150 motion-reduce:transition-none hover:bg-muted/40"
+                  className={`flex flex-wrap items-baseline gap-x-2 rounded-md border border-border/60 border-l-4 px-3 py-2 transition-colors duration-150 motion-reduce:transition-none ${borderClass}`}
                 >
                   <span className="font-medium text-foreground">
                     {voter?.name ?? voterId}
                   </span>
                   <span className="text-muted-foreground">→</span>
-                  <span>
-                    {targetId === VOTE_SKIP_VALUE
+                  <span className={skip ? 'font-medium text-amber-800 dark:text-amber-200' : ''}>
+                    {skip
                       ? t('voting.skipVote')
                       : (target?.name ?? targetId)}
                   </span>

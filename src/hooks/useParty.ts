@@ -12,6 +12,7 @@ const defaultStats = (): RoomStats => ({
 const defaultGameSettings = (): GameSettings => ({
   writeSeconds: 20,
   maxClueRounds: 5,
+  voteSeconds: 90,
 })
 
 function mergeGameSettings(raw: unknown): GameSettings {
@@ -20,11 +21,14 @@ function mergeGameSettings(raw: unknown): GameSettings {
   const g = raw as Record<string, unknown>
   const ws = g.writeSeconds
   const mr = g.maxClueRounds
+  const vs = g.voteSeconds
   return {
     writeSeconds:
       typeof ws === 'number' && Number.isFinite(ws) ? Math.min(120, Math.max(10, Math.round(ws))) : d.writeSeconds,
     maxClueRounds:
       typeof mr === 'number' && Number.isFinite(mr) ? Math.min(20, Math.max(1, Math.round(mr))) : d.maxClueRounds,
+    voteSeconds:
+      typeof vs === 'number' && Number.isFinite(vs) ? Math.min(180, Math.max(15, Math.round(vs))) : d.voteSeconds,
   }
 }
 
@@ -89,6 +93,8 @@ export function useParty(roomId: string | undefined, userId: string | undefined)
 
         const clueEndsAt =
           g.clueEndsAt === null || typeof g.clueEndsAt === 'number' ? g.clueEndsAt : null
+        const voteEndsAt =
+          g.voteEndsAt === null || typeof g.voteEndsAt === 'number' ? g.voteEndsAt : null
 
         setGameState({
           ...(g as GameState),
@@ -101,6 +107,7 @@ export function useParty(roomId: string | undefined, userId: string | undefined)
           gameSettings: mergeGameSettings(g.gameSettings),
           clueCycle: typeof g.clueCycle === 'number' && g.clueCycle >= 1 ? g.clueCycle : 1,
           clueEndsAt,
+          voteEndsAt,
           revealedClues:
             g.revealedClues && typeof g.revealedClues === 'object'
               ? (g.revealedClues as Record<string, string>)

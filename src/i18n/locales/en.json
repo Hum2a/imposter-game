@@ -29,6 +29,13 @@
   "states": {
     "quickFix": "Quick fix"
   },
+  "theme": {
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "cycleAria": "Color theme: {{current}}. Click to switch.",
+    "cycleTitle": "Theme: {{current}} — click to cycle system, light, dark"
+  },
   "sfx": {
     "soundOn": "Sound effects on",
     "soundOff": "Sound effects off",
@@ -58,13 +65,16 @@
     "imposterClueBlurb": "Submit a clue word that fits your word without giving it away.",
     "crewClueBlurb": "Submit a clue word that fits the crew word — the imposter is listening.",
     "submitClueTitle": "Your clue",
-    "submitClueDesc": "One word (1–40 characters). You can change it until time runs out or everyone submits.",
+    "submitClueDesc": "One word only — no spaces (1–40 characters). You can change it until time runs out or everyone submits.",
     "clueLabel": "Clue word",
     "cluePlaceholder": "e.g. crispy",
     "submitClue": "Submit clue",
     "clueSubmitted": "Submitted: “{{word}}”",
     "clueProfanity": "That clue was blocked by the word filter.",
-    "invalidClue": "Use 1–40 characters (after trimming).",
+    "invalidClue": "Use a single word — no spaces — 1–40 characters.",
+    "callVote": "Call vote now",
+    "endGame": "End game",
+    "endGameConfirm": "End the match and reset the room to lobby? Stats for this session stay in the scoreboard.",
     "tabHidden": "Tab in background — the timer still runs on the server. Come back before time runs out.",
     "tipTitle": "Tip: give clues that only someone who knows the real word would understand.",
     "timerSyncing": "Timer syncing…"
@@ -82,7 +92,9 @@
     "nextClueRound": "Next clue round",
     "continueToVoting": "Continue to voting",
     "waitHostNext": "Waiting for the host to start the next clue round.",
-    "waitHostVoting": "Waiting for the host to open voting."
+    "waitHostVoting": "Waiting for the host to open voting.",
+    "endGameHost": "End match",
+    "endGameConfirm": "Reset everyone to the lobby and clear the current round?"
   },
   "voting": {
     "voting": "Voting",
@@ -107,7 +119,9 @@
     "voteSubmitted": "Vote submitted",
     "confirmAriaVoted": "Vote already submitted",
     "confirmAriaSelect": "Confirm vote — select a player first",
-    "confirmAriaFor": "Confirm vote for {{name}}"
+    "confirmAriaFor": "Confirm vote for {{name}}",
+    "timeLeft": "Time left to vote",
+    "timeExpired": "Time’s up — anyone who didn’t vote is counted as skip"
   },
   "reveal": {
     "spectatorNote": "You joined as a spectator this round — you’ll play normally after the next lobby or round start.",
@@ -161,6 +175,7 @@
     "gameRulesHelp": "Same word pair for the whole game until the next round. Clue timer and how many clue rounds before the host can move to voting.",
     "writeSecondsLabel": "Seconds to write a clue",
     "maxClueRoundsLabel": "Clue rounds before voting",
+    "voteSecondsLabel": "Seconds to vote (then auto-skip)",
     "wordPackSection": "Word pack",
     "wordPackHelp": "Choose a theme for random rounds, roll one pair from the pack, or type / paste your own. Custom pairs stay secret until the round starts.",
     "packForRandom": "Pack for random",
@@ -229,6 +244,8 @@
   },
   "profile": {
     "title": "Profile",
+    "showPanel": "Account & profile",
+    "minimizePanel": "Minimize profile bar",
     "webPlay": "Web play",
     "guest": "Guest",
     "onlineBackup": "Online backup",

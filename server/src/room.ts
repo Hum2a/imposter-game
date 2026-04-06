@@ -19,6 +19,7 @@ interface RoomStats {
 interface GameSettings {
   writeSeconds: number
   maxClueRounds: number
+  voteSeconds: number
 }
 
 type RevealReason = 'wrong_accusation' | 'caught_imposter' | null
@@ -59,6 +60,7 @@ interface GameState {
   revealReason: RevealReason
   /** Increments each time voting starts (skip return or call vote); clients can key UI. */
   voteSession: number
+  voteEndsAt: number | null
 }
 
 const STORAGE_STATS = 'imposter:stats:v1'
@@ -72,6 +74,9 @@ const MIN_WRITE_SECONDS = 10
 const MAX_WRITE_SECONDS = 120
 const MIN_CLUE_ROUNDS = 1
 const MAX_CLUE_ROUNDS = 20
+const DEFAULT_VOTE_SECONDS = 90
+const MIN_VOTE_SECONDS = 15
+const MAX_VOTE_SECONDS = 180
 
 /** Re-broadcast during clue_write so clients resync `clueEndsAt` after tab sleep / skew. */
 const CLUE_RESYNC_MS = 25_000
@@ -84,7 +89,11 @@ function defaultStats(): RoomStats {
 }
 
 function defaultGameSettings(): GameSettings {
-  return { writeSeconds: DEFAULT_WRITE_SECONDS, maxClueRounds: DEFAULT_MAX_CLUE_ROUNDS }
+  return {
+    writeSeconds: DEFAULT_WRITE_SECONDS,
+    maxClueRounds: DEFAULT_MAX_CLUE_ROUNDS,
+    voteSeconds: DEFAULT_VOTE_SECONDS,
+  }
 }
 
 function joinVerifyEnabled(env: Record<string, unknown>): boolean {
@@ -133,6 +142,7 @@ function normalizeWordPair(
 function normalizeClueText(raw: string): string | null {
   const t = raw.trim().slice(0, WORD_MAX_LEN)
   if (t.length < WORD_MIN_LEN) return null
+  if (/\s/.test(t)) return null
   return t
 }
 
@@ -157,6 +167,7 @@ export default class ImposterRoom implements Party.Server {
   private readonly connToUser = new Map<string, string>()
   private clueTimer: ReturnType<typeof setTimeout> | null = null
   private clueResync: ReturnType<typeof setInterval> | null = null
+  private voteEndTimer: ReturnType<typeof setTimeout> | null = null
   private nextCustomPair: NextRoundWords | null = null
   private readonly disconnectGrace = new Map<string, ReturnType<typeof setTimeout>>()
   /** Server-only during clue_write; copied to `revealedClues` on reveal. */
@@ -207,6 +218,14 @@ export default class ImposterRoom implements Party.Server {
       suspicion: {},
       revealReason: null,
       voteSession: 0,
+      voteEndsAt: null,
+    }
+  }
+
+  private clearVoteScheduling() {
+    if (this.voteEndTimer) {
+      clearTimeout(this.voteEndTimer)
+      this.voteEndTimer = null
     }
   }
 
@@ -271,8 +290,43 @@ export default class ImposterRoom implements Party.Server {
     this.state.phase = 'clue_reveal'
   }
 
+  private scheduleVoteEnd() {
+    if (this.voteEndTimer) {
+      clearTimeout(this.voteEndTimer)
+      this.voteEndTimer = null
+    }
+    const ends = this.state.voteEndsAt
+    if (!ends || this.state.phase !== 'voting') return
+    const ms = ends - Date.now()
+    if (ms <= 0) {
+      this.applyVoteDeadline()
+      return
+    }
+    this.voteEndTimer = setTimeout(() => {
+      this.voteEndTimer = null
+      this.applyVoteDeadline()
+    }, ms)
+  }
+
+  /** Auto–skip vote for anyone who has not voted when the deadline hits. */
+  private applyVoteDeadline() {
+    if (this.state.phase !== 'voting') return
+    const voters = Object.values(this.state.players).filter((p) => !p.isSpectator)
+    for (const p of voters) {
+      if (!p.hasVoted) {
+        this.state.votes[p.id] = VOTE_SKIP
+        p.hasVoted = true
+        p.votedFor = VOTE_SKIP
+      }
+    }
+    this.state.voteEndsAt = null
+    this.clearVoteScheduling()
+    this.tryCompleteVotingIfReady()
+  }
+
   private startVotingPhase() {
     this.clearClueScheduling()
+    this.clearVoteScheduling()
     for (const p of Object.values(this.state.players)) {
       p.hasVoted = false
       p.votedFor = null
@@ -280,10 +334,20 @@ export default class ImposterRoom implements Party.Server {
     this.state.votes = {}
     this.state.voteSession += 1
     this.state.phase = 'voting'
+    const vs = this.state.gameSettings.voteSeconds
+    const sec =
+      typeof vs === 'number' && Number.isFinite(vs)
+        ? Math.min(MAX_VOTE_SECONDS, Math.max(MIN_VOTE_SECONDS, Math.round(vs)))
+        : DEFAULT_VOTE_SECONDS
+    this.state.voteEndsAt = Date.now() + sec * 1000
+    this.broadcast()
+    this.scheduleVoteEnd()
   }
 
   /** Majority skip: skipCount * 2 > n (strict majority of eligible voters). */
   private enterClueWriteAfterSkip() {
+    this.clearVoteScheduling()
+    this.state.voteEndsAt = null
     this.clearClueScheduling()
     for (const p of Object.values(this.state.players)) {
       p.hasVoted = false
@@ -472,25 +536,38 @@ export default class ImposterRoom implements Party.Server {
           this.broadcast()
         }
         break
-      case 'SET_GAME_SETTINGS':
+      case 'SET_GAME_SETTINGS': {
+        const settings = msg as {
+          writeSeconds?: number
+          maxClueRounds?: number
+          voteSeconds?: number
+        }
         if (this.userForConn(sender) === this.state.hostId && this.state.phase === 'lobby') {
-          if (typeof msg.writeSeconds === 'number' && Number.isFinite(msg.writeSeconds)) {
-            const w = Math.round(msg.writeSeconds)
+          if (typeof settings.writeSeconds === 'number' && Number.isFinite(settings.writeSeconds)) {
+            const w = Math.round(settings.writeSeconds)
             this.state.gameSettings.writeSeconds = Math.min(
               MAX_WRITE_SECONDS,
               Math.max(MIN_WRITE_SECONDS, w)
             )
           }
-          if (typeof msg.maxClueRounds === 'number' && Number.isFinite(msg.maxClueRounds)) {
-            const m = Math.round(msg.maxClueRounds)
+          if (typeof settings.maxClueRounds === 'number' && Number.isFinite(settings.maxClueRounds)) {
+            const m = Math.round(settings.maxClueRounds)
             this.state.gameSettings.maxClueRounds = Math.min(
               MAX_CLUE_ROUNDS,
               Math.max(MIN_CLUE_ROUNDS, m)
             )
           }
+          if (typeof settings.voteSeconds === 'number' && Number.isFinite(settings.voteSeconds)) {
+            const v = Math.round(settings.voteSeconds)
+            this.state.gameSettings.voteSeconds = Math.min(
+              MAX_VOTE_SECONDS,
+              Math.max(MIN_VOTE_SECONDS, v)
+            )
+          }
           this.broadcast()
         }
         break
+      }
       case 'SUBMIT_CLUE': {
         const uid = this.userForConn(sender)
         if (!uid || typeof msg.text !== 'string') break
@@ -563,7 +640,6 @@ export default class ImposterRoom implements Party.Server {
         if (!pl || pl.isSpectator) break
         if (this.state.phase !== 'clue_write' && this.state.phase !== 'clue_reveal') break
         this.startVotingPhase()
-        this.broadcast()
         break
       }
     }
@@ -724,6 +800,8 @@ export default class ImposterRoom implements Party.Server {
     const ids = Object.keys(this.state.players)
     if (ids.length === 0) return
 
+    this.clearVoteScheduling()
+    this.state.voteEndsAt = null
     this.clearClueScheduling()
 
     const imposterId = ids[Math.floor(Math.random() * ids.length)]!
@@ -795,6 +873,8 @@ export default class ImposterRoom implements Party.Server {
   }
 
   resolveVotes() {
+    this.clearVoteScheduling()
+    this.state.voteEndsAt = null
     const voters = Object.values(this.state.players).filter((p) => !p.isSpectator)
     const n = voters.length
     if (n === 0) {
@@ -853,6 +933,8 @@ export default class ImposterRoom implements Party.Server {
   }
 
   backToLobby() {
+    this.clearVoteScheduling()
+    this.state.voteEndsAt = null
     this.clearClueScheduling()
     this.privateClues = {}
     for (const p of Object.values(this.state.players)) {
@@ -876,6 +958,7 @@ export default class ImposterRoom implements Party.Server {
   }
 
   endGame() {
+    this.clearVoteScheduling()
     this.clearClueScheduling()
     this.clearAllDisconnectGrace()
     this.nextCustomPair = null

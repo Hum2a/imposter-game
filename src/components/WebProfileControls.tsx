@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LogIn, LogOut, User, Users } from 'lucide-react'
+import { ChevronDown, ChevronUp, LogIn, LogOut, User, Users } from 'lucide-react'
+
+import type { Phase } from '@/types/game'
 
 import { WebAccountSettingsSection } from '@/components/WebAccountSettingsSection'
 import { WebGameHistoryCard } from '@/components/WebGameHistoryCard'
@@ -38,6 +40,8 @@ type WebProfileControlsProps = {
   hasEmailPasswordProvider: boolean
   onChangePassword: (currentPassword: string, newPassword: string) => void | Promise<void>
   onRequestEmailChange: (newEmail: string) => void | Promise<void>
+  /** When not lobby, the profile chrome starts minimized so play UI has space. */
+  gamePhase?: Phase
 }
 
 function identityLabelKey(mode: WebIdentityMode): string {
@@ -77,8 +81,13 @@ export function WebProfileControls({
   hasEmailPasswordProvider,
   onChangePassword,
   onRequestEmailChange,
+  gamePhase,
 }: WebProfileControlsProps) {
   const { t } = useTranslation()
+  const inPlay = gamePhase !== undefined && gamePhase !== 'lobby'
+  const [panelOpen, setPanelOpen] = useState(
+    () => gamePhase === undefined || gamePhase === 'lobby'
+  )
   const [draft, setDraft] = useState(displayName)
   const [playerStats, setPlayerStats] = useState<PlayerStatsSnapshot | null>(null)
   const [emailMode, setEmailMode] = useState<'signIn' | 'signUp'>('signIn')
@@ -89,6 +98,11 @@ export function WebProfileControls({
   useEffect(() => {
     setDraft(displayName)
   }, [displayName])
+
+  useEffect(() => {
+    if (gamePhase === 'lobby') setPanelOpen(true)
+    else if (gamePhase !== undefined) setPanelOpen(false)
+  }, [gamePhase])
 
   const isGuest = identityMode === 'guest'
 
@@ -140,8 +154,42 @@ export function WebProfileControls({
     void onResetEmailPassword(email)
   }
 
+  if (inPlay && !panelOpen) {
+    return (
+      <header className="sticky top-0 z-20 border-b border-border/80 bg-card/95 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-2">
+          <span className="min-w-0 truncate text-sm font-medium text-foreground">{displayName}</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9 shrink-0 gap-1.5"
+            onClick={() => setPanelOpen(true)}
+          >
+            <ChevronDown className="size-4" aria-hidden />
+            {t('profile.showPanel')}
+          </Button>
+        </div>
+      </header>
+    )
+  }
+
   return (
-    <header className="border-b bg-card/90 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm">
+    <header className="relative border-b bg-card/90 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm">
+      {inPlay ? (
+        <div className="mx-auto flex max-w-4xl justify-end px-4 pt-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1 text-muted-foreground"
+            onClick={() => setPanelOpen(false)}
+          >
+            <ChevronUp className="size-4" aria-hidden />
+            {t('profile.minimizePanel')}
+          </Button>
+        </div>
+      ) : null}
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-4">
         {profileInfoKey ? (
           <Alert className="relative border-emerald-600/35 bg-emerald-500/10 text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-950/25 dark:text-emerald-50">

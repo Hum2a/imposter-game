@@ -14,6 +14,8 @@ export interface GameSettings {
   writeSeconds: number
   /** Clue write → reveal cycles before host Continue can force voting (last cycle). */
   maxClueRounds: number
+  /** Seconds before non-voters auto-submit skip (voting phase). */
+  voteSeconds: number
 }
 
 export type RevealReason = 'wrong_accusation' | 'caught_imposter' | null
@@ -42,6 +44,8 @@ export interface GameState {
   winner: 'crew' | 'imposter' | null
   /** Server deadline for clue submissions (clue_write only). */
   clueEndsAt: number | null
+  /** Server deadline for casting votes (voting only); absent voters auto-skip. */
+  voteEndsAt: number | null
   stats: RoomStats
   /** True when the host locked in a custom word pair for the next start (words are not broadcast). */
   hasCustomNextRound: boolean
@@ -92,7 +96,7 @@ export type ClientMessage =
   /** Host only, lobby — pick a random pair from the current pack as next custom words. */
   | { type: 'ROLL_PACK_PAIR' }
   /** Host only, lobby — clue timer length and cycles before final Continue → voting. */
-  | { type: 'SET_GAME_SETTINGS'; writeSeconds?: number; maxClueRounds?: number }
+  | { type: 'SET_GAME_SETTINGS'; writeSeconds?: number; maxClueRounds?: number; voteSeconds?: number }
   /** Non-spectator, clue_write — one submission per cycle (overwrite until deadline). */
   | { type: 'SUBMIT_CLUE'; text: string }
   /** Non-spectator, clue_reveal — increment suspicion on someone else’s clue. */

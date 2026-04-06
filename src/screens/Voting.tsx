@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, CircleDot } from 'lucide-react'
+import { Check, CircleDot, Clock } from 'lucide-react'
 
 import { Avatar } from '../components/Avatar'
 import { GameScreen } from '../components/layout/GameScreen'
@@ -24,19 +24,29 @@ import { trackEvent } from '../lib/analytics'
 
 type VotingProps = AuthUserProps & {
   me: Player
+  isHost: boolean
   send: (msg: ClientMessage) => void
 }
 
 type Selection = 'skip' | string
 
-export default function Voting({ gameState, me, send }: VotingProps) {
+export default function Voting({ gameState, me, isHost, send }: VotingProps) {
   const { t } = useTranslation()
   const { play } = useSfx()
+  const [now, setNow] = useState(() => Date.now())
   const [selected, setSelected] = useState<Selection | null>(null)
   const players = Object.values(gameState.players)
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 500)
+    return () => window.clearInterval(id)
+  }, [])
   const isSpectator = me.isSpectator === true
   const votingPlayers = players.filter((p) => !p.isSpectator)
   const votedCount = votingPlayers.filter((p) => p.hasVoted).length
+  const voteEnds = gameState.voteEndsAt
+  const voteRemaining =
+    voteEnds != null ? Math.max(0, Math.ceil((voteEnds - now) / 1000)) : null
 
   const confirm = () => {
     if (!selected || me.hasVoted || isSpectator) return
@@ -64,6 +74,12 @@ export default function Voting({ gameState, me, send }: VotingProps) {
             <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
               <Badge variant="secondary">{t('voting.voting')}</Badge>
               <Badge variant="outline">{t('voting.spectator')}</Badge>
+              {voteRemaining != null ? (
+                <Badge variant="outline" className="gap-1.5 font-mono tabular-nums">
+                  <Clock className="size-3.5" aria-hidden />
+                  {t('voting.timeLeft')} {voteRemaining}s
+                </Badge>
+              ) : null}
             </div>
             <CardTitle className="text-2xl">{t('voting.watchingTitle')}</CardTitle>
             <CardDescription>{t('voting.watchingDesc')}</CardDescription>
@@ -93,6 +109,16 @@ export default function Voting({ gameState, me, send }: VotingProps) {
             <Badge variant="outline" className="tabular-nums">
               {t('voting.countVoted', { count: votedCount, total: votingPlayers.length })}
             </Badge>
+            {voteRemaining != null ? (
+              <Badge
+                variant="outline"
+                className="gap-1.5 font-mono tabular-nums"
+                aria-live="polite"
+              >
+                <Clock className="size-3.5" aria-hidden />
+                {t('voting.timeLeft')} {voteRemaining}s
+              </Badge>
+            ) : null}
           </div>
           <CardTitle id="voting-heading" className="text-2xl">
             {t('voting.whoImposter')}
@@ -100,6 +126,7 @@ export default function Voting({ gameState, me, send }: VotingProps) {
           <CardDescription>
             {t('voting.instructionsV2')}
             {me.hasVoted ? t('voting.voteLocked') : ''}
+            {voteRemaining === 0 && !me.hasVoted ? ` ${t('voting.timeExpired')}` : ''}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -190,6 +217,18 @@ export default function Voting({ gameState, me, send }: VotingProps) {
               </li>
             ))}
           </ul>
+          {isHost ? (
+            <Button
+              type="button"
+              variant="destructive"
+              className="min-h-11 w-full sm:max-w-xs sm:self-center"
+              onClick={() => {
+                if (window.confirm(t('clueReveal.endGameConfirm'))) send({ type: 'END_GAME' })
+              }}
+            >
+              {t('clueReveal.endGameHost')}
+            </Button>
+          ) : null}
         </CardFooter>
       </Card>
     </GameScreen>

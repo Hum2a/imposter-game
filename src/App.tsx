@@ -15,6 +15,7 @@ import { useParty } from './hooks/useParty'
 import { useRecordLobbyJoin } from './hooks/useRecordLobbyJoin'
 import { fetchPartyJoinJwt, usePartyJoinJwtEnabled } from './lib/party-jwt-mint'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
+import { ThemeToggle } from './components/ThemeToggle'
 import { PhaseSfxListener, SfxProvider, SfxToggle } from './sfx'
 import Lobby from './screens/Lobby'
 import Game from './screens/Game'
@@ -282,6 +283,7 @@ export default function App() {
       <SfxProvider>
         <PhaseSfxListener phase={phase} />
         <div className="flex justify-end items-center gap-3 border-b border-border/60 px-2 sm:px-4">
+          <ThemeToggle />
           <LanguageSwitcher />
           <SfxToggle />
         </div>
@@ -315,6 +317,7 @@ export default function App() {
               hasEmailPasswordProvider={webHasEmailPasswordProvider}
               onChangePassword={changePasswordOnWeb}
               onRequestEmailChange={requestEmailChangeOnWeb}
+              gamePhase={phase}
             />
           </>
         ) : null}

@@ -20,6 +20,7 @@ import type { AuthUserProps } from './types'
 
 type GameProps = AuthUserProps & {
   me: Player
+  isHost: boolean
   send: (msg: ClientMessage) => void
   partyErrorCode?: string | null
   onDismissPartyError?: () => void
@@ -28,6 +29,7 @@ type GameProps = AuthUserProps & {
 export default function Game({
   gameState,
   me,
+  isHost,
   send,
   partyErrorCode,
   onDismissPartyError,
@@ -56,6 +58,16 @@ export default function Game({
   const remaining =
     ends != null ? Math.max(0, Math.ceil((ends - now) / 1000)) : null
   const submitted = gameState.cluesSubmitted?.[me.id] === true
+  const setClueDraft = (raw: string) => {
+    setDraft(raw.replace(/\s/g, '').slice(0, 40))
+  }
+
+  const submitClue = () => {
+    if (submitted || draft.trim().length < 1) return
+    onDismissPartyError?.()
+    send({ type: 'SUBMIT_CLUE', text: draft })
+  }
+
   const partyErr = (() => {
     switch (partyErrorCode) {
       case 'CLUE_PROFANITY':
@@ -74,7 +86,7 @@ export default function Game({
           <Badge variant="secondary">{t('game.clueWrite')}</Badge>
           <Badge variant="outline">{t('game.spectator')}</Badge>
         </div>
-        <Card className="transition-[box-shadow,transform] duration-200 motion-reduce:transition-none">
+        <Card>
           <CardHeader>
             <CardTitle className="text-xl sm:text-2xl">{t('game.watchingTitle')}</CardTitle>
             <CardDescription className="text-base">{t('game.watchingClueDesc')}</CardDescription>
@@ -140,7 +152,7 @@ export default function Game({
         </Alert>
       ) : null}
 
-      <Card className="overflow-hidden border-primary/25 bg-gradient-to-b from-card to-primary/5 shadow-md transition-[box-shadow,transform] duration-200 motion-reduce:transition-none">
+      <Card className="overflow-hidden border-primary/25 bg-gradient-to-b from-card to-primary/5 shadow-md motion-safe:animate-in motion-safe:zoom-in-95 motion-safe:duration-300 motion-reduce:animate-none">
         <CardHeader>
           <CardTitle className="text-2xl sm:text-3xl">
             {me.isImposter ? t('game.yourWordImposter') : t('game.yourWord')}
@@ -156,7 +168,7 @@ export default function Game({
         </CardContent>
       </Card>
 
-      <Card className="text-left transition-shadow duration-200 motion-reduce:transition-none">
+      <Card className="text-left">
         <CardHeader>
           <CardTitle className="text-lg">{t('game.submitClueTitle')}</CardTitle>
           <CardDescription>{t('game.submitClueDesc')}</CardDescription>
@@ -173,22 +185,25 @@ export default function Game({
                 <Input
                   id="clue-input"
                   value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => setClueDraft(e.target.value)}
                   maxLength={40}
                   placeholder={t('game.cluePlaceholder')}
                   autoComplete="off"
                   disabled={submitted}
                   aria-label={t('game.clueLabel')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      submitClue()
+                    }
+                  }}
                 />
               </div>
               <Button
                 type="button"
                 className="min-h-11 w-full sm:self-center sm:max-w-xs"
                 disabled={submitted || draft.trim().length < 1}
-                onClick={() => {
-                  onDismissPartyError?.()
-                  send({ type: 'SUBMIT_CLUE', text: draft })
-                }}
+                onClick={submitClue}
               >
                 {t('game.submitClue')}
               </Button>
@@ -196,6 +211,31 @@ export default function Game({
           )}
         </CardContent>
       </Card>
+
+      {!isSpectator ? (
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-center">
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11 w-full sm:w-auto"
+            onClick={() => send({ type: 'CALL_VOTE' })}
+          >
+            {t('game.callVote')}
+          </Button>
+          {isHost ? (
+            <Button
+              type="button"
+              variant="destructive"
+              className="min-h-11 w-full sm:w-auto"
+              onClick={() => {
+                if (window.confirm(t('game.endGameConfirm'))) send({ type: 'END_GAME' })
+              }}
+            >
+              {t('game.endGame')}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
 
       {tabHidden ? (
         <p className="text-center text-xs text-amber-700 dark:text-amber-400" role="status">
