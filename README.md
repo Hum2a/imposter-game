@@ -91,6 +91,7 @@ Granular commands: **`npm run deploy:sync`** (Worker secrets only), **`npm run d
 3. For production, you will map:
    - **Root** → your static app URL (e.g. Cloudflare Pages).
    - **`/api/token`** (or your chosen path) → your token Worker URL (see step 2).
+4. Under **General Information** (or your app’s legal section), set **Terms of Service** and **Privacy Policy** to your deployed URLs: `https://<your-domain>/terms` and `https://<your-domain>/privacy` (see [docs/DISCORD_ACTIVITY_URLS.md](docs/DISCORD_ACTIVITY_URLS.md) for Interactions / Linked Roles fields and a full checklist).
 
 ### 2. Cloudflare Worker (Discord token exchange + optional party JWT)
 
