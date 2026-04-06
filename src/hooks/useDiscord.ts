@@ -16,6 +16,7 @@ import {
   tryCreateWebPartyRoomWithCode,
   disableWebCloudProfile,
   enableWebCloudProfile,
+  discordCompactAvatarFromSupabaseUser,
   initWebSession,
   makeWebAuthSession,
   readWebDisplayName,
@@ -30,7 +31,7 @@ import {
   writeWebDisplayName,
   type WebIdentityMode,
 } from '../lib/web-session'
-import { writeWebAvatarPresetId } from '../lib/web-avatar'
+import { writeWebAvatarPresetId, writeWebAvatarSource } from '../lib/web-avatar'
 import { webAvatarTokenFromPresetId } from '@/data/avatar-presets'
 import type { DiscordAuthSession } from '../types/discord-auth'
 
@@ -147,6 +148,7 @@ export function useDiscord() {
 
   const setWebAvatarPreset = useCallback((presetId: string) => {
     if (!webModeRef.current) return
+    writeWebAvatarSource('preset')
     writeWebAvatarPresetId(presetId)
     const token = webAvatarTokenFromPresetId(presetId)
     setAuth((prev) => {
@@ -154,6 +156,29 @@ export function useDiscord() {
       return makeWebAuthSession(prev.user.id, readWebDisplayName(), prev.access_token, token)
     })
   }, [])
+
+  const setWebDiscordProfileAvatar = useCallback(async () => {
+    if (!webModeRef.current) return
+    setWebProfileError(null)
+    const supabase = getSupabase()
+    if (!supabase) {
+      setWebProfileError(t('profile.discordAvatarUnavailable'))
+      return
+    }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    const token = user ? discordCompactAvatarFromSupabaseUser(user) : null
+    if (!token) {
+      setWebProfileError(t('profile.discordAvatarUnavailable'))
+      return
+    }
+    writeWebAvatarSource('provider')
+    setAuth((prev) => {
+      if (!prev) return prev
+      return makeWebAuthSession(prev.user.id, readWebDisplayName(), prev.access_token, token)
+    })
+  }, [t])
 
   const enableWebCloud = useCallback(async () => {
     setWebAuthBusy(true)
@@ -509,6 +534,8 @@ export function useDiscord() {
       ? auth.user.avatar.slice(2)
       : null
 
+  const usesDiscordProfileAvatar = auth?.user?.avatar?.startsWith('d:') === true
+
   return {
     auth,
     participants,
@@ -525,7 +552,9 @@ export function useDiscord() {
     clearWebProfileInfo,
     setWebDisplayName,
     setWebAvatarPreset,
+    setWebDiscordProfileAvatar,
     webAvatarPresetId,
+    usesDiscordProfileAvatar,
     enableWebCloud,
     disableWebCloud,
     signInDiscordOnWeb,

@@ -1,6 +1,27 @@
 import { AVATAR_PRESETS, DEFAULT_AVATAR_PRESET_ID, webAvatarTokenFromPresetId } from '@/data/avatar-presets'
 
 const STORAGE_KEY = 'imposter-web-avatar-preset'
+const SOURCE_KEY = 'imposter-web-avatar-source'
+
+export type WebAvatarSource = 'preset' | 'provider'
+
+/** Whether the player chose emoji presets or their Discord profile image (web + Supabase Discord). */
+export function readWebAvatarSource(): WebAvatarSource {
+  try {
+    if (localStorage.getItem(SOURCE_KEY) === 'provider') return 'provider'
+  } catch {
+    /* */
+  }
+  return 'preset'
+}
+
+export function writeWebAvatarSource(source: WebAvatarSource): void {
+  try {
+    localStorage.setItem(SOURCE_KEY, source)
+  } catch {
+    /* */
+  }
+}
 
 export function readWebAvatarPresetId(): string {
   try {

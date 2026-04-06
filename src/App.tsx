@@ -50,7 +50,9 @@ export default function App() {
     clearWebProfileInfo,
     setWebDisplayName,
     setWebAvatarPreset,
+    setWebDiscordProfileAvatar,
     webAvatarPresetId,
+    usesDiscordProfileAvatar,
     enableWebCloud,
     disableWebCloud,
     signInDiscordOnWeb,
@@ -243,6 +245,11 @@ export default function App() {
         <AppConfigWarning title={t('app.partyJwtMisconfig')} body={t('app.partyJwtMisconfigBody')} />
       )
     }
+    if (partyErrorCode === 'JOIN_RATE_LIMITED') {
+      return (
+        <AppConfigWarning title={t('app.joinRateLimited')} body={t('app.joinRateLimitedBody')} />
+      )
+    }
     if (gameState.phase !== 'lobby') {
       return (
         <AppLoadingState
@@ -304,6 +311,8 @@ export default function App() {
               onSave={setWebDisplayName}
               avatarPresetId={webAvatarPresetId}
               onAvatarPresetChange={setWebAvatarPreset}
+              usesDiscordProfileAvatar={usesDiscordProfileAvatar}
+              onUseDiscordProfilePicture={setWebDiscordProfileAvatar}
               identityMode={webIdentityMode}
               supabaseConfigured={isSupabaseConfigured()}
               busy={webAuthBusy}

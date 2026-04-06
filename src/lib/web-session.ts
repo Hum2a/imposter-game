@@ -7,7 +7,12 @@ import {
   partyRoomIdFromNormalizedCode,
   syncWebUrlToLobbyCode,
 } from './party-room'
-import { webAvatarTokenForStoredPreset } from './web-avatar'
+import { webAvatarTokenFromPresetId } from '@/data/avatar-presets'
+import {
+  readWebAvatarPresetId,
+  readWebAvatarSource,
+  webAvatarTokenForStoredPreset,
+} from './web-avatar'
 import { getSupabase } from './supabase-client'
 
 const SESSION_ROOM = 'imposter-dev-party-room'
@@ -113,6 +118,37 @@ export type WebIdentityMode =
   | 'cloud_discord'
   | 'cloud_email'
   | 'cloud_other'
+
+/**
+ * Build `d:snowflake:hash` from Supabase Discord identity (fits server avatar field).
+ * Returns null if the user has no custom avatar URL (e.g. default Discord avatar).
+ */
+export function discordCompactAvatarFromSupabaseUser(user: User): string | null {
+  const row = user.identities?.find((i) => i.provider === 'discord')
+  if (!row?.identity_data || typeof row.identity_data !== 'object') return null
+  const data = row.identity_data as Record<string, unknown>
+  const sub = typeof data.sub === 'string' ? data.sub : null
+  const avatarUrl =
+    typeof data.avatar_url === 'string'
+      ? data.avatar_url
+      : typeof data.picture === 'string'
+        ? data.picture
+        : null
+  if (!sub || !avatarUrl) return null
+  const m = avatarUrl.match(/\/avatars\/(\d+)\/([^/.?]+)\.(?:png|jpg|jpeg|webp|gif)/i)
+  if (!m || m[1] !== sub) return null
+  const token = `d:${sub}:${m[2]}`
+  return token.length <= 64 ? token : null
+}
+
+/** Avatar string for `makeWebAuthSession` when using a Supabase-backed web session. */
+export function resolveWebAvatarOverrideForSupabaseUser(user: User): string {
+  if (readWebAvatarSource() === 'provider') {
+    const linked = discordCompactAvatarFromSupabaseUser(user)
+    if (linked) return linked
+  }
+  return webAvatarTokenFromPresetId(readWebAvatarPresetId())
+}
 
 export function classifySupabaseUser(user: User | null | undefined): WebIdentityMode {
   if (!user) return 'guest'
@@ -320,7 +356,12 @@ export async function initWebSession(): Promise<WebSessionInit> {
 
   const mode = classifySupabaseUser(session.user)
   const token = session.access_token ?? 'web-supabase'
-  const auth = makeWebAuthSession(session.user.id, displayName, token)
+  const auth = makeWebAuthSession(
+    session.user.id,
+    displayName,
+    token,
+    resolveWebAvatarOverrideForSupabaseUser(session.user)
+  )
   const linkedDiscord = discordIdentitySub(session.user)
   await upsertWebProfileRow(session.user.id, displayName, {
     linkedDiscordUserId: linkedDiscord,

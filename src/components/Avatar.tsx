@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { presetEmojiFromAvatarToken } from '@/data/avatar-presets'
+import { discordLinkedAvatarUrl, parseDiscordLinkedAvatar } from '@/lib/discord-avatar-token'
 
 export type AvatarSubject = {
   id: string
@@ -22,12 +23,17 @@ export function Avatar({ user, size = 40, className = '' }: AvatarProps) {
   const [errored, setErrored] = useState(false)
 
   const presetEmoji = presetEmojiFromAvatarToken(user.avatar)
+  const linked = parseDiscordLinkedAvatar(user.avatar)
+  const px = Math.min(256, Math.max(64, size * 2))
 
   const url =
-    user.avatar &&
     !presetEmoji &&
     !errored
-      ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=${Math.min(256, Math.max(64, size * 2))}`
+      ? linked
+        ? discordLinkedAvatarUrl(linked.snowflake, linked.hash, px)
+        : user.avatar
+          ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=${px}`
+          : null
       : null
 
   const initial = (user.name?.[0] ?? '?').toUpperCase()

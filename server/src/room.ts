@@ -111,6 +111,29 @@ function joinJwtSecret(env: Record<string, unknown>): string | null {
   return typeof s === 'string' && s.length > 0 ? s : null
 }
 
+function joinRateLimitEnabled(env: Record<string, unknown>): boolean {
+  const v = env.JOIN_RATE_LIMIT
+  return !(v === 'false' || v === false || v === '0')
+}
+
+function joinRateWindowMs(env: Record<string, unknown>): number {
+  const n = parseInt(String(env.JOIN_RATE_WINDOW_MS ?? ''), 10)
+  if (Number.isFinite(n) && n >= 1000 && n <= 120_000) return n
+  return 15_000
+}
+
+function joinRateMaxPerConn(env: Record<string, unknown>): number {
+  const n = parseInt(String(env.JOIN_MAX_PER_CONN ?? ''), 10)
+  if (Number.isFinite(n) && n >= 1 && n <= 200) return n
+  return 20
+}
+
+function joinRateMaxPerUser(env: Record<string, unknown>): number {
+  const n = parseInt(String(env.JOIN_MAX_PER_USER ?? ''), 10)
+  if (Number.isFinite(n) && n >= 1 && n <= 200) return n
+  return 12
+}
+
 function profanityFilterEnabled(env: Record<string, unknown>): boolean {
   const v = env.WORD_PROFANITY_FILTER
   return v === 'true' || v === true || v === '1'
@@ -165,6 +188,9 @@ export default class ImposterRoom implements Party.Server {
 
   state: GameState
   private readonly connToUser = new Map<string, string>()
+  /** Sliding-window JOIN counts (mitigate scripted / repeater floods). */
+  private readonly joinRateByConn = new Map<string, number[]>()
+  private readonly joinRateByUser = new Map<string, number[]>()
   private clueTimer: ReturnType<typeof setTimeout> | null = null
   private clueResync: ReturnType<typeof setInterval> | null = null
   private voteEndTimer: ReturnType<typeof setTimeout> | null = null
@@ -196,6 +222,32 @@ export default class ImposterRoom implements Party.Server {
 
   private userForConn(sender: Party.Connection): string | undefined {
     return this.connToUser.get(sender.id)
+  }
+
+  /** Returns false if this JOIN should be rejected (rate limited). */
+  private allowJoinAttempt(sender: Party.Connection, userId: string): boolean {
+    if (!joinRateLimitEnabled(this.room.env)) return true
+    const env = this.room.env
+    const windowMs = joinRateWindowMs(env)
+    const maxConn = joinRateMaxPerConn(env)
+    const maxUser = joinRateMaxPerUser(env)
+    const now = Date.now()
+    const prune = (arr: number[]) => arr.filter((t) => now - t < windowMs)
+
+    let connArr = prune(this.joinRateByConn.get(sender.id) ?? [])
+    let userArr = prune(this.joinRateByUser.get(userId) ?? [])
+
+    if (connArr.length >= maxConn || userArr.length >= maxUser) {
+      this.joinRateByConn.set(sender.id, connArr)
+      this.joinRateByUser.set(userId, userArr)
+      return false
+    }
+
+    connArr = [...connArr, now]
+    userArr = [...userArr, now]
+    this.joinRateByConn.set(sender.id, connArr)
+    this.joinRateByUser.set(userId, userArr)
+    return true
   }
 
   defaultState(): GameState {
@@ -717,6 +769,11 @@ export default class ImposterRoom implements Party.Server {
     const avatar = msg.avatar.trim().slice(0, 64)
     if (!userId || !name) return
 
+    if (!this.allowJoinAttempt(sender, userId)) {
+      sender.send(JSON.stringify({ type: 'ERROR', code: 'JOIN_RATE_LIMITED' }))
+      return
+    }
+
     if (joinJwtRequired(this.room.env)) {
       const secret = joinJwtSecret(this.room.env)
       if (!secret) {
@@ -992,6 +1049,7 @@ export default class ImposterRoom implements Party.Server {
   onClose(connection: Party.Connection) {
     const userId = this.connToUser.get(connection.id)
     this.connToUser.delete(connection.id)
+    this.joinRateByConn.delete(connection.id)
 
     if (userId) {
       let stillConnected = false

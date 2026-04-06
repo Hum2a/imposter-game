@@ -11,7 +11,9 @@
     "joiningRoom": "Entrando a la sala…",
     "gameServerNotConfigured": "Servidor del juego no configurado",
     "gameServerNotConfiguredBody": "PartyKit debe estar en marcha y accesible para que los jugadores entren a la misma sala.",
-    "mockModeBanner": "Tienes <code0>VITE_DISCORD_MOCK=1</code0> — la barra de perfil web (nombre, inicio de sesión, nube) está desactivada y verás el jugador fijo «Local dev». Quita o desactiva esa variable en <code1>.env</code1> y reinicia el servidor de desarrollo."
+    "mockModeBanner": "Tienes <code0>VITE_DISCORD_MOCK=1</code0> — la barra de perfil web (nombre, inicio de sesión, nube) está desactivada y verás el jugador fijo «Local dev». Quita o desactiva esa variable en <code1>.env</code1> y reinicia el servidor de desarrollo.",
+    "joinRateLimited": "Demasiados intentos de entrada",
+    "joinRateLimitedBody": "Esta sala limita por un momento cuántas veces se puede unir alguien. Espera unos segundos y recarga la página, o inténtalo de nuevo con una conexión estable."
   },
   "sfx": {
     "soundOn": "Sonido activado",
@@ -146,6 +148,9 @@
   },
   "profile": {
     "avatarPresetLabel": "Avatar",
+    "useDiscordProfilePicture": "Usar foto de perfil de Discord",
+    "usingDiscordProfilePicture": "Estás usando tu avatar de Discord en la partida.",
+    "discordAvatarUnavailable": "No se pudo obtener un avatar de Discord en tu cuenta. Si usas el avatar por defecto de Discord, elige un emoji arriba.",
     "emailAccount": "Cuenta de correo",
     "emailAuthTitle": "Correo",
     "emailAuthDesc": "Crea una cuenta o entra con correo y contraseña. Las estadísticas se sincronizan al terminar rondas con perfil en línea.",

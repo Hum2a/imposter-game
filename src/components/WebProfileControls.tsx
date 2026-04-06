@@ -27,6 +27,9 @@ type WebProfileControlsProps = {
   /** Web preset avatars (`p:id`); omit handlers to hide the picker. */
   avatarPresetId?: string | null
   onAvatarPresetChange?: (presetId: string) => void
+  /** Supabase Discord sign-in: restore avatar from Discord identity. */
+  usesDiscordProfileAvatar?: boolean
+  onUseDiscordProfilePicture?: () => void | Promise<void>
   identityMode: WebIdentityMode
   supabaseConfigured: boolean
   busy: boolean
@@ -70,6 +73,8 @@ export function WebProfileControls({
   onSave,
   avatarPresetId = null,
   onAvatarPresetChange,
+  usesDiscordProfileAvatar = false,
+  onUseDiscordProfilePicture,
   identityMode,
   supabaseConfigured,
   busy,
@@ -270,11 +275,31 @@ export function WebProfileControls({
         </div>
 
         {onAvatarPresetChange ? (
-          <AvatarPresetPicker
-            value={avatarPresetId}
-            onChange={onAvatarPresetChange}
-            disabled={busy}
-          />
+          <div className="space-y-3">
+            <AvatarPresetPicker
+              value={avatarPresetId}
+              onChange={onAvatarPresetChange}
+              disabled={busy}
+            />
+            {identityMode === 'cloud_discord' && onUseDiscordProfilePicture ? (
+              <div className="space-y-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={busy || usesDiscordProfileAvatar}
+                  onClick={() => void onUseDiscordProfilePicture()}
+                >
+                  {t('profile.useDiscordProfilePicture')}
+                </Button>
+                {usesDiscordProfileAvatar ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t('profile.usingDiscordProfilePicture')}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         ) : null}
 
         {supabaseConfigured ? (

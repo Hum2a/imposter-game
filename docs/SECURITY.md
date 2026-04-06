@@ -25,6 +25,19 @@ If confirmation, magic-link, or password-reset emails contain links to `http://l
 2. Add the same origin (and any preview deploy URLs) to **Redirect URLs**.
 3. Use matching `VITE_*` / deployment env vars so the client’s OAuth and email flows target the same host.
 
+## JOIN rate limiting
+
+PartyKit `ImposterRoom` applies a **sliding-window limit** on `JOIN` messages per WebSocket connection and per claimed `userId`. This slows scripted floods and naive “repeater” spam; it is **not** a substitute for join verification.
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `JOIN_RATE_LIMIT` | on | Set to `false` / `0` to disable (testing only). |
+| `JOIN_RATE_WINDOW_MS` | `15000` | Window length (1000–120000). |
+| `JOIN_MAX_PER_CONN` | `20` | Max JOINs per connection per window. |
+| `JOIN_MAX_PER_USER` | `12` | Max JOINs per `userId` per window. |
+
+Clients receive `ERROR` with code `JOIN_RATE_LIMITED` when over limit.
+
 ## Threat model (short)
 
 - Modified clients can always lie about UI; server rules and verified joins are the source of truth for identity.
