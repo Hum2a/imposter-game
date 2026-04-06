@@ -94,7 +94,7 @@ Granular commands: **`npm run deploy:sync`** (Worker secrets only), **`npm run d
 
 ### 2. Cloudflare Worker (Discord token exchange + optional party JWT)
 
-Worker config is **`wrangler.worker.toml`** (root **`wrangler.toml`** is Pages-only so `wrangler pages deploy` satisfies Wrangler 4’s `pages_build_output_dir` check).
+Worker config is **`wrangler.worker.toml`**. Root **`wrangler.toml`** is Pages-only: it sets **`name`** (your Pages project) and **`pages_build_output_dir`** as required by Wrangler 4. Keep **`name`** in sync with **`CF_PAGES_PROJECT_NAME`** in `.env.deploy`.
 
 From the **repo root**:
 

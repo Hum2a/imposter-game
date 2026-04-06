@@ -1,8 +1,8 @@
-# Cloudflare Pages — Wrangler 4+ expects `pages_build_output_dir` when this file exists
-# (stops the "missing pages_build_output_dir" warning on `wrangler pages deploy`).
+# Cloudflare Pages (Wrangler 4+). `name` must match your Pages project in the dashboard
+# and should match `CF_PAGES_PROJECT_NAME` in `.env.deploy` (change both if you rename the project).
 #
-# The Discord OAuth **Worker** lives in `wrangler.worker.toml`. Deploy it with:
+# The Discord OAuth **Worker** lives in `wrangler.worker.toml`:
 #   npx wrangler deploy -c wrangler.worker.toml
-# See `scripts/deploy.mjs` (uses `-c wrangler.worker.toml` for worker + secrets).
 
+name = "imposter-game"
 pages_build_output_dir = "dist"
