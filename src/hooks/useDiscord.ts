@@ -1,24 +1,31 @@
 import { DiscordSDK } from '@discord/embedded-app-sdk'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { isDiscordActivity } from '../lib/discord-context'
+import { getSupabase, isSupabaseConfigured } from '../lib/supabase-client'
 import {
   buildDiscordPartyRoomId,
   readDiscordLobbySuffix,
   writeDiscordLobbySuffix,
 } from '../lib/party-room'
 import {
+  cancelWebPasswordRecovery,
+  changeWebAccountPassword,
+  completeWebPasswordRecovery,
   createNewWebPartyRoom,
   disableWebCloudProfile,
   enableWebCloudProfile,
   initWebSession,
   makeWebAuthSession,
   readWebDisplayName,
+  requestWebEmailAddressChange,
   sendWebPasswordResetEmail,
   signInWebWithEmail,
   signInWebWithDiscord,
   signUpWebWithEmail,
   setWebPartyRoomFromCode,
   upsertWebProfileRow,
+  userHasEmailPasswordProvider,
   writeWebDisplayName,
   type WebIdentityMode,
 } from '../lib/web-session'
@@ -62,6 +69,7 @@ function tokenExchangeUrl(): string {
 }
 
 export function useDiscord() {
+  const { t } = useTranslation()
   const [auth, setAuth] = useState<DiscordAuthSession | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [discordSdk, setDiscordSdk] = useState<DiscordSDK | null>(null)
@@ -78,15 +86,50 @@ export function useDiscord() {
   const [webAuthBusy, setWebAuthBusy] = useState(false)
   const [webProfileError, setWebProfileError] = useState<string | null>(null)
   const [webProfileInfoKey, setWebProfileInfoKey] = useState<string | null>(null)
+  const [passwordRecoveryOpen, setPasswordRecoveryOpen] = useState(false)
+  const [webSupabaseEmail, setWebSupabaseEmail] = useState<string | null>(null)
+  const [webHasEmailPasswordProvider, setWebHasEmailPasswordProvider] =
+    useState(false)
   const webModeRef = useRef(false)
   webModeRef.current = webMode
+
+  const mapAuthErr = useCallback(
+    (e: unknown) => {
+      const msg = e instanceof Error ? e.message : ''
+      if (msg === 'WRONG_CURRENT_PASSWORD') return t('profile.wrongCurrentPassword')
+      if (msg === 'NO_ACCOUNT_EMAIL') return t('profile.noAccountEmailError')
+      if (msg === 'INVALID_EMAIL') return t('profile.emailInvalid')
+      return msg || t('profile.genericAuthError')
+    },
+    [t]
+  )
+
+  const syncWebSupabaseAccountMeta = useCallback(async () => {
+    if (!isSupabaseConfigured()) {
+      setWebSupabaseEmail(null)
+      setWebHasEmailPasswordProvider(false)
+      return
+    }
+    const supabase = getSupabase()
+    if (!supabase) {
+      setWebSupabaseEmail(null)
+      setWebHasEmailPasswordProvider(false)
+      return
+    }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    setWebSupabaseEmail(user?.email?.trim() ?? null)
+    setWebHasEmailPasswordProvider(userHasEmailPasswordProvider(user))
+  }, [])
 
   const refreshWebSession = useCallback(async () => {
     const session = await initWebSession()
     setAuth(session.auth)
     setPartyRoomId(session.partyRoomId)
     setWebIdentityMode(session.webIdentityMode)
-  }, [])
+    await syncWebSupabaseAccountMeta()
+  }, [syncWebSupabaseAccountMeta])
 
   const setWebDisplayName = useCallback((name: string) => {
     if (!webModeRef.current) return
@@ -200,6 +243,94 @@ export function useDiscord() {
     }
   }, [])
 
+  const completePasswordRecoveryOnWeb = useCallback(
+    async (newPassword: string) => {
+      setWebAuthBusy(true)
+      setWebProfileError(null)
+      setWebProfileInfoKey(null)
+      try {
+        await completeWebPasswordRecovery(newPassword)
+        setPasswordRecoveryOpen(false)
+        await refreshWebSession()
+        setWebProfileInfoKey('profile.passwordChangedOk')
+      } catch (e) {
+        setWebProfileError(mapAuthErr(e))
+      } finally {
+        setWebAuthBusy(false)
+      }
+    },
+    [mapAuthErr, refreshWebSession]
+  )
+
+  const cancelPasswordRecoveryOnWeb = useCallback(async () => {
+    setWebProfileError(null)
+    try {
+      await cancelWebPasswordRecovery()
+      setPasswordRecoveryOpen(false)
+      await refreshWebSession()
+    } catch (e) {
+      setWebProfileError(mapAuthErr(e))
+    }
+  }, [mapAuthErr, refreshWebSession])
+
+  const changePasswordOnWeb = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      setWebAuthBusy(true)
+      setWebProfileError(null)
+      setWebProfileInfoKey(null)
+      try {
+        await changeWebAccountPassword(currentPassword, newPassword)
+        await refreshWebSession()
+        setWebProfileInfoKey('profile.passwordChangedOk')
+      } catch (e) {
+        setWebProfileError(mapAuthErr(e))
+      } finally {
+        setWebAuthBusy(false)
+      }
+    },
+    [mapAuthErr, refreshWebSession]
+  )
+
+  const requestEmailChangeOnWeb = useCallback(
+    async (newEmail: string) => {
+      setWebAuthBusy(true)
+      setWebProfileError(null)
+      setWebProfileInfoKey(null)
+      try {
+        await requestWebEmailAddressChange(newEmail)
+        setWebProfileInfoKey('profile.emailChangePending')
+        await syncWebSupabaseAccountMeta()
+      } catch (e) {
+        setWebProfileError(mapAuthErr(e))
+      } finally {
+        setWebAuthBusy(false)
+      }
+    },
+    [mapAuthErr, syncWebSupabaseAccountMeta]
+  )
+
+  useEffect(() => {
+    if (embeddedDiscord || !isSupabaseConfigured()) return
+    const supabase = getSupabase()
+    if (!supabase) return
+    if (
+      typeof window !== 'undefined' &&
+      /type=recovery/.test(window.location.hash)
+    ) {
+      setPasswordRecoveryOpen(true)
+    }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setPasswordRecoveryOpen(true)
+      }
+    })
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [embeddedDiscord, syncWebSupabaseAccountMeta])
+
   useEffect(() => {
     if (!embeddedDiscord || !discordBaseRoom) return
     setPartyRoomId(
@@ -255,6 +386,7 @@ export function useDiscord() {
           setWebIdentityMode(session.webIdentityMode)
           setParticipants([])
           setWebMode(true)
+          void syncWebSupabaseAccountMeta()
         })
         .catch((e) => {
           if (!cancelled) {
@@ -362,6 +494,13 @@ export function useDiscord() {
     signUpEmailOnWeb,
     signInEmailOnWeb,
     resetEmailPasswordOnWeb,
+    passwordRecoveryOpen,
+    completePasswordRecoveryOnWeb,
+    cancelPasswordRecoveryOnWeb,
+    webSupabaseEmail,
+    webHasEmailPasswordProvider,
+    changePasswordOnWeb,
+    requestEmailChangeOnWeb,
     refreshWebSession,
     joinWebPartyRoom,
     createNewWebLobby,

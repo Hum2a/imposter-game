@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LogIn, LogOut, User, Users } from 'lucide-react'
 
+import { WebAccountSettingsSection } from '@/components/WebAccountSettingsSection'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,11 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import {
+  meetsSupabaseStylePasswordRules,
+  WEB_PASSWORD_MIN_LENGTH,
+} from '@/lib/password-policy'
 import { fetchPlayerStats, type PlayerStatsSnapshot } from '@/lib/player-stats'
 import { fetchRecentPlayerRounds, type PlayerRoundRow } from '@/lib/record-player-round'
 import type { WebIdentityMode } from '@/lib/web-session'
-
-const MIN_PASSWORD_LEN = 6
 
 type WebProfileControlsProps = {
   displayName: string
@@ -31,6 +34,10 @@ type WebProfileControlsProps = {
   onSignUpEmail: (email: string, password: string) => void | Promise<void>
   onSignInEmail: (email: string, password: string) => void | Promise<void>
   onResetEmailPassword: (email: string) => void | Promise<void>
+  accountEmail: string | null
+  hasEmailPasswordProvider: boolean
+  onChangePassword: (currentPassword: string, newPassword: string) => void | Promise<void>
+  onRequestEmailChange: (newEmail: string) => void | Promise<void>
 }
 
 function identityLabelKey(mode: WebIdentityMode): string {
@@ -66,6 +73,10 @@ export function WebProfileControls({
   onSignUpEmail,
   onSignInEmail,
   onResetEmailPassword,
+  accountEmail,
+  hasEmailPasswordProvider,
+  onChangePassword,
+  onRequestEmailChange,
 }: WebProfileControlsProps) {
   const { t } = useTranslation()
   const [draft, setDraft] = useState(displayName)
@@ -117,8 +128,14 @@ export function WebProfileControls({
       setEmailFormError(t('profile.emailInvalid'))
       return
     }
-    if (passwordDraft.length < MIN_PASSWORD_LEN) {
-      setEmailFormError(t('profile.emailPasswordShort', { min: MIN_PASSWORD_LEN }))
+    if (passwordDraft.length < WEB_PASSWORD_MIN_LENGTH) {
+      setEmailFormError(
+        t('profile.emailPasswordShort', { min: WEB_PASSWORD_MIN_LENGTH })
+      )
+      return
+    }
+    if (emailMode === 'signUp' && !meetsSupabaseStylePasswordRules(passwordDraft)) {
+      setEmailFormError(t('profile.passwordRulesHint'))
       return
     }
     if (emailMode === 'signIn') {
@@ -310,6 +327,11 @@ export function WebProfileControls({
                             if (e.key === 'Enter') submitEmailAuth()
                           }}
                         />
+                        {emailMode === 'signUp' ? (
+                          <p className="text-xs text-muted-foreground">
+                            {t('profile.passwordRulesHint')}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                     {emailFormError ? (
@@ -368,6 +390,17 @@ export function WebProfileControls({
             </CardContent>
             <p className="px-6 pb-4 text-xs text-muted-foreground">{t('profile.footerHint')}</p>
           </Card>
+        ) : null}
+
+        {supabaseConfigured && !isGuest ? (
+          <WebAccountSettingsSection
+            accountEmail={accountEmail}
+            hasEmailPasswordProvider={hasEmailPasswordProvider}
+            busy={busy}
+            onChangePassword={onChangePassword}
+            onRequestEmailChange={onRequestEmailChange}
+            onSendPasswordReset={(email) => void onResetEmailPassword(email)}
+          />
         ) : null}
 
         {supabaseConfigured && !isGuest ? (

@@ -5,6 +5,7 @@ import {
   AppErrorState,
   AppLoadingState,
 } from './components/layout/AppStates'
+import { PasswordRecoveryOverlay } from './components/PasswordRecoveryOverlay'
 import { WebProfileControls } from './components/WebProfileControls'
 import { useDiscord } from './hooks/useDiscord'
 import { useGameAnalytics } from './hooks/useGameAnalytics'
@@ -50,6 +51,13 @@ export default function App() {
     signUpEmailOnWeb,
     signInEmailOnWeb,
     resetEmailPasswordOnWeb,
+    passwordRecoveryOpen,
+    completePasswordRecoveryOnWeb,
+    cancelPasswordRecoveryOnWeb,
+    webSupabaseEmail,
+    webHasEmailPasswordProvider,
+    changePasswordOnWeb,
+    requestEmailChangeOnWeb,
     isDiscordActivity,
     joinWebPartyRoom,
     createNewWebLobby,
@@ -255,23 +263,37 @@ export default function App() {
           <SfxToggle />
         </div>
         {webMode ? (
-          <WebProfileControls
-            displayName={auth.user.global_name ?? auth.user.username}
-            onSave={setWebDisplayName}
-            identityMode={webIdentityMode}
-            supabaseConfigured={isSupabaseConfigured()}
-            busy={webAuthBusy}
-            profileError={webProfileError}
-            profileInfoKey={webProfileInfoKey}
-            onDismissProfileError={clearWebProfileError}
-            onDismissProfileInfo={clearWebProfileInfo}
-            onEnableCloud={enableWebCloud}
-            onDisableCloud={disableWebCloud}
-            onSignInDiscord={signInDiscordOnWeb}
-            onSignUpEmail={signUpEmailOnWeb}
-            onSignInEmail={signInEmailOnWeb}
-            onResetEmailPassword={resetEmailPasswordOnWeb}
-          />
+          <>
+            <PasswordRecoveryOverlay
+              open={passwordRecoveryOpen}
+              busy={webAuthBusy}
+              apiError={webProfileError}
+              onDismissApiError={clearWebProfileError}
+              onSubmit={completePasswordRecoveryOnWeb}
+              onCancel={cancelPasswordRecoveryOnWeb}
+            />
+            <WebProfileControls
+              displayName={auth.user.global_name ?? auth.user.username}
+              onSave={setWebDisplayName}
+              identityMode={webIdentityMode}
+              supabaseConfigured={isSupabaseConfigured()}
+              busy={webAuthBusy}
+              profileError={passwordRecoveryOpen ? null : webProfileError}
+              profileInfoKey={webProfileInfoKey}
+              onDismissProfileError={clearWebProfileError}
+              onDismissProfileInfo={clearWebProfileInfo}
+              onEnableCloud={enableWebCloud}
+              onDisableCloud={disableWebCloud}
+              onSignInDiscord={signInDiscordOnWeb}
+              onSignUpEmail={signUpEmailOnWeb}
+              onSignInEmail={signInEmailOnWeb}
+              onResetEmailPassword={resetEmailPasswordOnWeb}
+              accountEmail={webSupabaseEmail}
+              hasEmailPasswordProvider={webHasEmailPasswordProvider}
+              onChangePassword={changePasswordOnWeb}
+              onRequestEmailChange={requestEmailChangeOnWeb}
+            />
+          </>
         ) : null}
         <div className="flex flex-1 flex-col">{body}</div>
       </SfxProvider>

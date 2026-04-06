@@ -115,6 +115,11 @@ export function classifySupabaseUser(user: User | null | undefined): WebIdentity
   return 'cloud_other'
 }
 
+/** True if the user can sign in with an email + password (vs Discord-only OAuth). */
+export function userHasEmailPasswordProvider(user: User | null | undefined): boolean {
+  return Boolean(user?.identities?.some((i) => i.provider === 'email'))
+}
+
 function discordIdentitySub(user: User): string | null {
   const row = user.identities?.find((i) => i.provider === 'discord')
   const data = row?.identity_data
@@ -259,10 +264,17 @@ export async function initWebSession(): Promise<WebSessionInit> {
   }
 
   if (optIn === '0') {
-    if (existingSession) {
-      await supabase.auth.signOut()
+    // Guest-only: drop anonymous Supabase sessions. Keep non-anonymous sessions (e.g. password
+    // recovery or magic link) so the user is not signed out before finishing reset / confirm flows.
+    if (existingSession?.user && !existingSession.user.is_anonymous) {
+      setCloudOptIn(true)
+      optIn = '1'
+    } else {
+      if (existingSession) {
+        await supabase.auth.signOut()
+      }
+      return buildGuestSession(roomId)
     }
-    return buildGuestSession(roomId)
   }
 
   if (optIn === 'unset') {
@@ -382,5 +394,74 @@ export async function sendWebPasswordResetEmail(email: string): Promise<void> {
   const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
     redirectTo: EMAIL_REDIRECT_PATH(),
   })
+  if (error) throw error
+}
+
+export function stripAuthHashFromBrowserUrl(): void {
+  if (typeof window === 'undefined') return
+  const url = new URL(window.location.href)
+  if (!url.hash) return
+  url.hash = ''
+  window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
+}
+
+/**
+ * After following the reset link, the client has a recovery session. Set the new password here.
+ */
+export async function completeWebPasswordRecovery(newPassword: string): Promise<void> {
+  const supabase = getSupabase()
+  if (!supabase) throw new Error('Supabase is not configured')
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) throw error
+  setCloudOptIn(true)
+  stripAuthHashFromBrowserUrl()
+}
+
+export async function cancelWebPasswordRecovery(): Promise<void> {
+  const supabase = getSupabase()
+  stripAuthHashFromBrowserUrl()
+  if (supabase) {
+    await supabase.auth.signOut()
+  }
+}
+
+/**
+ * Verifies the current password via a fresh `signInWithPassword`, then sets the new password.
+ * Matches dashboards that require the current password for updates.
+ */
+export async function changeWebAccountPassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  const supabase = getSupabase()
+  if (!supabase) throw new Error('Supabase is not configured')
+  const { data: sessionData } = await supabase.auth.getSession()
+  const email = sessionData.session?.user?.email?.trim()
+  if (!email) throw new Error('NO_ACCOUNT_EMAIL')
+
+  const { error: signErr } = await supabase.auth.signInWithPassword({
+    email,
+    password: currentPassword,
+  })
+  if (signErr) throw new Error('WRONG_CURRENT_PASSWORD')
+
+  const { error: updErr } = await supabase.auth.updateUser({ password: newPassword })
+  if (updErr) throw updErr
+}
+
+/**
+ * Starts an email change; Supabase sends confirmation per your project settings (secure change, etc.).
+ */
+export async function requestWebEmailAddressChange(newEmail: string): Promise<void> {
+  const supabase = getSupabase()
+  if (!supabase) throw new Error('Supabase is not configured')
+  const trimmed = newEmail.trim()
+  if (!trimmed || !trimmed.includes('@')) {
+    throw new Error('INVALID_EMAIL')
+  }
+  const { error } = await supabase.auth.updateUser(
+    { email: trimmed },
+    { emailRedirectTo: EMAIL_REDIRECT_PATH() }
+  )
   if (error) throw error
 }
