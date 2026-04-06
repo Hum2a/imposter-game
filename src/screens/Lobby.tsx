@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { WORD_PACK_OPTIONS, labelForWordPackId } from '../data/word-pack-options'
 import { buildWebInviteUrl, displayInviteCodeFromPartyRoomId } from '../lib/party-room'
+import { SavedWordListsPanel } from '@/components/SavedWordListsPanel'
 import { parseFirstPastedPair } from '../lib/paste-word-pairs'
 import { cn } from '@/lib/utils'
 import type { ClientMessage, GameState } from '../types/game'
@@ -37,6 +38,8 @@ type LobbyProps = {
   onDiscordLobbySuffixChange?: (value: string) => void
   partyErrorCode?: string | null
   onDismissPartyError?: () => void
+  /** Web + Supabase cloud profile: save/load word lists to the user account */
+  savedWordListsEnabled?: boolean
 }
 
 export default function Lobby({
@@ -54,6 +57,7 @@ export default function Lobby({
   onDiscordLobbySuffixChange,
   partyErrorCode,
   onDismissPartyError,
+  savedWordListsEnabled = false,
 }: LobbyProps) {
   const { t } = useTranslation()
   const players = Object.values(gameState.players)
@@ -403,6 +407,19 @@ export default function Lobby({
                   {t('lobby.loadFirstPair')}
                 </Button>
               </div>
+
+              {savedWordListsEnabled ? (
+                <SavedWordListsPanel
+                  pasteText={pasteText}
+                  onPasteTextChange={setPasteText}
+                  onLoadPairIntoFields={(crew, imposter) => {
+                    setCrewWord(crew)
+                    setImposterWord(imposter)
+                    onDismissPartyError?.()
+                  }}
+                  onClearPasteHint={() => setPasteHint(null)}
+                />
+              ) : null}
 
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground pt-2">
                 {t('lobby.crewImposterSection')}

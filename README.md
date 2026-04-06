@@ -210,7 +210,7 @@ When the app runs **outside** Discord (normal browser):
 2. **Optional cloud:** with Supabase configured, use **Save progress online** (anonymous auth) or **Sign in with Discord** (OAuth via Supabase Auth) for a stable user id and `web_profiles` row. **Play as guest only** signs out of Supabase and returns to the local id.
 3. **Discord Activity** is unchanged (Embedded SDK + Worker token exchange).
 
-Env: `VITE_SUPABASE_URL` and a client key (`VITE_SUPABASE_ANON_KEY` or publishable keys). Enable **Anonymous sign-ins** for cloud backup; enable the **Discord** provider in Supabase for web Discord login (set redirect URLs). Run `supabase/migrations/001_web_profiles.sql` and `002_web_profiles_discord_link.sql`.
+Env: `VITE_SUPABASE_URL` and a client key (`VITE_SUPABASE_ANON_KEY` or publishable keys). Enable **Anonymous sign-ins** for cloud backup; enable the **Discord** provider in Supabase for web Discord login (set redirect URLs). Run `supabase/migrations/` SQL in order (`001`–`004`): profiles, Discord link column, round history, and **saved word lists** for hosts with a cloud profile.
 
 Do **not** send Supabase JWTs as `accessToken` on `JOIN` — `JOIN_VERIFY` expects a **Discord** OAuth token only.
 

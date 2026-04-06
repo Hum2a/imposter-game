@@ -281,6 +281,9 @@ export default function App() {
           onDiscordLobbySuffixChange={setDiscordLobbySuffix}
           partyErrorCode={partyErrorCode}
           onDismissPartyError={clearPartyError}
+          savedWordListsEnabled={
+            webMode && isSupabaseConfigured() && webIdentityMode !== 'guest'
+          }
         />,
         gameState.phase
       )
