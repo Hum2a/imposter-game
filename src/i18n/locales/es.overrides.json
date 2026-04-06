@@ -227,6 +227,15 @@
     "roundTagWrong": " · acusación incorrecta",
     "roundTagCaught": " · atraparon al impostor"
   },
+  "wordPacks": {
+    "classic": "Clásico",
+    "food": "Comida y bebidas",
+    "nature": "Naturaleza",
+    "games": "Juegos y deportes"
+  },
+  "wordPackHints": {
+    "classic": "Parejas por defecto"
+  },
   "lang": {
     "label": "Idioma",
     "en": "English",

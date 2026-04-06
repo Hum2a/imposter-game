@@ -1,5 +1,5 @@
 import { getSupabase } from '@/lib/supabase-client'
-import { recordPlayerUsageEvent } from '@/lib/player-usage-events'
+import { recordPlayerUsageEvent, USAGE_EVENT_ROUND_RECORDED } from '@/lib/player-usage-events'
 import type { RevealReason } from '@/types/game'
 
 function storageKey(partyRoomId: string, roundIndex: number): string {
@@ -106,7 +106,7 @@ export async function recordPlayerRoundIfNeeded(opts: {
     return
   }
 
-  void recordPlayerUsageEvent('round_recorded', {
+  void recordPlayerUsageEvent(USAGE_EVENT_ROUND_RECORDED, {
     round_index: opts.roundIndex,
     winner,
     was_imposter: opts.wasImposter,

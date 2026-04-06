@@ -16,7 +16,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { WORD_PACK_OPTIONS, labelForWordPackId } from '../data/word-pack-options'
+import { WORD_PACK_OPTIONS } from '../data/word-pack-options'
+import { wordPackHint, wordPackLabel } from '@/lib/word-pack-i18n'
 import { buildWebInviteUrl, displayInviteCodeFromPartyRoomId } from '../lib/party-room'
 import { SavedWordListsPanel } from '@/components/SavedWordListsPanel'
 import { parseFirstPastedPair } from '../lib/paste-word-pairs'
@@ -313,7 +314,7 @@ export default function Lobby({
               ) : (
                 <p>
                   {t('lobby.randomPackLabel', {
-                    pack: labelForWordPackId(gameState.wordPackId),
+                    pack: wordPackLabel(gameState.wordPackId, t),
                   })}
                 </p>
               )}
@@ -345,11 +346,15 @@ export default function Lobby({
                     }}
                     aria-label={t('lobby.packSelectAria')}
                   >
-                    {WORD_PACK_OPTIONS.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.hint ? `${o.label} (${o.hint})` : o.label}
-                      </option>
-                    ))}
+                    {WORD_PACK_OPTIONS.map((o) => {
+                      const label = wordPackLabel(o.id, t)
+                      const hint = wordPackHint(o.id, t)
+                      return (
+                        <option key={o.id} value={o.id}>
+                          {hint ? `${label} (${hint})` : label}
+                        </option>
+                      )
+                    })}
                   </select>
                 </div>
                 <Button

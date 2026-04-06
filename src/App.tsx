@@ -12,6 +12,7 @@ import { useGameAnalytics } from './hooks/useGameAnalytics'
 import { trackEvent } from './lib/analytics'
 import { isSupabaseConfigured } from './lib/supabase-client'
 import { useParty } from './hooks/useParty'
+import { useRecordLobbyJoin } from './hooks/useRecordLobbyJoin'
 import { fetchPartyJoinJwt, usePartyJoinJwtEnabled } from './lib/party-jwt-mint'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
 import { PhaseSfxListener, SfxProvider, SfxToggle } from './sfx'
@@ -71,6 +72,12 @@ export default function App() {
     useParty(partyRoomId ?? undefined, auth?.user.id)
 
   useGameAnalytics(gameState, auth?.user.id)
+
+  useRecordLobbyJoin({
+    partyRoomId: partyRoomId ?? undefined,
+    userId: auth?.user.id,
+    gameState,
+  })
 
   useEffect(() => {
     if (error) trackEvent('ClientError', { area: 'discord_setup' })

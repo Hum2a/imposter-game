@@ -9,6 +9,7 @@ import {
   fetchPlayerRoundsPage,
   type PlayerRoundRow,
 } from '@/lib/record-player-round'
+import { wordPackLabel } from '@/lib/word-pack-i18n'
 
 const PAGE_SIZE = 15
 
@@ -154,7 +155,13 @@ export function WebGameHistoryCard() {
                   t('profile.historyUnknown')
                 )
               )
-              push(detail(t('profile.historyWordPack'), r.word_pack_id, t('profile.historyUnknown')))
+              push(
+                detail(
+                  t('profile.historyWordPack'),
+                  r.word_pack_id ? wordPackLabel(r.word_pack_id, t) : null,
+                  t('profile.historyUnknown')
+                )
+              )
               push(
                 detail(
                   t('profile.historyClueCycle'),

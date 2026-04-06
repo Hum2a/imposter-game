@@ -1,5 +1,8 @@
 import { getSupabase } from '@/lib/supabase-client'
 
+export const USAGE_EVENT_ROUND_RECORDED = 'round_recorded' as const
+export const USAGE_EVENT_LOBBY_JOINED = 'lobby_joined' as const
+
 /**
  * Record a lightweight usage event (same RLS as rounds). Safe to call from gameplay flows;
  * failures are logged only so games are never blocked.

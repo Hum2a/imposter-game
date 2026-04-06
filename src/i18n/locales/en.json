@@ -340,6 +340,15 @@
     "roundTagWrong": " · wrong accusation",
     "roundTagCaught": " · caught imposter"
   },
+  "wordPacks": {
+    "classic": "Classic mix",
+    "food": "Food & drinks",
+    "nature": "Nature",
+    "games": "Games & sports"
+  },
+  "wordPackHints": {
+    "classic": "Original default pairs"
+  },
   "lang": {
     "label": "Language",
     "en": "English",
