@@ -162,7 +162,7 @@ For local testing through Discord, use **cloudflared** or **ngrok** on port `517
 | `npm run deploy:token-worker` | Same as `deploy:worker` |
 | `npm run assets:brand` | Regenerate `public/*.png` from `logo.svg` / `favicon.svg` (requires `sharp`) |
 | `npm run gen:sfx` | Regenerate `public/sounds/*.wav` for optional UI sounds |
-| `npm run test:e2e` | Playwright smoke test (starts preview; needs build env vars like CI) |
+| `npm run test:e2e` | Playwright (smoke + i18n + mock game-flow). **Local:** run PartyKit on `127.0.0.1:1999` (`npm run dev:party`) before tests, or CI starts it for you. Preview build uses `VITE_DISCORD_MOCK=1`. |
 
 ## Security
 
@@ -190,7 +190,7 @@ When **`JOIN_JWT_REQUIRED=true`** on Partykit, clients must send a short-lived *
 
 ### Optional: per-user round history (Supabase R8)
 
-After **`003_player_rounds.sql`** is applied, users with a Supabase session get one row per round (after reveal) and a **Recent rounds** list in the web profile header. Guests are unchanged.
+After **`003_player_rounds.sql`** (and optional **`005_player_rounds_reveal_reason.sql`** for outcome tags in history) is applied, users with a Supabase session get one row per round (after reveal) and a **Recent rounds** list in the web profile header. Guests are unchanged.
 
 ### i18n (R10)
 
@@ -210,7 +210,7 @@ When the app runs **outside** Discord (normal browser):
 2. **Optional cloud:** with Supabase configured, use **Save progress online** (anonymous auth) or **Sign in with Discord** (OAuth via Supabase Auth) for a stable user id and `web_profiles` row. **Play as guest only** signs out of Supabase and returns to the local id.
 3. **Discord Activity** is unchanged (Embedded SDK + Worker token exchange).
 
-Env: `VITE_SUPABASE_URL` and a client key (`VITE_SUPABASE_ANON_KEY` or publishable keys). Enable **Anonymous sign-ins** for cloud backup; enable the **Discord** provider in Supabase for web Discord login (set redirect URLs). Run `supabase/migrations/` SQL in order (`001`–`004`): profiles, Discord link column, round history, and **saved word lists** for hosts with a cloud profile.
+Env: `VITE_SUPABASE_URL` and a client key (`VITE_SUPABASE_ANON_KEY` or publishable keys). Enable **Anonymous sign-ins** for cloud backup; enable the **Discord** provider in Supabase for web Discord login (set redirect URLs). Run `supabase/migrations/` SQL in order (`001`–`005` as needed): profiles, Discord link column, round history, saved word lists, and optional **reveal_reason** on `player_rounds`.
 
 Do **not** send Supabase JWTs as `accessToken` on `JOIN` — `JOIN_VERIFY` expects a **Discord** OAuth token only.
 

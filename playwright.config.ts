@@ -21,7 +21,8 @@ export default defineConfig({
     timeout: 180_000,
     env: {
       VITE_DISCORD_CLIENT_ID: process.env.VITE_DISCORD_CLIENT_ID ?? '0',
-      VITE_PARTYKIT_HOST: process.env.VITE_PARTYKIT_HOST ?? 'localhost:1999',
+      VITE_DISCORD_MOCK: '1',
+      VITE_PARTYKIT_HOST: process.env.VITE_PARTYKIT_HOST ?? '127.0.0.1:1999',
       VITE_DISCORD_TOKEN_URL:
         process.env.VITE_DISCORD_TOKEN_URL ?? 'https://example.com/api/token',
     },

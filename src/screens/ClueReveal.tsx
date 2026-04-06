@@ -105,19 +105,36 @@ export default function ClueReveal({
                       </Badge>
                     ) : null}
                     {!isSpectator && p.id !== me.id ? (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="min-h-11"
-                        onClick={() => {
-                          onDismissPartyError?.()
-                          send({ type: 'BUMP_SUSPICION', targetId: p.id })
-                        }}
-                      >
-                        <ThumbsDown className="size-4" aria-hidden />
-                        {t('clueReveal.suspicion')}
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="min-h-11"
+                          onClick={() => {
+                            onDismissPartyError?.()
+                            send({ type: 'BUMP_SUSPICION', targetId: p.id })
+                          }}
+                        >
+                          <ThumbsDown className="size-4" aria-hidden />
+                          {t('clueReveal.suspicion')}
+                        </Button>
+                        {marks > 0 ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="min-h-11"
+                            aria-label={t('clueReveal.reduceSuspicionAria')}
+                            onClick={() => {
+                              onDismissPartyError?.()
+                              send({ type: 'REDUCE_SUSPICION', targetId: p.id })
+                            }}
+                          >
+                            {t('clueReveal.reduceSuspicion')}
+                          </Button>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
                 </li>

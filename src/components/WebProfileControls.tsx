@@ -211,18 +211,27 @@ export function WebProfileControls({
                 <p className="text-sm text-muted-foreground">{t('profile.roundHistoryEmpty')}</p>
               ) : (
                 <ul className="max-h-48 space-y-1 overflow-y-auto text-sm text-muted-foreground">
-                  {roundHistory.map((r) => (
-                    <li key={r.id}>
-                      {t('profile.roundLine', {
-                        n: r.round_index,
-                        winner: r.winner,
-                        role: r.was_imposter
-                          ? t('profile.roundRoleImposter')
-                          : t('profile.roundRoleCrew'),
-                        vote: r.voted_for ? t('profile.roundVote') : '',
-                      })}
-                    </li>
-                  ))}
+                  {roundHistory.map((r) => {
+                    const reason =
+                      r.reveal_reason === 'wrong_accusation'
+                        ? t('profile.roundTagWrong')
+                        : r.reveal_reason === 'caught_imposter'
+                          ? t('profile.roundTagCaught')
+                          : ''
+                    return (
+                      <li key={r.id}>
+                        {t('profile.roundLine', {
+                          n: r.round_index,
+                          winner: r.winner,
+                          role: r.was_imposter
+                            ? t('profile.roundRoleImposter')
+                            : t('profile.roundRoleCrew'),
+                          vote: r.voted_for ? t('profile.roundVote') : '',
+                          reason,
+                        })}
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
             </CardContent>

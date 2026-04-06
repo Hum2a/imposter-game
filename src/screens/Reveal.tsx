@@ -38,8 +38,9 @@ export default function Reveal({ gameState, isHost, send, auth, partyRoomId }: R
       winner: gameState.winner,
       wasImposter: me.isImposter,
       votedFor: me.votedFor,
+      revealReason: gameState.revealReason,
     })
-  }, [partyRoomId, gameState.round, gameState.winner, me])
+  }, [partyRoomId, gameState.round, gameState.winner, gameState.revealReason, me])
 
   const winnerLabel =
     gameState.winner === 'crew'
@@ -87,6 +88,32 @@ export default function Reveal({ gameState, isHost, send, auth, partyRoomId }: R
               className="border-2 border-destructive/40"
             />
             <p className="text-2xl font-semibold text-foreground">{imposter.name}</p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {Object.keys(gameState.revealedClues).length > 0 ? (
+        <Card className="transition-shadow duration-200 motion-reduce:transition-none">
+          <CardHeader>
+            <CardTitle className="text-lg">{t('reveal.cluesFromRoundTitle')}</CardTitle>
+            <CardDescription>{t('reveal.cluesFromRoundDesc')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm">
+              {Object.entries(gameState.revealedClues).map(([pid, clue]) => {
+                const pl = gameState.players[pid]
+                return (
+                  <li
+                    key={pid}
+                    className="flex flex-wrap items-baseline gap-x-2 rounded-md border border-border/60 px-3 py-2"
+                  >
+                    <span className="font-medium text-foreground">{pl?.name ?? pid}</span>
+                    <span className="text-muted-foreground">—</span>
+                    <span>{clue.length > 0 ? clue : t('clueReveal.noClue')}</span>
+                  </li>
+                )
+              })}
+            </ul>
           </CardContent>
         </Card>
       ) : null}

@@ -12,6 +12,7 @@ import { trackEvent } from './lib/analytics'
 import { isSupabaseConfigured } from './lib/supabase-client'
 import { useParty } from './hooks/useParty'
 import { fetchPartyJoinJwt, usePartyJoinJwtEnabled } from './lib/party-jwt-mint'
+import { LanguageSwitcher } from './components/LanguageSwitcher'
 import { PhaseSfxListener, SfxProvider, SfxToggle } from './sfx'
 import Lobby from './screens/Lobby'
 import Game from './screens/Game'
@@ -244,7 +245,8 @@ export default function App() {
       ) : null}
       <SfxProvider>
         <PhaseSfxListener phase={phase} />
-        <div className="flex justify-end border-b border-border/60 px-2 sm:px-4">
+        <div className="flex justify-end items-center gap-3 border-b border-border/60 px-2 sm:px-4">
+          <LanguageSwitcher />
           <SfxToggle />
         </div>
         {webMode ? (

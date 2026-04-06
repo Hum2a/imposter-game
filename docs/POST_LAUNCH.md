@@ -6,7 +6,7 @@ Track verification, ops, and follow-up work after deploying Pages, Worker, and P
 
 - [x] Open the **Cloudflare Pages** URL in a normal browser → app loads (browser dev user / Partykit).
 - [x] Launch the **Discord Activity** from a voice channel → auth succeeds (no token error).
-- [ ] Run a full loop with **two accounts**: lobby → start → discussion → voting → reveal.
+- [ ] Run a full loop with **two accounts**: lobby → start → clue rounds (write → reveal) → voting → reveal.
 - [ ] Confirm **Partykit** connections in dashboard / logs if something fails.
 
 ## 2. Confirm environment wiring

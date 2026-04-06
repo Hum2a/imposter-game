@@ -1,4 +1,5 @@
 import { getSupabase } from '@/lib/supabase-client'
+import type { RevealReason } from '@/types/game'
 
 function storageKey(partyRoomId: string, roundIndex: number): string {
   return `imposter:round_saved:${partyRoomId}:${roundIndex}`
@@ -12,6 +13,7 @@ export type PlayerRoundRow = {
   was_imposter: boolean
   voted_for: string | null
   party_room_id: string | null
+  reveal_reason: string | null
 }
 
 /** After reveal: one insert per room+round per tab (sessionStorage dedupe). */
@@ -21,6 +23,7 @@ export async function recordPlayerRoundIfNeeded(opts: {
   winner: 'crew' | 'imposter' | null
   wasImposter: boolean
   votedFor: string | null
+  revealReason: RevealReason
 }): Promise<void> {
   const supabase = getSupabase()
   if (!supabase) return
@@ -38,6 +41,10 @@ export async function recordPlayerRoundIfNeeded(opts: {
   const winner =
     opts.winner === 'crew' || opts.winner === 'imposter' ? opts.winner : 'none'
   const roomKey = opts.partyRoomId.slice(0, 120)
+  const revealReason =
+    opts.revealReason === 'wrong_accusation' || opts.revealReason === 'caught_imposter'
+      ? opts.revealReason
+      : null
 
   const { error } = await supabase.from('player_rounds').insert({
     user_id: uid,
@@ -46,6 +53,7 @@ export async function recordPlayerRoundIfNeeded(opts: {
     was_imposter: opts.wasImposter,
     voted_for: opts.votedFor,
     party_room_id: roomKey,
+    reveal_reason: revealReason,
   })
 
   if (error) {
@@ -70,7 +78,9 @@ export async function fetchRecentPlayerRounds(limit: number): Promise<PlayerRoun
 
   const { data, error } = await supabase
     .from('player_rounds')
-    .select('id, created_at, round_index, winner, was_imposter, voted_for, party_room_id')
+    .select(
+      'id, created_at, round_index, winner, was_imposter, voted_for, party_room_id, reveal_reason'
+    )
     .eq('user_id', uid)
     .order('created_at', { ascending: false })
     .limit(limit)

@@ -26,7 +26,7 @@ Use this as the single execution checklist. Check items off as you go; keep [POS
 
 - [x] **A1** — Node v22.12.0 (≥20; optional: bump to 22.13+ to silence `eslint-visitor-keys` engine warning). Root + `server/` `npm install` OK. `npm run build` + `npm run lint` pass at repo root.
 - [x] **A2** — `.gitignore` has `.env`, `.env.*` with `!.env.example` and `!.env.deploy.example`. `git check-ignore` confirms `.env`, `.env.local`, `.env.deploy` ignored. `git status`: working tree clean (no secrets committed).
-- [x] **A3** — *Manual:* start Partykit + Vite, open the app, confirm lobby → start → discussion → voting → reveal (solo as host, or two tabs/profiles).
+- [x] **A3** — *Manual:* start Partykit + Vite, open the app, confirm lobby → start → clue write/reveal cycles → voting → reveal (solo as host, or two tabs/profiles).
 - [x] **A4** — *Manual:* in Discord Developer Portal confirm Activities + OAuth2; note Client ID = `VITE_DISCORD_CLIENT_ID` / `DISCORD_CLIENT_ID` for dev Worker plugin.
 
 **Optional:** run `npm audit` in `server/` if you want to address reported dependency advisories (not blocking Phase A).
@@ -132,7 +132,7 @@ Run all applicable rows; fix blockers before Phase G.
 
 | Scenario | Steps | Pass criteria |
 |----------|--------|----------------|
-| E1 — Activity two users | Two Discord accounts, same voice channel, launch Activity | Both reach lobby; host starts; discussion timer; both vote; reveal; host can next round or lobby |
+| E1 — Activity two users | Two Discord accounts, same voice channel, launch Activity | Both reach lobby; host starts; clue timer; clues + vote; reveal; host can next round or lobby |
 | E2 — Activity token path | DevTools → Network: token `POST` | 200; `access_token` in response body; no CORS errors |
 | E3 — Web guest | Incognito, production URL, no Supabase or don’t opt in | Loads; name edit; joins Partykit room; full round possible |
 | E4 — Web cloud (if Supabase) | Opt in “Save progress online” | New user id in room vs guest; refresh page still same cloud id; `web_profiles` row updated |
@@ -218,7 +218,7 @@ Features below are the **master planning list**; P0 L1–L5 are done in client +
 | **G1** | **Reconnect same user** | **Done:** **45s grace** after last socket `onClose` before removing the player; **`JOIN` on every socket open** re-binds `connToUser`. Host handoff prefers a **non-spectator** if the host drops. |
 | **G2** | **Spectate / late join rules** | **Done:** Mid-round **new** users join as **`isSpectator`** (watch discussion/vote/reveal; no word/vote). **`startGame`** / **`backToLobby`** clears spectator flag so they play next round. |
 | **G3** | **Custom word lists** | **Done:** per-round `SET_NEXT_WORDS` / `CLEAR_NEXT_WORDS`; **`wordPackId`** + curated packs (`server/src/word-packs.ts`); host lobby picker, **Random pair from pack**, paste/import lines; optional **`WORD_PROFANITY_FILTER`** on Partykit for custom pairs. |
-| **G4** | **Timer / phase edge cases** | **Partial:** client clamps countdown to ≥0; **hidden-tab** notice during discussion; server timer unchanged. |
+| **G4** | **Timer / phase edge cases** | **Partial:** client clamps countdown to ≥0; **hidden-tab** notice during clue write; server timer unchanged. |
 | **G5** | **Mobile + narrow iframes** | **Partial:** `GameScreen` / header **safe-area**; **min-h-11** on key lobby buttons. |
 
 ---
@@ -264,7 +264,7 @@ Use this as the **master order** for everything not yet fully shipped in P1/P2. 
 | **R0** | **X7** | **Done (docs + template):** [docs/STAGING.md](./STAGING.md), `.env.deploy.staging.example`, `DEPLOY_ENV_FILE` already supported in `scripts/deploy.mjs`. You still create Cloudflare/Discord resources yourself. | — | Wrangler, Discord portal, `.env.deploy.staging` |
 | **R1** | **G5** (finish), **X5** (a11y foundation) | **Done (this pass):** voting `aria-label` / `aria-pressed`, confirm `aria-label`, `min-h-11` targets, `GameScreen` `motion-reduce:transition-none`, narrow grid `min-w-0`. Further polish (focus rings audit, Voting as true radiogroup) optional. | — | `Voting.tsx`, `Reveal.tsx`, `GameScreen` |
 | **R2** ‖ | **X4** | **Done (Plausible):** `src/lib/analytics.ts`, `initAnalytics()` in `main.tsx`, `useGameAnalytics` phase hooks, `VoteSubmit` in `Voting`; `VITE_PLAUSIBLE_DOMAIN` / `VITE_PLAUSIBLE_SCRIPT_URL`. Cloudflare Web Analytics = separate snippet if you prefer. | **R0** recommended for prod/staging separation | `analytics.ts`, `App.tsx`, `.env.example` |
-| **R3** ‖ | **G4** (finish) | **Done:** discussion-phase **25s** full-state re-broadcast in `server/src/room.ts`; README note. Client already had hidden-tab copy + `aria-live` on countdown. | — | `server/src/room.ts`, `README.md` |
+| **R3** ‖ | **G4** (finish) | **Done:** **clue_write**-phase **25s** full-state re-broadcast in `server/src/room.ts`; README note. Client already had hidden-tab copy + `aria-live` on countdown. | — | `server/src/room.ts`, `README.md` |
 | **R4** | **G1** (finish) | **Done:** `DISCONNECT_GRACE_MS` (45s), `disconnectGrace` map, `finalizePlayerDisconnect`; client **`socketOpenNonce` + JOIN on `open`**. | — | `server/src/room.ts`, `useParty.ts`, `App.tsx` |
 | **R5** | **G2** (spectate) | **Done:** `Player.isSpectator`, mid-round `handleJoin` path, `Game` / `Voting` / `Reveal` / `Lobby` UI. | **R4** | `room.ts`, `Game.tsx`, `Voting.tsx`, `Reveal.tsx`, `Lobby.tsx`, `types/game.ts` |
 | **R6** | **G3** (finish) | **Done:** packs in `server/src/word-packs.ts` + `SET_WORD_PACK` / `ROLL_PACK_PAIR`; lobby select + paste first pair; **`WORD_PROFANITY_FILTER`** env on Partykit; client labels in `src/data/word-pack-options.ts` (keep ids in sync). | **R0** for safe iteration | `word-packs.ts`, `word-pack-options.ts`, `Lobby.tsx`, `room.ts` |

@@ -503,6 +503,22 @@ export default class ImposterRoom implements Party.Server {
         this.broadcast()
         break
       }
+      case 'REDUCE_SUSPICION': {
+        const uid = this.userForConn(sender)
+        if (!uid || typeof msg.targetId !== 'string') break
+        if (this.state.phase !== 'clue_reveal') break
+        const me = this.state.players[uid]
+        if (!me || me.isSpectator) break
+        if (msg.targetId === uid) break
+        if (!this.state.players[msg.targetId] || this.state.players[msg.targetId]!.isSpectator)
+          break
+        const cur = this.state.suspicion[msg.targetId] ?? 0
+        if (cur <= 0) break
+        this.state.suspicion[msg.targetId] = cur - 1
+        if (this.state.suspicion[msg.targetId] === 0) delete this.state.suspicion[msg.targetId]
+        this.broadcast()
+        break
+      }
       case 'CONTINUE_CLUE_REVEAL':
         if (this.userForConn(sender) === this.state.hostId && this.state.phase === 'clue_reveal') {
           if (this.state.clueCycle >= this.state.gameSettings.maxClueRounds) {

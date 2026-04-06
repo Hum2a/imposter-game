@@ -75,6 +75,8 @@
     "noClue": "(no clue)",
     "suspicion": "Suspicion",
     "suspicionCount": "{{count}}× suspicion",
+    "reduceSuspicion": "Remove one",
+    "reduceSuspicionAria": "Remove one suspicion mark from this clue",
     "callVote": "Call vote",
     "nextClueRound": "Next clue round",
     "continueToVoting": "Continue to voting",
@@ -123,6 +125,8 @@
     "votesTitle": "Votes",
     "votesDesc": "Who picked whom.",
     "noVotesList": "No votes this round.",
+    "cluesFromRoundTitle": "Clues this game",
+    "cluesFromRoundDesc": "What players submitted before the vote.",
     "hostTitle": "Host controls",
     "hostDesc": "Everyone else waits for you here.",
     "nextRound": "Next round",
@@ -248,9 +252,16 @@
     "roundHistoryDesc": "Saved when you use an online profile and finish a reveal.",
     "roundHistoryEmpty": "No saved rounds yet.",
     "roundHistoryLoadError": "Could not load history.",
-    "roundLine": "Round {{n}} · {{winner}} · {{role}}{{vote}}",
+    "roundLine": "Round {{n}} · {{winner}} · {{role}}{{vote}}{{reason}}",
     "roundRoleCrew": "Crew",
     "roundRoleImposter": "Imposter",
-    "roundVote": " · voted"
+    "roundVote": " · voted",
+    "roundTagWrong": " · wrong accusation",
+    "roundTagCaught": " · caught imposter"
+  },
+  "lang": {
+    "label": "Language",
+    "en": "English",
+    "es": "Español"
   }
 }

@@ -101,3 +101,5 @@ export type ClientMessage =
   | { type: 'CONTINUE_CLUE_REVEAL' }
   /** Any player — jump to voting from clue_write or clue_reveal. */
   | { type: 'CALL_VOTE' }
+  /** Non-spectator, clue_reveal — remove one suspicion mark from a target (min 0). */
+  | { type: 'REDUCE_SUSPICION'; targetId: string }

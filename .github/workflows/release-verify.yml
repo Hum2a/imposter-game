@@ -33,8 +33,12 @@ jobs:
         env:
           CI: true
           VITE_DISCORD_CLIENT_ID: '0'
-          VITE_PARTYKIT_HOST: localhost:1999
+          VITE_DISCORD_MOCK: '1'
+          VITE_PARTYKIT_HOST: 127.0.0.1:1999
           VITE_DISCORD_TOKEN_URL: https://example.com/api/token
         run: |
+          npm ci --prefix server
+          npm run dev --prefix server &
+          npx wait-on tcp:127.0.0.1:1999 -t 120000
           npx playwright install --with-deps chromium
           npm run test:e2e
