@@ -308,6 +308,8 @@ export default function App() {
             />
             <WebProfileControls
               displayName={auth.user.global_name ?? auth.user.username}
+              profileUserId={auth.user.id}
+              profileAvatarWire={auth.user.avatar ?? null}
               onSave={setWebDisplayName}
               avatarPresetId={webAvatarPresetId}
               onAvatarPresetChange={setWebAvatarPreset}

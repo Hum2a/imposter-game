@@ -277,6 +277,9 @@
   "profile": {
     "title": "Profile",
     "showPanel": "Account & profile",
+    "showPanelAria": "Open account and profile to change your name, avatar, and sign-in options",
+    "collapsedHint": "Open Account & profile to change how you appear (name, avatar, account).",
+    "collapsedBarAria": "Your web profile summary",
     "minimizePanel": "Minimize profile bar",
     "webPlay": "Web play",
     "whereRoundControls": "Below this panel, on the lobby screen, the <gs>Game settings</gs> card has word packs, timers, vote length, optional <gs>new random words each clue round</gs>, custom words, and Start game (host). On wide screens, <gs>Players</gs> and <gs>Game settings</gs> sit side by side. Other modes (turns, rotating host) are still on the roadmap.",

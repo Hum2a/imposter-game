@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, LogIn, LogOut, User, Users } from 'lucide-react
 
 import type { Phase } from '@/types/game'
 
+import { Avatar } from '@/components/Avatar'
 import { AvatarPresetPicker } from '@/components/AvatarPresetPicker'
 import { WebAccountSettingsSection } from '@/components/WebAccountSettingsSection'
 import { WebGameHistoryCard } from '@/components/WebGameHistoryCard'
@@ -47,7 +48,10 @@ type WebProfileControlsProps = {
   hasEmailPasswordProvider: boolean
   onChangePassword: (currentPassword: string, newPassword: string) => void | Promise<void>
   onRequestEmailChange: (newEmail: string) => void | Promise<void>
-  /** When not lobby, the profile chrome starts minimized so play UI has space. */
+  /** Stable id + wire avatar token (same as in-game) for the collapsed summary row. */
+  profileUserId: string
+  profileAvatarWire: string | null
+  /** When leaving lobby for an active round, the profile panel collapses to save space. */
   gamePhase?: Phase
 }
 
@@ -92,13 +96,12 @@ export function WebProfileControls({
   hasEmailPasswordProvider,
   onChangePassword,
   onRequestEmailChange,
+  profileUserId,
+  profileAvatarWire,
   gamePhase,
 }: WebProfileControlsProps) {
   const { t } = useTranslation()
-  const inPlay = gamePhase !== undefined && gamePhase !== 'lobby'
-  const [panelOpen, setPanelOpen] = useState(
-    () => gamePhase === undefined || gamePhase === 'lobby'
-  )
+  const [panelOpen, setPanelOpen] = useState(false)
   const [draft, setDraft] = useState(displayName)
   const [playerStats, setPlayerStats] = useState<PlayerStatsSnapshot | null>(null)
   const [emailMode, setEmailMode] = useState<'signIn' | 'signUp'>('signIn')
@@ -111,9 +114,12 @@ export function WebProfileControls({
   }, [displayName])
 
   useEffect(() => {
-    if (gamePhase === 'lobby') setPanelOpen(true)
-    else if (gamePhase !== undefined) setPanelOpen(false)
+    if (gamePhase !== undefined && gamePhase !== 'lobby') setPanelOpen(false)
   }, [gamePhase])
+
+  useEffect(() => {
+    if (profileError || profileInfoKey) setPanelOpen(true)
+  }, [profileError, profileInfoKey])
 
   const isGuest = identityMode === 'guest'
 
@@ -165,17 +171,31 @@ export function WebProfileControls({
     void onResetEmailPassword(email)
   }
 
-  if (inPlay && !panelOpen) {
+  if (!panelOpen) {
     return (
-      <header className="sticky top-0 z-20 border-b border-border/80 bg-card/95 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm">
-        <div className="flex w-full items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
-          <span className="min-w-0 truncate text-sm font-medium text-foreground">{displayName}</span>
+      <header
+        className="sticky top-0 z-20 border-b border-border/80 bg-card/95 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm"
+        aria-label={t('profile.collapsedBarAria')}
+      >
+        <div className="flex w-full items-center gap-3 px-4 py-2 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
+          <Avatar
+            user={{ id: profileUserId, name: displayName, avatar: profileAvatarWire }}
+            size={36}
+            className="shrink-0"
+          />
+          <div className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium text-foreground">{displayName}</span>
+            <span className="block text-xs leading-snug text-muted-foreground">
+              {t('profile.collapsedHint')}
+            </span>
+          </div>
           <Button
             type="button"
             variant="outline"
             size="sm"
             className="h-9 shrink-0 gap-1.5"
             onClick={() => setPanelOpen(true)}
+            aria-label={t('profile.showPanelAria')}
           >
             <ChevronDown className="size-4" aria-hidden />
             {t('profile.showPanel')}
@@ -187,20 +207,18 @@ export function WebProfileControls({
 
   return (
     <header className="relative border-b bg-card/90 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm">
-      {inPlay ? (
-        <div className="flex w-full justify-end px-4 pt-2 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1 text-muted-foreground"
-            onClick={() => setPanelOpen(false)}
-          >
-            <ChevronUp className="size-4" aria-hidden />
-            {t('profile.minimizePanel')}
-          </Button>
-        </div>
-      ) : null}
+      <div className="flex w-full justify-end px-4 pt-2 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 gap-1 text-muted-foreground"
+          onClick={() => setPanelOpen(false)}
+        >
+          <ChevronUp className="size-4" aria-hidden />
+          {t('profile.minimizePanel')}
+        </Button>
+      </div>
       <div className="flex w-full flex-col gap-4 px-4 py-4 sm:px-6 lg:gap-6 lg:px-10 lg:py-6 xl:px-12 2xl:px-16">
         {profileInfoKey ? (
           <Alert className="relative border-emerald-600/35 bg-emerald-500/10 text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-950/25 dark:text-emerald-50">

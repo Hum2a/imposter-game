@@ -12,7 +12,7 @@ Captured from playtests. Items marked **done** in this pass are implemented in-r
 - **Server join hardening:** `JOIN` fields trimmed and length-limited; JWT / token checks use the same normalized `userId` as stored player ids.
 - **Animations:** default `Card` uses subtle enter animation (`tw-animate-css`); clue word card keeps a stronger zoom-in.
 - **Sound:** already present (toggle in header, `PhaseSfxListener`, `public/sounds/`). No change required for “add SFX” beyond reminding testers to enable Sound.
-- **Account panel:** auto-minimizes when leaving lobby; **Minimize** / **Account & profile** to collapse or expand during play.
+- **Account panel:** starts **collapsed** (compact bar with name, avatar, and hint); **Account & profile** expands; **Minimize** collapses again. Leaving the lobby for an active round collapses the panel; profile errors or info alerts expand it automatically.
 - **Clue input:** **Enter** submits; input strips spaces; server rejects whitespace (single token only).
 - **Call vote:** available during **clue write** (was already on clue reveal); any non-spectator can trigger.
 - **Vote timer:** host sets **Seconds to vote** in lobby (15–180); countdown in voting; when time expires, non-voters get **skip** and the round resolves.

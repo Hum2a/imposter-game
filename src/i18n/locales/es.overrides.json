@@ -173,6 +173,9 @@
     "customRoomCodeHelp": "Opcional: elige un código corto que puedan escribir tus amigos. También sirve uno aleatorio."
   },
   "profile": {
+    "showPanelAria": "Abrir cuenta y perfil para cambiar nombre, avatar y opciones de acceso",
+    "collapsedHint": "Abre Cuenta y perfil para cambiar cómo te ven (nombre, avatar, cuenta).",
+    "collapsedBarAria": "Resumen de tu perfil web",
     "whereRoundControls": "Debajo de este panel, en el lobby, la tarjeta <gs>Ajustes de partida</gs> tiene paquetes, temporizadores, opción de palabras nuevas por ronda de pista, e iniciar partida (anfitrión). En pantallas anchas, <gs>Jugadores</gs> y <gs>Ajustes de partida</gs> van en columnas. Otros modos (turnos, anfitrión rotativo, etc.) siguen en la hoja de ruta.",
     "avatarPresetLabel": "Avatar",
     "useDiscordProfilePicture": "Usar foto de perfil de Discord",
