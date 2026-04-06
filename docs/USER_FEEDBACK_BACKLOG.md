@@ -4,6 +4,10 @@ Captured from playtests. Items marked **done** in this pass are implemented in-r
 
 ## Shipped in the latest iteration
 
+- **Web lobby code:** choose a **custom shareable code** (4–12 alphanumeric) or **new random lobby**; join-by-code validation messages localized.
+- **Lobby layout:** **Players** and **Game settings** are **separate cards**; on large screens they sit in a **two-column grid** for better use of space.
+- **Web avatars:** preset **emoji avatars** (`p:${id}` on the wire), picker in **Account & profile**; `Avatar` renders emoji for preset tokens.
+- **Server join hardening:** `JOIN` fields trimmed and length-limited; JWT / token checks use the same normalized `userId` as stored player ids.
 - **Animations:** default `Card` uses subtle enter animation (`tw-animate-css`); clue word card keeps a stronger zoom-in.
 - **Sound:** already present (toggle in header, `PhaseSfxListener`, `public/sounds/`). No change required for “add SFX” beyond reminding testers to enable Sound.
 - **Account panel:** auto-minimizes when leaving lobby; **Minimize** / **Account & profile** to collapse or expand during play.
@@ -26,6 +30,13 @@ Captured from playtests. Items marked **done** in this pass are implemented in-r
 | **Encrypt WebSocket “who is imposter”** | WSS already encrypts transport. Hiding `isImposter` from *other* clients requires **per-connection** server serialization (no shared broadcast) or trusted server-only UI — major protocol change; won’t stop a modified client. |
 | **Friends for logged-in users** | Needs product design + Supabase (or other) social graph, privacy, invites — not started. |
 | **Richer round timeline UI** | Timeline of phases, per-clue events — mostly client + maybe server event log. |
+
+## Security / ops (documented; tighten in prod)
+
+| Issue | Notes |
+|--------|--------|
+| **Crafted `JOIN` / repeater** | See `docs/SECURITY.md`. Enable **Discord join verify** or **party join JWT** on public deployments; room ids are guessable. |
+| **Email links to localhost** | Supabase **Site URL** + **Redirect URLs** must match production (and preview) origins so verification emails are usable. |
 
 ## Suggested order for next sprint
 

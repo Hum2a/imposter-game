@@ -9,13 +9,11 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
 import { WORD_PACK_OPTIONS } from '../data/word-pack-options'
 import { wordPackHint, wordPackLabel } from '@/lib/word-pack-i18n'
 import { buildWebInviteUrl, displayInviteCodeFromPartyRoomId } from '../lib/party-room'
@@ -32,7 +30,7 @@ type LobbyProps = {
   webMode?: boolean
   isDiscordActivity?: boolean
   onJoinWebLobby?: (code: string) => void
-  onCreateWebLobby?: () => void
+  onCreateWebLobby?: (customCode?: string) => void
   joinLobbyError?: string | null
   onDismissJoinLobbyError?: () => void
   discordLobbySuffix?: string
@@ -63,6 +61,7 @@ export default function Lobby({
   const { t } = useTranslation()
   const players = Object.values(gameState.players)
   const [joinInput, setJoinInput] = useState('')
+  const [customCreateCode, setCustomCreateCode] = useState('')
   const [copied, setCopied] = useState<'link' | 'code' | null>(null)
   const [crewWord, setCrewWord] = useState('')
   const [imposterWord, setImposterWord] = useState('')
@@ -188,14 +187,48 @@ export default function Lobby({
                         className="text-muted-foreground"
                         onClick={() => {
                           if (window.confirm(t('lobby.newLobbyConfirm'))) {
+                            setCustomCreateCode('')
                             onCreateWebLobby()
                           }
                         }}
                       >
-                        {t('lobby.newLobby')}
+                        {t('lobby.newRandomLobbyButton')}
                       </Button>
                     ) : null}
                   </div>
+                  {onCreateWebLobby ? (
+                    <div className="space-y-2 border-t border-border pt-3">
+                      <p className="text-xs text-muted-foreground">{t('lobby.customRoomCodeHelp')}</p>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="create-lobby-code">{t('lobby.customRoomCodeLabel')}</Label>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                          <Input
+                            id="create-lobby-code"
+                            placeholder={t('lobby.customRoomCodePlaceholder')}
+                            autoComplete="off"
+                            value={customCreateCode}
+                            onChange={(e) => {
+                              setCustomCreateCode(e.target.value)
+                              if (joinLobbyError) onDismissJoinLobbyError?.()
+                            }}
+                            className="sm:max-w-xs"
+                          />
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="w-full shrink-0 sm:w-auto"
+                            onClick={() => {
+                              onDismissJoinLobbyError?.()
+                              onCreateWebLobby(customCreateCode.trim())
+                            }}
+                          >
+                            {t('lobby.createLobbyWithCode')}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground font-mono break-all">
@@ -230,6 +263,54 @@ export default function Lobby({
                     {t('lobby.join')}
                   </Button>
                 </form>
+              ) : null}
+              {onCreateWebLobby && !webShareCode ? (
+                <div className="space-y-3 border-t border-border pt-3">
+                  <p className="text-xs text-muted-foreground">{t('lobby.customRoomCodeHelp')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (window.confirm(t('lobby.newLobbyConfirm'))) {
+                          setCustomCreateCode('')
+                          onCreateWebLobby()
+                        }
+                      }}
+                    >
+                      {t('lobby.newRandomLobbyButton')}
+                    </Button>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="create-lobby-code-legacy">{t('lobby.customRoomCodeLabel')}</Label>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                      <Input
+                        id="create-lobby-code-legacy"
+                        placeholder={t('lobby.customRoomCodePlaceholder')}
+                        autoComplete="off"
+                        value={customCreateCode}
+                        onChange={(e) => {
+                          setCustomCreateCode(e.target.value)
+                          if (joinLobbyError) onDismissJoinLobbyError?.()
+                        }}
+                        className="sm:max-w-xs"
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="w-full shrink-0 sm:w-auto"
+                        onClick={() => {
+                          onDismissJoinLobbyError?.()
+                          onCreateWebLobby(customCreateCode.trim())
+                        }}
+                      >
+                        {t('lobby.createLobbyWithCode')}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               ) : null}
             </div>
           ) : null}
@@ -276,37 +357,44 @@ export default function Lobby({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">{t('lobby.playersTitle', { count: players.length })}</CardTitle>
-          <CardDescription>{t('lobby.playersDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent className="px-0">
-          {players.length === 0 ? (
-            <p className="px-6 text-sm text-muted-foreground">{t('lobby.noPlayers')}</p>
-          ) : (
-            <ul className="divide-y divide-border">
-              {players.map((p) => (
-                <li key={p.id} className="flex items-center gap-3 px-6 py-3">
-                  <Avatar user={{ id: p.id, name: p.name, avatar: p.avatar }} size={40} />
-                  <span className="font-medium text-foreground">{p.name}</span>
-                  <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
-                    {p.isSpectator ? (
-                      <Badge variant="outline" className="shrink-0">
-                        {t('lobby.spectator')}
-                      </Badge>
-                    ) : null}
-                    {p.id === gameState.hostId ? (
-                      <Badge className="shrink-0 bg-primary/15 text-primary">{t('lobby.host')}</Badge>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-        <Separator />
-        <CardFooter className="flex-col gap-4 pt-6 sm:flex-row sm:flex-wrap">
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">{t('lobby.playersTitle', { count: players.length })}</CardTitle>
+            <CardDescription>{t('lobby.playersDesc')}</CardDescription>
+          </CardHeader>
+          <CardContent className="px-0">
+            {players.length === 0 ? (
+              <p className="px-6 text-sm text-muted-foreground">{t('lobby.noPlayers')}</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {players.map((p) => (
+                  <li key={p.id} className="flex items-center gap-3 px-6 py-3">
+                    <Avatar user={{ id: p.id, name: p.name, avatar: p.avatar }} size={40} />
+                    <span className="font-medium text-foreground">{p.name}</span>
+                    <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
+                      {p.isSpectator ? (
+                        <Badge variant="outline" className="shrink-0">
+                          {t('lobby.spectator')}
+                        </Badge>
+                      ) : null}
+                      {p.id === gameState.hostId ? (
+                        <Badge className="shrink-0 bg-primary/15 text-primary">{t('lobby.host')}</Badge>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">{t('lobby.gameSettingsTitle')}</CardTitle>
+            <CardDescription>{t('lobby.gameSettingsDesc')}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-6 px-6 pt-0">
           {!isHost ? (
             <div className="w-full text-sm text-muted-foreground">
               {gameState.hasCustomNextRound ? (
@@ -321,7 +409,7 @@ export default function Lobby({
             </div>
           ) : null}
           {isHost ? (
-            <div className="w-full space-y-3 border-b border-border pb-4 sm:border-0 sm:pb-0">
+            <div className="w-full space-y-3">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {t('lobby.wordPackSection')}
               </p>
@@ -485,7 +573,7 @@ export default function Lobby({
             </div>
           ) : null}
           {isHost ? (
-            <div className="w-full space-y-3 border-b border-border pb-4">
+            <div className="w-full space-y-3 border-t border-border pt-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {t('lobby.gameRulesSection')}
               </p>
@@ -568,8 +656,9 @@ export default function Lobby({
               {t('lobby.onlyHost')}
             </p>
           )}
-        </CardFooter>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </GameScreen>
   )
 }

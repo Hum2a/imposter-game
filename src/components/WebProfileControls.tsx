@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, LogIn, LogOut, User, Users } from 'lucide-react
 
 import type { Phase } from '@/types/game'
 
+import { AvatarPresetPicker } from '@/components/AvatarPresetPicker'
 import { WebAccountSettingsSection } from '@/components/WebAccountSettingsSection'
 import { WebGameHistoryCard } from '@/components/WebGameHistoryCard'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -23,6 +24,9 @@ import type { WebIdentityMode } from '@/lib/web-session'
 type WebProfileControlsProps = {
   displayName: string
   onSave: (name: string) => void
+  /** Web preset avatars (`p:id`); omit handlers to hide the picker. */
+  avatarPresetId?: string | null
+  onAvatarPresetChange?: (presetId: string) => void
   identityMode: WebIdentityMode
   supabaseConfigured: boolean
   busy: boolean
@@ -64,6 +68,8 @@ function identityLabelKey(mode: WebIdentityMode): string {
 export function WebProfileControls({
   displayName,
   onSave,
+  avatarPresetId = null,
+  onAvatarPresetChange,
   identityMode,
   supabaseConfigured,
   busy,
@@ -262,6 +268,14 @@ export function WebProfileControls({
             {t('profile.saveName')}
           </Button>
         </div>
+
+        {onAvatarPresetChange ? (
+          <AvatarPresetPicker
+            value={avatarPresetId}
+            onChange={onAvatarPresetChange}
+            disabled={busy}
+          />
+        ) : null}
 
         {supabaseConfigured ? (
           <Card>

@@ -49,6 +49,8 @@ export default function App() {
     clearWebProfileError,
     clearWebProfileInfo,
     setWebDisplayName,
+    setWebAvatarPreset,
+    webAvatarPresetId,
     enableWebCloud,
     disableWebCloud,
     signInDiscordOnWeb,
@@ -300,6 +302,8 @@ export default function App() {
             <WebProfileControls
               displayName={auth.user.global_name ?? auth.user.username}
               onSave={setWebDisplayName}
+              avatarPresetId={webAvatarPresetId}
+              onAvatarPresetChange={setWebAvatarPreset}
               identityMode={webIdentityMode}
               supabaseConfigured={isSupabaseConfigured()}
               busy={webAuthBusy}

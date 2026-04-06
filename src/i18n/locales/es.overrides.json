@@ -125,6 +125,8 @@
     "gameRulesHelp": "Misma pareja de palabras toda la partida hasta la siguiente ronda. Tiempo de pista y cuántas rondas de pistas antes de votar.",
     "writeSecondsLabel": "Segundos para escribir la pista",
     "maxClueRoundsLabel": "Rondas de pista antes de votar",
+    "gameSettingsTitle": "Ajustes de partida",
+    "gameSettingsDesc": "Paquetes de palabras, parejas, temporizadores e inicio — solo el anfitrión edita.",
     "playersTitle": "Jugadores ({{count}})",
     "playersDesc": "Quién está en la sesión ahora.",
     "noPlayers": "Aún no hay jugadores…",
@@ -133,9 +135,17 @@
     "roomRecord": "Historial de sala",
     "roundsBadge": "{{count}} rondas",
     "crewWins": "Equipo {{count}}",
-    "imposterWins": "Impostor {{count}}"
+    "imposterWins": "Impostor {{count}}",
+    "joinCodeInvalid": "Ese código no es válido. Usa letras y números (como en el enlace de un amigo).",
+    "invalidCustomRoomCode": "Ese código no es válido. Usa de 4 a 12 letras o números (A–Z, 0–9).",
+    "customRoomCodeLabel": "Código de tu sala",
+    "customRoomCodePlaceholder": "ej. VIERNES",
+    "newRandomLobbyButton": "Nueva sala aleatoria",
+    "createLobbyWithCode": "Crear sala con este código",
+    "customRoomCodeHelp": "Opcional: elige un código corto que puedan escribir tus amigos. También sirve uno aleatorio."
   },
   "profile": {
+    "avatarPresetLabel": "Avatar",
     "emailAccount": "Cuenta de correo",
     "emailAuthTitle": "Correo",
     "emailAuthDesc": "Crea una cuenta o entra con correo y contraseña. Las estadísticas se sincronizan al terminar rondas con perfil en línea.",

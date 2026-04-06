@@ -712,6 +712,11 @@ export default class ImposterRoom implements Party.Server {
     },
     sender: Party.Connection
   ) {
+    const userId = msg.userId.trim().slice(0, 64)
+    const name = msg.name.trim().slice(0, 40)
+    const avatar = msg.avatar.trim().slice(0, 64)
+    if (!userId || !name) return
+
     if (joinJwtRequired(this.room.env)) {
       const secret = joinJwtSecret(this.room.env)
       if (!secret) {
@@ -723,7 +728,7 @@ export default class ImposterRoom implements Party.Server {
         sender.send(JSON.stringify({ type: 'ERROR', code: 'JOIN_PARTY_JWT_REQUIRED' }))
         return
       }
-      const jwtOk = await verifyPartyJoinJwt(pj, secret, msg.userId)
+      const jwtOk = await verifyPartyJoinJwt(pj, secret, userId)
       if (!jwtOk) {
         sender.send(JSON.stringify({ type: 'ERROR', code: 'JOIN_PARTY_JWT_INVALID' }))
         return
@@ -734,24 +739,24 @@ export default class ImposterRoom implements Party.Server {
         sender.send(JSON.stringify({ type: 'ERROR', code: 'JOIN_NEED_TOKEN' }))
         return
       }
-      const ok = await verifyDiscordUserId(token, msg.userId)
+      const ok = await verifyDiscordUserId(token, userId)
       if (!ok) {
         sender.send(JSON.stringify({ type: 'ERROR', code: 'JOIN_VERIFY_FAILED' }))
         return
       }
     }
 
-    const existing = this.state.players[msg.userId]
+    const existing = this.state.players[userId]
     const phase = this.state.phase
 
     if (phase === 'lobby') {
-      this.cancelGraceForUser(msg.userId)
-      this.connToUser.set(sender.id, msg.userId)
+      this.cancelGraceForUser(userId)
+      this.connToUser.set(sender.id, userId)
       if (!existing) {
-        this.state.players[msg.userId] = {
-          id: msg.userId,
-          name: msg.name,
-          avatar: msg.avatar,
+        this.state.players[userId] = {
+          id: userId,
+          name,
+          avatar,
           isImposter: false,
           hasVoted: false,
           votedFor: null,
@@ -759,11 +764,11 @@ export default class ImposterRoom implements Party.Server {
           isSpectator: false,
         }
         if (Object.keys(this.state.players).length === 1) {
-          this.state.hostId = msg.userId
+          this.state.hostId = userId
         }
       } else {
-        existing.name = msg.name
-        existing.avatar = msg.avatar
+        existing.name = name
+        existing.avatar = avatar
         existing.isSpectator = false
       }
       this.broadcast()
@@ -771,19 +776,19 @@ export default class ImposterRoom implements Party.Server {
     }
 
     if (existing) {
-      this.cancelGraceForUser(msg.userId)
-      this.connToUser.set(sender.id, msg.userId)
-      existing.name = msg.name
-      existing.avatar = msg.avatar
+      this.cancelGraceForUser(userId)
+      this.connToUser.set(sender.id, userId)
+      existing.name = name
+      existing.avatar = avatar
       this.broadcast()
       return
     }
 
-    this.connToUser.set(sender.id, msg.userId)
-    this.state.players[msg.userId] = {
-      id: msg.userId,
-      name: msg.name,
-      avatar: msg.avatar,
+    this.connToUser.set(sender.id, userId)
+    this.state.players[userId] = {
+      id: userId,
+      name,
+      avatar,
       isImposter: false,
       hasVoted: false,
       votedFor: null,

@@ -30,7 +30,7 @@ import {
   writeWebDisplayName,
   type WebIdentityMode,
 } from '../lib/web-session'
-import { readWebAvatarPresetId, writeWebAvatarPresetId } from '../lib/web-avatar'
+import { writeWebAvatarPresetId } from '../lib/web-avatar'
 import { webAvatarTokenFromPresetId } from '@/data/avatar-presets'
 import type { DiscordAuthSession } from '../types/discord-auth'
 
@@ -503,10 +503,11 @@ export function useDiscord() {
     }
   }, [embeddedDiscord])
 
+  /** Set only when the active session uses a preset token (`p:id`); otherwise null (e.g. Discord CDN hash). */
   const webAvatarPresetId =
     auth?.user?.avatar?.startsWith('p:') === true
       ? auth.user.avatar.slice(2)
-      : readWebAvatarPresetId()
+      : null
 
   return {
     auth,
