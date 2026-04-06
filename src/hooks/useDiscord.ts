@@ -13,7 +13,10 @@ import {
   initWebSession,
   makeWebAuthSession,
   readWebDisplayName,
+  sendWebPasswordResetEmail,
+  signInWebWithEmail,
   signInWebWithDiscord,
+  signUpWebWithEmail,
   setWebPartyRoomFromCode,
   upsertWebProfileRow,
   writeWebDisplayName,
@@ -74,6 +77,7 @@ export function useDiscord() {
   const [webIdentityMode, setWebIdentityMode] = useState<WebIdentityMode>('guest')
   const [webAuthBusy, setWebAuthBusy] = useState(false)
   const [webProfileError, setWebProfileError] = useState<string | null>(null)
+  const [webProfileInfoKey, setWebProfileInfoKey] = useState<string | null>(null)
   const webModeRef = useRef(false)
   webModeRef.current = webMode
 
@@ -98,6 +102,7 @@ export function useDiscord() {
   const enableWebCloud = useCallback(async () => {
     setWebAuthBusy(true)
     setWebProfileError(null)
+    setWebProfileInfoKey(null)
     try {
       await enableWebCloudProfile()
       await refreshWebSession()
@@ -111,6 +116,7 @@ export function useDiscord() {
   const disableWebCloud = useCallback(async () => {
     setWebAuthBusy(true)
     setWebProfileError(null)
+    setWebProfileInfoKey(null)
     try {
       await disableWebCloudProfile()
       await refreshWebSession()
@@ -124,6 +130,7 @@ export function useDiscord() {
   const signInDiscordOnWeb = useCallback(async () => {
     setWebAuthBusy(true)
     setWebProfileError(null)
+    setWebProfileInfoKey(null)
     try {
       await signInWebWithDiscord()
     } catch (e) {
@@ -133,6 +140,65 @@ export function useDiscord() {
   }, [])
 
   const clearWebProfileError = useCallback(() => setWebProfileError(null), [])
+  const clearWebProfileInfo = useCallback(() => setWebProfileInfoKey(null), [])
+
+  const signUpEmailOnWeb = useCallback(
+    async (email: string, password: string) => {
+      setWebAuthBusy(true)
+      setWebProfileError(null)
+      setWebProfileInfoKey(null)
+      try {
+        const r = await signUpWebWithEmail(email, password)
+        if (r.needsEmailConfirmation) {
+          setWebProfileInfoKey('profile.emailConfirmSent')
+          return
+        }
+        await refreshWebSession()
+      } catch (e) {
+        setWebProfileError(
+          e instanceof Error ? e.message : 'Could not create account'
+        )
+      } finally {
+        setWebAuthBusy(false)
+      }
+    },
+    [refreshWebSession]
+  )
+
+  const signInEmailOnWeb = useCallback(
+    async (email: string, password: string) => {
+      setWebAuthBusy(true)
+      setWebProfileError(null)
+      setWebProfileInfoKey(null)
+      try {
+        await signInWebWithEmail(email, password)
+        await refreshWebSession()
+      } catch (e) {
+        setWebProfileError(
+          e instanceof Error ? e.message : 'Could not sign in'
+        )
+      } finally {
+        setWebAuthBusy(false)
+      }
+    },
+    [refreshWebSession]
+  )
+
+  const resetEmailPasswordOnWeb = useCallback(async (email: string) => {
+    setWebAuthBusy(true)
+    setWebProfileError(null)
+    setWebProfileInfoKey(null)
+    try {
+      await sendWebPasswordResetEmail(email)
+      setWebProfileInfoKey('profile.passwordResetSent')
+    } catch (e) {
+      setWebProfileError(
+        e instanceof Error ? e.message : 'Could not send reset email'
+      )
+    } finally {
+      setWebAuthBusy(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (!embeddedDiscord || !discordBaseRoom) return
@@ -286,11 +352,16 @@ export function useDiscord() {
     webIdentityMode,
     webAuthBusy,
     webProfileError,
+    webProfileInfoKey,
     clearWebProfileError,
+    clearWebProfileInfo,
     setWebDisplayName,
     enableWebCloud,
     disableWebCloud,
     signInDiscordOnWeb,
+    signUpEmailOnWeb,
+    signInEmailOnWeb,
+    resetEmailPasswordOnWeb,
     refreshWebSession,
     joinWebPartyRoom,
     createNewWebLobby,

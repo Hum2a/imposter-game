@@ -190,7 +190,7 @@ When **`JOIN_JWT_REQUIRED=true`** on Partykit, clients must send a short-lived *
 
 ### Optional: per-user round history (Supabase R8)
 
-After **`003_player_rounds.sql`** (and optional **`005_player_rounds_reveal_reason.sql`** for outcome tags in history) is applied, users with a Supabase session get one row per round (after reveal) and a **Recent rounds** list in the web profile header. Guests are unchanged.
+After **`003_player_rounds.sql`** (and optional **`005_player_rounds_reveal_reason.sql`** for outcome tags in history) is applied, users with a Supabase session get one row per round (after reveal) and a **Recent rounds** list in the web profile header. **`006_player_stats.sql`** adds aggregated **Your stats** (wins/losses by role), updated by a trigger on each `player_rounds` insert. Guests are unchanged.
 
 ### i18n (R10)
 
@@ -207,10 +207,10 @@ Strings live in **`src/i18n/locales/en.json`**. Add locales by registering new r
 When the app runs **outside** Discord (normal browser):
 
 1. **Default (guest):** stable `localStorage` user id + display name — no account, no Supabase calls until you opt in.
-2. **Optional cloud:** with Supabase configured, use **Save progress online** (anonymous auth) or **Sign in with Discord** (OAuth via Supabase Auth) for a stable user id and `web_profiles` row. **Play as guest only** signs out of Supabase and returns to the local id.
+2. **Optional cloud:** with Supabase configured, use **Save progress online** (anonymous auth), **email sign-up / sign-in**, or **Sign in with Discord** (OAuth via Supabase Auth) for a stable user id and `web_profiles` row. **Play as guest only** signs out of Supabase and returns to the local id.
 3. **Discord Activity** is unchanged (Embedded SDK + Worker token exchange).
 
-Env: `VITE_SUPABASE_URL` and a client key (`VITE_SUPABASE_ANON_KEY` or publishable keys). Enable **Anonymous sign-ins** for cloud backup; enable the **Discord** provider in Supabase for web Discord login (set redirect URLs). Run `supabase/migrations/` SQL in order (`001`–`005` as needed): profiles, Discord link column, round history, saved word lists, and optional **reveal_reason** on `player_rounds`.
+Env: `VITE_SUPABASE_URL` and a client key (`VITE_SUPABASE_ANON_KEY` or publishable keys). Enable **Anonymous sign-ins** for cloud backup; enable **Email** (and configure confirmation / redirect URLs if required); enable the **Discord** provider for web Discord login (set redirect URLs). Run `supabase/migrations/` SQL in order (`001`–`006` as needed): profiles, Discord link column, round history, saved word lists, optional **reveal_reason** on `player_rounds`, and **player_stats** aggregates.
 
 Do **not** send Supabase JWTs as `accessToken` on `JOIN` — `JOIN_VERIFY` expects a **Discord** OAuth token only.
 

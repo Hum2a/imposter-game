@@ -40,11 +40,16 @@ export default function App() {
     webIdentityMode,
     webAuthBusy,
     webProfileError,
+    webProfileInfoKey,
     clearWebProfileError,
+    clearWebProfileInfo,
     setWebDisplayName,
     enableWebCloud,
     disableWebCloud,
     signInDiscordOnWeb,
+    signUpEmailOnWeb,
+    signInEmailOnWeb,
+    resetEmailPasswordOnWeb,
     isDiscordActivity,
     joinWebPartyRoom,
     createNewWebLobby,
@@ -257,10 +262,15 @@ export default function App() {
             supabaseConfigured={isSupabaseConfigured()}
             busy={webAuthBusy}
             profileError={webProfileError}
+            profileInfoKey={webProfileInfoKey}
             onDismissProfileError={clearWebProfileError}
+            onDismissProfileInfo={clearWebProfileInfo}
             onEnableCloud={enableWebCloud}
             onDisableCloud={disableWebCloud}
             onSignInDiscord={signInDiscordOnWeb}
+            onSignUpEmail={signUpEmailOnWeb}
+            onSignInEmail={signInEmailOnWeb}
+            onResetEmailPassword={resetEmailPasswordOnWeb}
           />
         ) : null}
         <div className="flex flex-1 flex-col">{body}</div>

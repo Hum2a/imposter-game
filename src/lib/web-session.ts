@@ -102,6 +102,7 @@ export type WebIdentityMode =
   | 'guest'
   | 'cloud_anonymous'
   | 'cloud_discord'
+  | 'cloud_email'
   | 'cloud_other'
 
 export function classifySupabaseUser(user: User | null | undefined): WebIdentityMode {
@@ -109,6 +110,7 @@ export function classifySupabaseUser(user: User | null | undefined): WebIdentity
   if (user.is_anonymous === true) return 'cloud_anonymous'
   const providers = user.identities?.map((i) => i.provider) ?? []
   if (providers.includes('discord')) return 'cloud_discord'
+  if (providers.includes('email')) return 'cloud_email'
   if (providers.length > 0) return 'cloud_other'
   return 'cloud_other'
 }
@@ -327,6 +329,58 @@ export async function signInWebWithDiscord(): Promise<void> {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'discord',
     options: { redirectTo },
+  })
+  if (error) throw error
+}
+
+const EMAIL_REDIRECT_PATH = () =>
+  `${window.location.origin}${window.location.pathname}`
+
+/**
+ * Email/password sign-up. If the project requires email confirmation, there may be no session yet —
+ * in that case cloud opt-in is left unchanged so `initWebSession` does not create a competing anonymous user.
+ */
+export async function signUpWebWithEmail(
+  email: string,
+  password: string
+): Promise<{ needsEmailConfirmation: boolean }> {
+  const supabase = getSupabase()
+  if (!supabase) throw new Error('Supabase is not configured')
+  const trimmed = email.trim()
+  if (!trimmed) throw new Error('Enter your email address')
+  const { data, error } = await supabase.auth.signUp({
+    email: trimmed,
+    password,
+    options: { emailRedirectTo: EMAIL_REDIRECT_PATH() },
+  })
+  if (error) throw error
+  if (data.session) {
+    setCloudOptIn(true)
+    return { needsEmailConfirmation: false }
+  }
+  return { needsEmailConfirmation: true }
+}
+
+export async function signInWebWithEmail(email: string, password: string): Promise<void> {
+  const supabase = getSupabase()
+  if (!supabase) throw new Error('Supabase is not configured')
+  const trimmed = email.trim()
+  if (!trimmed) throw new Error('Enter your email address')
+  setCloudOptIn(true)
+  const { error } = await supabase.auth.signInWithPassword({
+    email: trimmed,
+    password,
+  })
+  if (error) throw error
+}
+
+export async function sendWebPasswordResetEmail(email: string): Promise<void> {
+  const supabase = getSupabase()
+  if (!supabase) throw new Error('Supabase is not configured')
+  const trimmed = email.trim()
+  if (!trimmed) throw new Error('Enter your email address')
+  const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
+    redirectTo: EMAIL_REDIRECT_PATH(),
   })
   if (error) throw error
 }
