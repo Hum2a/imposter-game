@@ -258,6 +258,7 @@
     "showPanel": "Account & profile",
     "minimizePanel": "Minimize profile bar",
     "webPlay": "Web play",
+    "whereRoundControls": "Below this panel, on the lobby screen, use the <gs>Game settings</gs> card for word packs, clue timers, vote length, custom words, and Start game (host). Separate <gs>Players</gs> and <gs>Game settings</gs> cards sit side by side on wide screens. Alternate rule modes (e.g. new words every clue round) are not in the game yet — they’re planned on the backlog.",
     "guest": "Guest",
     "onlineBackup": "Online backup",
     "discordAccount": "Discord account",

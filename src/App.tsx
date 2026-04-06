@@ -291,7 +291,7 @@ export default function App() {
       ) : null}
       <SfxProvider>
         <PhaseSfxListener phase={phase} />
-        <div className="flex justify-end items-center gap-3 border-b border-border/60 px-2 sm:px-4">
+        <div className="flex w-full justify-end items-center gap-3 border-b border-border/60 px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
           <ThemeToggle />
           <LanguageSwitcher />
           <SfxToggle />

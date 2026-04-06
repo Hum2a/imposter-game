@@ -147,6 +147,7 @@
     "customRoomCodeHelp": "Opcional: elige un código corto que puedan escribir tus amigos. También sirve uno aleatorio."
   },
   "profile": {
+    "whereRoundControls": "Debajo de este panel, en el lobby, usa la tarjeta <gs>Ajustes de partida</gs> para paquetes de palabras, temporizadores, duración de votación, palabras personalizadas e iniciar partida (anfitrión). En pantallas anchas, <gs>Jugadores</gs> y <gs>Ajustes de partida</gs> van en columnas. Los modos de reglas alternativas (p. ej. palabra nueva cada ronda de pista) aún no están en el juego: están en la hoja de ruta.",
     "avatarPresetLabel": "Avatar",
     "useDiscordProfilePicture": "Usar foto de perfil de Discord",
     "usingDiscordProfilePicture": "Estás usando tu avatar de Discord en la partida.",

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronUp, LogIn, LogOut, User, Users } from 'lucide-react'
 
 import type { Phase } from '@/types/game'
@@ -168,7 +168,7 @@ export function WebProfileControls({
   if (inPlay && !panelOpen) {
     return (
       <header className="sticky top-0 z-20 border-b border-border/80 bg-card/95 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-2">
+        <div className="flex w-full items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
           <span className="min-w-0 truncate text-sm font-medium text-foreground">{displayName}</span>
           <Button
             type="button"
@@ -188,7 +188,7 @@ export function WebProfileControls({
   return (
     <header className="relative border-b bg-card/90 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm">
       {inPlay ? (
-        <div className="mx-auto flex max-w-4xl justify-end px-4 pt-2">
+        <div className="flex w-full justify-end px-4 pt-2 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
           <Button
             type="button"
             variant="ghost"
@@ -201,7 +201,7 @@ export function WebProfileControls({
           </Button>
         </div>
       ) : null}
-      <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-4">
+      <div className="flex w-full flex-col gap-4 px-4 py-4 sm:px-6 lg:gap-6 lg:px-10 lg:py-6 xl:px-12 2xl:px-16">
         {profileInfoKey ? (
           <Alert className="relative border-emerald-600/35 bg-emerald-500/10 text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-950/25 dark:text-emerald-50">
             <AlertTitle>{t('profile.title')}</AlertTitle>
@@ -233,76 +233,95 @@ export function WebProfileControls({
           </Alert>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-foreground">{t('profile.webPlay')}</span>
-          <Separator orientation="vertical" className="hidden h-4 sm:block" />
-          <Badge variant={isGuest ? 'outline' : 'secondary'} className="gap-1 font-normal">
-            <User className="size-3" aria-hidden />
-            {t(identityLabelKey(identityMode))}
-          </Badge>
-          {!supabaseConfigured ? (
-            <span className="text-xs text-muted-foreground">{t('profile.supabaseHint')}</span>
-          ) : null}
-        </div>
+        <div
+          className={
+            supabaseConfigured
+              ? 'grid gap-6 lg:grid-cols-2 lg:gap-8 xl:grid-cols-[minmax(280px,26rem)_minmax(0,1fr)] xl:gap-10'
+              : 'flex flex-col gap-6'
+          }
+        >
+          <div className="flex min-w-0 flex-col gap-4 lg:gap-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-foreground">{t('profile.webPlay')}</span>
+              <Separator orientation="vertical" className="hidden h-4 sm:block" />
+              <Badge variant={isGuest ? 'outline' : 'secondary'} className="gap-1 font-normal">
+                <User className="size-3" aria-hidden />
+                {t(identityLabelKey(identityMode))}
+              </Badge>
+              {!supabaseConfigured ? (
+                <span className="text-xs text-muted-foreground">{t('profile.supabaseHint')}</span>
+              ) : null}
+            </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="min-w-0 flex-1 space-y-2">
-            <Label htmlFor="web-display-name">{t('profile.displayName')}</Label>
-            <Input
-              id="web-display-name"
-              type="text"
-              value={draft}
-              maxLength={40}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder={t('profile.namePlaceholder')}
-              aria-label={t('profile.displayName')}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') onSave(draft)
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              {isGuest ? t('profile.guestHint') : t('profile.cloudHint')}
+            <p className="text-xs leading-relaxed text-muted-foreground xl:max-w-xl">
+              <Trans
+                i18nKey="profile.whereRoundControls"
+                components={{
+                  gs: <span className="font-semibold text-foreground" />,
+                }}
+              />
             </p>
-          </div>
-          <Button
-            type="button"
-            className="shrink-0 sm:min-w-[5rem]"
-            disabled={busy}
-            onClick={() => onSave(draft)}
-          >
-            {t('profile.saveName')}
-          </Button>
-        </div>
 
-        {onAvatarPresetChange ? (
-          <div className="space-y-3">
-            <AvatarPresetPicker
-              value={avatarPresetId}
-              onChange={onAvatarPresetChange}
-              disabled={busy}
-            />
-            {identityMode === 'cloud_discord' && onUseDiscordProfilePicture ? (
-              <div className="space-y-1.5">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={busy || usesDiscordProfileAvatar}
-                  onClick={() => void onUseDiscordProfilePicture()}
-                >
-                  {t('profile.useDiscordProfilePicture')}
-                </Button>
-                {usesDiscordProfileAvatar ? (
-                  <p className="text-xs text-muted-foreground">
-                    {t('profile.usingDiscordProfilePicture')}
-                  </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1 space-y-2">
+                <Label htmlFor="web-display-name">{t('profile.displayName')}</Label>
+                <Input
+                  id="web-display-name"
+                  type="text"
+                  value={draft}
+                  maxLength={40}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder={t('profile.namePlaceholder')}
+                  aria-label={t('profile.displayName')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') onSave(draft)
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {isGuest ? t('profile.guestHint') : t('profile.cloudHint')}
+                </p>
+              </div>
+              <Button
+                type="button"
+                className="shrink-0 sm:min-w-[5rem]"
+                disabled={busy}
+                onClick={() => onSave(draft)}
+              >
+                {t('profile.saveName')}
+              </Button>
+            </div>
+
+            {onAvatarPresetChange ? (
+              <div className="space-y-3">
+                <AvatarPresetPicker
+                  value={avatarPresetId}
+                  onChange={onAvatarPresetChange}
+                  disabled={busy}
+                />
+                {identityMode === 'cloud_discord' && onUseDiscordProfilePicture ? (
+                  <div className="space-y-1.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={busy || usesDiscordProfileAvatar}
+                      onClick={() => void onUseDiscordProfilePicture()}
+                    >
+                      {t('profile.useDiscordProfilePicture')}
+                    </Button>
+                    {usesDiscordProfileAvatar ? (
+                      <p className="text-xs text-muted-foreground">
+                        {t('profile.usingDiscordProfilePicture')}
+                      </p>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             ) : null}
           </div>
-        ) : null}
 
-        {supabaseConfigured ? (
+          {supabaseConfigured ? (
+            <div className="flex min-w-0 flex-col gap-4 lg:gap-6">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -462,7 +481,6 @@ export function WebProfileControls({
             </CardContent>
             <p className="px-6 pb-4 text-xs text-muted-foreground">{t('profile.footerHint')}</p>
           </Card>
-        ) : null}
 
         {supabaseConfigured && !isGuest ? (
           <WebAccountSettingsSection
@@ -513,6 +531,9 @@ export function WebProfileControls({
         ) : null}
 
         {supabaseConfigured && !isGuest ? <WebGameHistoryCard /> : null}
+            </div>
+          ) : null}
+        </div>
       </div>
     </header>
   )
