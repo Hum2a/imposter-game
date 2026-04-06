@@ -1,4 +1,9 @@
 import type * as Party from 'partykit/server'
+import {
+  discordActivityOriginsAllowed,
+  isWebSocketOriginAllowed,
+  parseAllowedWebOrigins,
+} from './allowed-origins'
 import { verifyPartyJoinJwt } from './join-jwt'
 import { DEFAULT_WORD_PACK_ID, getWordPack, isValidPackId } from './word-packs'
 import { pairFailsProfanityFilter, textFailsProfanityFilter } from './word-profanity'
@@ -132,6 +137,22 @@ function normalizeClueText(raw: string): string | null {
 }
 
 export default class ImposterRoom implements Party.Server {
+  static onBeforeConnect(request: Party.Request, lobby: Party.Lobby) {
+    const raw = lobby.env.ALLOWED_WEB_ORIGINS
+    const allowed = parseAllowedWebOrigins(typeof raw === 'string' ? raw : undefined)
+    if (allowed.length === 0) return request
+    const allowDiscord = discordActivityOriginsAllowed(
+      typeof lobby.env.ALLOW_DISCORD_ACTIVITY_ORIGINS === 'string'
+        ? lobby.env.ALLOW_DISCORD_ACTIVITY_ORIGINS
+        : undefined
+    )
+    const origin = request.headers.get('Origin')
+    if (!isWebSocketOriginAllowed(origin, allowed, allowDiscord)) {
+      return new Response('Forbidden origin', { status: 403 })
+    }
+    return request
+  }
+
   state: GameState
   private readonly connToUser = new Map<string, string>()
   private clueTimer: ReturnType<typeof setTimeout> | null = null

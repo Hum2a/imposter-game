@@ -401,7 +401,9 @@ export function useDiscord() {
     setWebMode(false)
 
     if (!clientId) {
-      setError('Missing VITE_DISCORD_CLIENT_ID inside Discord Activity.')
+      setError(
+        'Discord app ID missing from this build. VITE_DISCORD_CLIENT_ID must be set when you run the production build (Cloudflare Pages env vars, or .env.deploy for wrangler deploy).'
+      )
       return
     }
 

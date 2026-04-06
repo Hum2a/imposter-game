@@ -128,6 +128,8 @@ npm run deploy       # or: npx partykit deploy
 
 Note the production host (e.g. `something.username.partykit.dev`). Set **`VITE_PARTYKIT_HOST`** in Pages to that host **without** a protocol (same format as local: `host:port` or hostname).
 
+**Browser origins (optional):** In `.env.deploy`, set **`ALLOWED_WEB_ORIGINS`** to a comma-separated list of full origins for your live site (e.g. `https://imposter-game.site`). Leave empty to allow all origins. When non-empty, **`https://<CLIENT_ID>.discordsays.com`** is still allowed for Discord Activities unless you set **`ALLOW_DISCORD_ACTIVITY_ORIGINS=false`**. If you point local Vite at production Partykit with an allowlist enabled, add `http://127.0.0.1:5173` (and/or `http://localhost:5173`) to the list.
+
 ### 4. Cloudflare Pages (frontend)
 
 1. Connect this GitHub repo to **Cloudflare Pages**.

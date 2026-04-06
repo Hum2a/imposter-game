@@ -146,6 +146,8 @@ function cmdPartykit(vars) {
   const wordProfanity = vars.WORD_PROFANITY_FILTER ?? 'false'
   const joinJwtRequired = vars.JOIN_JWT_REQUIRED ?? 'false'
   const joinJwtSecret = vars.JOIN_JWT_SECRET ?? ''
+  const allowedWebOrigins = vars.ALLOWED_WEB_ORIGINS ?? ''
+  const allowDiscordActivityOrigins = vars.ALLOW_DISCORD_ACTIVITY_ORIGINS ?? 'true'
   const args = [
     'deploy',
     '-c',
@@ -158,12 +160,16 @@ function cmdPartykit(vars) {
     `JOIN_JWT_REQUIRED=${joinJwtRequired}`,
     '--var',
     `JOIN_JWT_SECRET=${joinJwtSecret}`,
+    '--var',
+    `ALLOWED_WEB_ORIGINS=${allowedWebOrigins}`,
+    '--var',
+    `ALLOW_DISCORD_ACTIVITY_ORIGINS=${allowDiscordActivityOrigins}`,
   ]
   if (vars.PARTYKIT_DEPLOY_NAME?.trim()) {
     args.push('-n', vars.PARTYKIT_DEPLOY_NAME.trim())
   }
   console.log(
-    `[deploy] partykit deploy (JOIN_VERIFY=${joinVerify}, WORD_PROFANITY_FILTER=${wordProfanity}, JOIN_JWT_REQUIRED=${joinJwtRequired})`
+    `[deploy] partykit deploy (JOIN_VERIFY=${joinVerify}, WORD_PROFANITY_FILTER=${wordProfanity}, JOIN_JWT_REQUIRED=${joinJwtRequired}, ALLOWED_WEB_ORIGINS=${allowedWebOrigins ? '[set]' : '[empty]'})`
   )
   runPartykit(args)
   console.log('[deploy] partykit done')

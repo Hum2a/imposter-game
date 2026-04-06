@@ -7,7 +7,9 @@
     "JOIN_VERIFY": "false",
     "WORD_PROFANITY_FILTER": "false",
     "JOIN_JWT_REQUIRED": "false",
-    "JOIN_JWT_SECRET": ""
+    "JOIN_JWT_SECRET": "",
+    "ALLOWED_WEB_ORIGINS": "",
+    "ALLOW_DISCORD_ACTIVITY_ORIGINS": "true"
   },
   "serve": {
     "path": "public",
