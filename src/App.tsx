@@ -14,6 +14,7 @@ import { trackEvent } from './lib/analytics'
 import { isSupabaseConfigured } from './lib/supabase-client'
 import { useParty } from './hooks/useParty'
 import { useRecordLobbyJoin } from './hooks/useRecordLobbyJoin'
+import { normalizedPartyKitHost } from './lib/partykit-host'
 import { fetchPartyJoinJwt, usePartyJoinJwtEnabled } from './lib/party-jwt-mint'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
 import { ThemeToggle } from './components/ThemeToggle'
@@ -75,7 +76,7 @@ export default function App() {
     discordLobbySuffix,
     setDiscordLobbySuffix,
   } = useDiscord()
-  const partyHost = import.meta.env.VITE_PARTYKIT_HOST
+  const partyHost = normalizedPartyKitHost()
   const { gameState, send, connection, socketOpenNonce, partyErrorCode, clearPartyError } =
     useParty(partyRoomId ?? undefined, auth?.user.id)
 

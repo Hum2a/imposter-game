@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import PartySocket from 'partysocket'
 import { DEFAULT_WORD_PACK_ID } from '../data/word-pack-options'
+import { normalizedPartyKitHost } from '@/lib/partykit-host'
 import type { ClientMessage, GameSettings, GameState, RoomStats } from '../types/game'
 
 const defaultStats = (): RoomStats => ({
@@ -54,9 +55,9 @@ export function useParty(roomId: string | undefined, userId: string | undefined)
   useEffect(() => {
     if (!roomId || !userId) return
 
-    const host = import.meta.env.VITE_PARTYKIT_HOST
+    const host = normalizedPartyKitHost()
     if (!host) {
-      console.warn('VITE_PARTYKIT_HOST is not set')
+      console.warn('VITE_PARTYKIT_HOST is not set or empty after normalizing')
       return
     }
 
