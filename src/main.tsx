@@ -2,29 +2,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './i18n/config'
 import './index.css'
-import App from './App.tsx'
-import { PrivacyPage } from './legal/PrivacyPage'
-import { TermsPage } from './legal/TermsPage'
+import { Root } from './Root.tsx'
 import { initAnalytics, trackEvent } from './lib/analytics'
 import { initTheme } from './lib/theme'
-
-function normalizePath(pathname: string) {
-  const p = pathname.replace(/\/+$/, '') || '/'
-  return p
-}
-
-function Root() {
-  if (typeof window !== 'undefined') {
-    const path = normalizePath(window.location.pathname)
-    if (path === '/terms') {
-      return <TermsPage />
-    }
-    if (path === '/privacy') {
-      return <PrivacyPage />
-    }
-  }
-  return <App />
-}
 
 initAnalytics()
 

@@ -11,10 +11,13 @@ import type { Phase } from '@/types/game'
 import { cn } from '@/lib/utils'
 
 function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false)
+  const [reduced, setReduced] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false
+  )
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    setReduced(mq.matches)
     const onChange = () => setReduced(mq.matches)
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
@@ -43,11 +46,13 @@ export function PhaseScreenTransition({ phase, children }: PhaseScreenTransition
   useEffect(() => {
     if (phase === displayed) return
     if (prefersReducedMotion) {
-      setDisplayed(phase)
-      setStatus('shown')
+      queueMicrotask(() => {
+        setDisplayed(phase)
+        setStatus('shown')
+      })
       return
     }
-    setStatus('hiding')
+    queueMicrotask(() => setStatus('hiding'))
   }, [phase, displayed, prefersReducedMotion])
 
   useLayoutEffect(() => {

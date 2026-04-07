@@ -526,7 +526,7 @@ export function useDiscord() {
         /* not subscribed yet */
       }
     }
-  }, [embeddedDiscord])
+  }, [embeddedDiscord, syncWebSupabaseAccountMeta])
 
   /** Set only when the active session uses a preset token (`p:id`); otherwise null (e.g. Discord CDN hash). */
   const webAvatarPresetId =

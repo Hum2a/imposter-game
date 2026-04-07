@@ -75,10 +75,7 @@ export default function Reveal({ gameState, isHost, send, auth, partyRoomId }: R
     gameState.stats.roundsCompleted,
     gameState.players,
     isHost,
-    me?.id,
-    me?.isSpectator,
-    me?.isImposter,
-    me?.votedFor,
+    me,
   ])
 
   const winnerLabel =

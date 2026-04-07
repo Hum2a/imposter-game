@@ -7,7 +7,11 @@ import type { GameState } from '@/types/game'
  * Once per (party room, user) while connected, records a cloud usage event when the player appears
  * in game state (after JOIN is accepted). No-ops without Supabase session.
  */
-export function useRecordLobbyJoin(opts: {
+export function useRecordLobbyJoin({
+  partyRoomId,
+  userId,
+  gameState,
+}: {
   partyRoomId: string | undefined
   userId: string | undefined
   gameState: GameState | null
@@ -15,7 +19,6 @@ export function useRecordLobbyJoin(opts: {
   const recordedKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
-    const { partyRoomId, userId, gameState } = opts
     if (!partyRoomId || !userId || !gameState) return
     const me = gameState.players[userId]
     if (!me) return
@@ -29,5 +32,5 @@ export function useRecordLobbyJoin(opts: {
       phase: gameState.phase,
       is_spectator: me.isSpectator === true,
     })
-  }, [opts.partyRoomId, opts.userId, opts.gameState])
+  }, [partyRoomId, userId, gameState])
 }
