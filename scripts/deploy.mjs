@@ -9,7 +9,7 @@
  *   all       — worker → partykit → pages (recommended order)
  *   worker    — push Discord secrets + wrangler deploy -c wrangler.worker.toml
  *   partykit  — partykit deploy with JOIN_VERIFY from env
- *   pages     — Vite build with all VITE_* from file (incl. optional Supabase) + wrangler pages deploy
+ *   pages     — Vite build: strips inherited shell VITE_* then merges .env.deploy (PartyKit + optional Supabase) + wrangler pages deploy
  *   sync      — only push Worker secrets (no deploys)
  */
 
