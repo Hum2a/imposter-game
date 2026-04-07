@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { WORD_PACK_OPTIONS } from '../data/word-pack-options'
 import { wordPackHint, wordPackLabel } from '@/lib/word-pack-i18n'
 import { buildWebInviteUrl, displayInviteCodeFromPartyRoomId } from '../lib/party-room'
@@ -652,58 +653,68 @@ export default function Lobby({
                   />
                 </div>
               </div>
-              <label
+              <div
                 className={cn(
-                  'flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-muted/15 p-3 transition-colors hover:bg-muted/25'
+                  'flex items-start justify-between gap-4 rounded-xl border border-border/90 bg-muted/10 p-4 shadow-sm transition-colors',
+                  'hover:border-primary/25 hover:bg-muted/20'
                 )}
               >
-                <input
-                  type="checkbox"
-                  className="mt-0.5 size-4 shrink-0 rounded border-input accent-primary"
-                  checked={gameState.gameSettings.newWordPairEachClueCycle}
-                  onChange={(e) => {
-                    onDismissPartyError?.()
-                    send({
-                      type: 'SET_GAME_SETTINGS',
-                      newWordPairEachClueCycle: e.target.checked,
-                    })
-                  }}
-                />
-                <span className="min-w-0 space-y-1">
-                  <span className="block text-sm font-medium text-foreground">
+                <div className="min-w-0 flex-1 space-y-1 pr-1">
+                  <Label
+                    htmlFor="lobby-setting-new-words"
+                    className="cursor-pointer text-sm font-semibold leading-snug text-foreground"
+                  >
                     {t('lobby.newWordPairEachClueCycleLabel')}
-                  </span>
-                  <span className="block text-xs leading-snug text-muted-foreground">
+                  </Label>
+                  <p
+                    id="lobby-setting-new-words-desc"
+                    className="text-xs leading-relaxed text-muted-foreground"
+                  >
                     {t('lobby.newWordPairEachClueCycleHelp')}
-                  </span>
-                </span>
-              </label>
-              <label
+                  </p>
+                </div>
+                <Switch
+                  id="lobby-setting-new-words"
+                  checked={gameState.gameSettings.newWordPairEachClueCycle}
+                  onCheckedChange={(next) => {
+                    onDismissPartyError?.()
+                    send({ type: 'SET_GAME_SETTINGS', newWordPairEachClueCycle: next })
+                  }}
+                  aria-describedby="lobby-setting-new-words-desc"
+                  className="mt-0.5"
+                />
+              </div>
+              <div
                 className={cn(
-                  'flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-muted/15 p-3 transition-colors hover:bg-muted/25'
+                  'flex items-start justify-between gap-4 rounded-xl border border-border/90 bg-muted/10 p-4 shadow-sm transition-colors',
+                  'hover:border-primary/25 hover:bg-muted/20'
                 )}
               >
-                <input
-                  type="checkbox"
-                  className="mt-0.5 size-4 shrink-0 rounded border-input accent-primary"
-                  checked={gameState.gameSettings.rotateHostEachRound}
-                  onChange={(e) => {
-                    onDismissPartyError?.()
-                    send({
-                      type: 'SET_GAME_SETTINGS',
-                      rotateHostEachRound: e.target.checked,
-                    })
-                  }}
-                />
-                <span className="min-w-0 space-y-1">
-                  <span className="block text-sm font-medium text-foreground">
+                <div className="min-w-0 flex-1 space-y-1 pr-1">
+                  <Label
+                    htmlFor="lobby-setting-rotate-host"
+                    className="cursor-pointer text-sm font-semibold leading-snug text-foreground"
+                  >
                     {t('lobby.rotateHostEachRoundLabel')}
-                  </span>
-                  <span className="block text-xs leading-snug text-muted-foreground">
+                  </Label>
+                  <p
+                    id="lobby-setting-rotate-host-desc"
+                    className="text-xs leading-relaxed text-muted-foreground"
+                  >
                     {t('lobby.rotateHostEachRoundHelp')}
-                  </span>
-                </span>
-              </label>
+                  </p>
+                </div>
+                <Switch
+                  id="lobby-setting-rotate-host"
+                  checked={gameState.gameSettings.rotateHostEachRound}
+                  onCheckedChange={(next) => {
+                    onDismissPartyError?.()
+                    send({ type: 'SET_GAME_SETTINGS', rotateHostEachRound: next })
+                  }}
+                  aria-describedby="lobby-setting-rotate-host-desc"
+                  className="mt-0.5"
+                />
+              </div>
             </div>
           ) : null}
           {isHost ? (
