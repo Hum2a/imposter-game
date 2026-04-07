@@ -12,6 +12,7 @@ Start here when you need depth beyond the root [README](../README.md).
 | [GAMEPLAY_V2_CHECKLIST.md](./GAMEPLAY_V2_CHECKLIST.md) | Gameplay iteration checklist. |
 | [FRIENDS_ROADMAP.md](./FRIENDS_ROADMAP.md) | Friends / social roadmap notes. |
 | [USER_FEEDBACK_BACKLOG.md](./USER_FEEDBACK_BACKLOG.md) | User feedback backlog. |
+| [PORTFOLIO_HANDOFF.md](./PORTFOLIO_HANDOFF.md) | **Portfolio / agent handoff** — product summary, impressive technical angles, link placeholders, repo map. |
 
 **Supabase:** apply SQL under [`../supabase/migrations/`](../supabase/migrations/) in numeric order (see README “Website auth” section).
 
