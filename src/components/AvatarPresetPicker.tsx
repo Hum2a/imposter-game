@@ -24,7 +24,7 @@ export function AvatarPresetPicker({
         {t('profile.avatarPresetLabel')}
       </p>
       <div
-        className="flex flex-wrap gap-2"
+        className="grid w-full gap-2 [grid-template-columns:repeat(auto-fill,minmax(3rem,1fr))] sm:[grid-template-columns:repeat(auto-fill,minmax(3.25rem,1fr))]"
         role="listbox"
         aria-label={t('profile.avatarPresetLabel')}
       >
@@ -39,7 +39,7 @@ export function AvatarPresetPicker({
               aria-selected={selected}
               onClick={() => onChange(p.id)}
               className={cn(
-                'grid size-11 shrink-0 place-items-center rounded-full border-2 text-xl leading-none transition-[border-color,box-shadow,opacity]',
+                'flex aspect-square w-full min-w-0 items-center justify-center rounded-lg border-2 text-xl leading-none transition-[border-color,box-shadow,opacity]',
                 'hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 selected
                   ? 'border-primary bg-primary/10 shadow-sm'

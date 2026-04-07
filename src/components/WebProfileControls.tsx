@@ -219,7 +219,10 @@ export function WebProfileControls({
       >
         <div className="min-h-0 overflow-hidden">
           <div
-            className="flex w-full flex-col gap-4 px-4 pb-4 pt-1 sm:px-6 lg:gap-6 lg:px-10 lg:pb-6 lg:pt-2 xl:px-12 2xl:px-16"
+            className={cn(
+              'max-h-[min(75dvh,calc(100svh-5.5rem))] overflow-y-auto overscroll-contain touch-pan-y',
+              'flex w-full flex-col gap-4 px-4 pb-4 pt-1 sm:px-6 lg:gap-6 lg:px-10 lg:pb-6 lg:pt-2 xl:px-12 2xl:px-16'
+            )}
             inert={!panelOpen}
             aria-hidden={!panelOpen}
           >
