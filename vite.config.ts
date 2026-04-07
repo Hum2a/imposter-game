@@ -71,12 +71,10 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(process.cwd(), './src'),
       },
     },
-    server: {
-      headers: {
-        'Cross-Origin-Opener-Policy': 'same-origin',
-        'Cross-Origin-Embedder-Policy': 'require-corp',
-      },
-    },
+    // No COOP/COEP here: `require-corp` can block dev-served CSS/JS unless every subresource sends CORP.
+    // Cloudflare Pages: avoid `public/_redirects` with `/* /index.html 200` — CF applies redirects *before*
+    // static files, so hashed `/assets/*.css` would get HTML and look “unstyled”. Without a root `404.html`,
+    // Pages already treats the site as an SPA (deep links fall through to the app).
     plugins: [
       tailwindcss(),
       discordTokenDevPlugin(env),

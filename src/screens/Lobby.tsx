@@ -80,13 +80,19 @@ export default function Lobby({
       const key = `${nw.word}\n${nw.imposterWord}`
       if (lastServerNextWordsKey.current !== key) {
         lastServerNextWordsKey.current = key
-        setCrewWord(nw.word)
-        setImposterWord(nw.imposterWord)
+        const crew = nw.word
+        const imp = nw.imposterWord
+        queueMicrotask(() => {
+          setCrewWord(crew)
+          setImposterWord(imp)
+        })
       }
     } else if (!gameState.hasCustomNextRound) {
       lastServerNextWordsKey.current = null
-      setCrewWord('')
-      setImposterWord('')
+      queueMicrotask(() => {
+        setCrewWord('')
+        setImposterWord('')
+      })
     }
   }, [isHost, gameState.nextRoundWords, gameState.hasCustomNextRound])
 
