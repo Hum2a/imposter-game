@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Avatar } from '../components/Avatar'
 import { GameScreen } from '../components/layout/GameScreen'
@@ -69,6 +69,25 @@ export default function Lobby({
   const [pasteText, setPasteText] = useState('')
   const [pasteHint, setPasteHint] = useState<string | null>(null)
   const [newLobbyModalOpen, setNewLobbyModalOpen] = useState(false)
+  /** Avoid clobbering host edits on unrelated broadcasts; sync when server preview changes. */
+  const lastServerNextWordsKey = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!isHost) return
+    const nw = gameState.nextRoundWords
+    if (nw) {
+      const key = `${nw.word}\n${nw.imposterWord}`
+      if (lastServerNextWordsKey.current !== key) {
+        lastServerNextWordsKey.current = key
+        setCrewWord(nw.word)
+        setImposterWord(nw.imposterWord)
+      }
+    } else if (!gameState.hasCustomNextRound) {
+      lastServerNextWordsKey.current = null
+      setCrewWord('')
+      setImposterWord('')
+    }
+  }, [isHost, gameState.nextRoundWords, gameState.hasCustomNextRound])
 
   const webShareCode = partyRoomId.startsWith('lobby-')
     ? displayInviteCodeFromPartyRoomId(partyRoomId)

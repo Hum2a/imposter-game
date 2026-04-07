@@ -133,6 +133,21 @@ export function useParty(roomId: string | undefined, userId: string | undefined)
               ? (g.cluesSubmitted as Record<string, boolean>)
               : undefined,
           clueStrictWord: typeof g.clueStrictWord === 'boolean' ? g.clueStrictWord : undefined,
+          nextRoundWords: (() => {
+            const nw = g.nextRoundWords
+            if (
+              nw &&
+              typeof nw === 'object' &&
+              typeof (nw as { word?: unknown }).word === 'string' &&
+              typeof (nw as { imposterWord?: unknown }).imposterWord === 'string'
+            ) {
+              return {
+                word: (nw as { word: string }).word,
+                imposterWord: (nw as { imposterWord: string }).imposterWord,
+              }
+            }
+            return undefined
+          })(),
         })
       } catch {
         /* ignore */

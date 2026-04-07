@@ -58,8 +58,13 @@ export interface GameState {
   /** Server deadline for casting votes (voting only); absent voters auto-skip. */
   voteEndsAt: number | null
   stats: RoomStats
-  /** True when the host locked in a custom word pair for the next start (words are not broadcast). */
+  /** True when the host locked in a custom word pair for the next start. */
   hasCustomNextRound: boolean
+  /**
+   * Lobby only, **host connection only**: preview of the locked-in next pair (paste / random pack / apply).
+   * Omitted for non-hosts so guests cannot read the words before start.
+   */
+  nextRoundWords?: { word: string; imposterWord: string }
   /** Curated pack used when there is no custom pair for the next round. */
   wordPackId: string
   gameSettings: GameSettings

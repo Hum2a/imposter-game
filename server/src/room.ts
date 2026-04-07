@@ -463,6 +463,20 @@ export default class ImposterRoom implements Party.Server {
       base.cluesSubmitted = undefined
     }
     base.clueStrictWord = strictClueWordEnabled(this.room.env)
+
+    if (
+      this.state.phase === 'lobby' &&
+      viewerId === this.state.hostId &&
+      this.nextCustomPair
+    ) {
+      base.nextRoundWords = {
+        word: this.nextCustomPair.word,
+        imposterWord: this.nextCustomPair.imposterWord,
+      }
+    } else {
+      base.nextRoundWords = undefined
+    }
+
     return base
   }
 
