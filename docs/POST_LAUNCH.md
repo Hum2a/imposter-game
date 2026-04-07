@@ -16,6 +16,12 @@ Track verification, ops, and follow-up work after deploying Pages, Worker, and P
 - [x] **Worker** secrets: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`.
 - [x] Redeploy **Pages** after changing any `VITE_*` variable (values are baked at build time).
 
+### Git-connected Pages + `npm run deploy`
+
+If the same Pages project **builds from Git** and you also run **`wrangler pages deploy`** locally, the **main `*.pages.dev` URL** can keep serving the **Git-built** bundle (often missing `VITE_*` unless set in the Cloudflare dashboard). Your CLI log’s **unique** URL (e.g. `https://<hash>.<project>.pages.dev`) may be the only place the Wrangler upload appears.
+
+**Fix (pick one):** (1) Add `VITE_PARTYKIT_HOST`, `VITE_DISCORD_CLIENT_ID`, `VITE_DISCORD_TOKEN_URL` under **Pages → Settings → Environment variables** for Production so Git builds embed them; (2) set **`CF_PAGES_BRANCH=main`** (or your production branch) in **`.env.deploy`** so `deploy:pages` passes `--branch` and updates that branch’s production deployment; (3) disable automatic Git builds if you only want Wrangler uploads.
+
 ## 3. Discord Developer Portal
 
 - [x] **URL mappings**: Activity root → Pages URL; `/api/token` → Worker (if you use path-based routing).

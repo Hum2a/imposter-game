@@ -192,8 +192,15 @@ function cmdPages(vars) {
   if (build.error) throw build.error
   if (build.status !== 0 && build.status !== null) process.exit(build.status)
 
-  console.log(`[deploy] wrangler pages deploy dist → ${project}`)
-  runWrangler(['pages', 'deploy', 'dist', '--project-name', project], { cwd: root, env })
+  const branch = vars.CF_PAGES_BRANCH?.trim()
+  const pagesArgs = ['pages', 'deploy', 'dist', '--project-name', project]
+  if (branch) {
+    pagesArgs.push('--branch', branch)
+    console.log(`[deploy] wrangler pages deploy dist → ${project} (branch=${branch})`)
+  } else {
+    console.log(`[deploy] wrangler pages deploy dist → ${project}`)
+  }
+  runWrangler(pagesArgs, { cwd: root, env })
   console.log('[deploy] pages done')
 }
 
