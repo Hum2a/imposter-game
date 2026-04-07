@@ -22,7 +22,7 @@ jobs:
       # GitHub Actions: run checkout/setup-node on Node 24 (Node 20 runner deprecation)
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v4
         with:
