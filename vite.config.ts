@@ -16,11 +16,15 @@ export default defineConfig(({ mode }) => {
 
   if (mode === 'production' && process.env.CF_PAGES === '1') {
     const partyHost = (effectiveViteEnv('VITE_PARTYKIT_HOST', env) ?? '').trim()
+    const branch = process.env.CF_PAGES_BRANCH ?? '(unknown branch)'
     if (!partyHost) {
-      throw new Error(
-        '[vite] Cloudflare Pages: VITE_PARTYKIT_HOST is not set for this build. ' +
-          'Dashboard → Workers & Pages → your project → Settings → Environment variables → add VITE_PARTYKIT_HOST for **Production** ' +
-          '(Preview-only variables are not used for production deployments). Use your PartyKit hostname only (no https://). Then redeploy.'
+      console.error(
+        '\n[vite] Cloudflare Pages build: VITE_PARTYKIT_HOST is missing or empty.\n' +
+          `  Branch: ${branch}\n` +
+          '  → Dashboard → Workers & Pages → your project → Settings → Environment variables\n' +
+          '  → Add VITE_PARTYKIT_HOST for **Production** (production URL uses Production vars).\n' +
+          '  → Add the same for **Preview** if you use preview deployments (PR/branch builds).\n' +
+          '  → Hostname only, e.g. server.user.partykit.dev (no https://).\n'
       )
     }
   }
