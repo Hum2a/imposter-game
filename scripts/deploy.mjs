@@ -9,7 +9,7 @@
  *   all       — worker → partykit → pages (recommended order)
  *   worker    — push Discord secrets + wrangler deploy -c wrangler.worker.toml
  *   partykit  — partykit deploy with JOIN_VERIFY from env
- *   pages     — Vite build with VITE_* from file + wrangler pages deploy
+ *   pages     — Vite build with all VITE_* from file (incl. optional Supabase) + wrangler pages deploy
  *   sync      — only push Worker secrets (no deploys)
  */
 
@@ -73,6 +73,16 @@ function loadDeployEnv() {
 /** Merge deploy vars into process.env for child builds. */
 function withDeployEnv(vars) {
   return { ...process.env, ...vars }
+}
+
+/** True if Vite will bake a Supabase client (same rules as `src/lib/supabase-client.ts`). */
+function deployEnvHasSupabase(vars) {
+  const url = vars.VITE_SUPABASE_URL?.trim()
+  const key =
+    vars.VITE_SUPABASE_ANON_KEY?.trim() ||
+    vars.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY?.trim() ||
+    vars.VITE_SUPABASE_PUBLISHABLE_KEY?.trim()
+  return Boolean(url && key)
 }
 
 /**
@@ -183,6 +193,11 @@ function cmdPages(vars) {
   }
   const env = withDeployEnv(vars)
   console.log('[deploy] npm run build (VITE_* from .env.deploy)')
+  console.log(
+    deployEnvHasSupabase(vars)
+      ? '[deploy] Supabase: URL + client key present → will be embedded in the bundle'
+      : '[deploy] Supabase: not configured in this env file → cloud profile/history/lists disabled in build (add VITE_SUPABASE_URL + one key; mirror in Cloudflare Pages if builds run from Git)'
+  )
   const build = spawnSync('npm', ['run', 'build'], {
     cwd: root,
     env,

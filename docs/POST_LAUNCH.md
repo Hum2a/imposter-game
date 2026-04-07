@@ -12,7 +12,7 @@ Track verification, ops, and follow-up work after deploying Pages, Worker, and P
 ## 2. Confirm environment wiring
 
 - [x] **Pages** build env: `VITE_DISCORD_CLIENT_ID`, `VITE_PARTYKIT_HOST`, `VITE_DISCORD_TOKEN_URL` (if Worker is not same-origin). Easiest: keep them in **`.env.deploy`** and run `npm run deploy:pages` (or `npm run deploy`) so the Vite build picks them up.
-- [ ] **Optional website:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` + `supabase/migrations/001_web_profiles.sql` + Anonymous sign-in enabled in Supabase.
+- [ ] **Supabase (optional but required for cloud features):** Add to **`.env.deploy`** so `npm run deploy` embeds them, **and** duplicate the same `VITE_SUPABASE_*` variables under **Cloudflare Pages → Settings → Environment variables → Production** if the project also builds from Git (otherwise production may ship without Supabase). Required pair: `VITE_SUPABASE_URL` + exactly one of `VITE_SUPABASE_ANON_KEY`, `VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, or `VITE_SUPABASE_PUBLISHABLE_KEY`. Run `supabase/migrations/` in order; enable Anonymous / Email / Discord in Supabase Auth as needed; set **Site URL** and **Redirect URLs** to your live Pages origin.
 - [x] **Worker** secrets: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`.
 - [x] Redeploy **Pages** after changing any `VITE_*` variable (values are baked at build time).
 
