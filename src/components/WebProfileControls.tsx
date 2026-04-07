@@ -21,6 +21,7 @@ import {
 } from '@/lib/password-policy'
 import { fetchPlayerStats, type PlayerStatsSnapshot } from '@/lib/player-stats'
 import type { WebIdentityMode } from '@/lib/web-session'
+import { cn } from '@/lib/utils'
 
 type WebProfileControlsProps = {
   displayName: string
@@ -171,55 +172,57 @@ export function WebProfileControls({
     void onResetEmailPassword(email)
   }
 
-  if (!panelOpen) {
-    return (
-      <header
-        className="sticky top-0 z-20 border-b border-border/80 bg-card/95 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm"
-        aria-label={t('profile.collapsedBarAria')}
-      >
-        <div className="flex w-full items-center gap-3 px-4 py-2 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
-          <Avatar
-            user={{ id: profileUserId, name: displayName, avatar: profileAvatarWire }}
-            size={36}
-            className="shrink-0"
-          />
-          <div className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium text-foreground">{displayName}</span>
+  return (
+    <header
+      className="sticky top-0 z-20 border-b border-border/80 bg-card/95 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm"
+      aria-label={t('profile.collapsedBarAria')}
+    >
+      <div className="flex w-full items-center gap-3 px-4 py-2 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
+        <Avatar
+          user={{ id: profileUserId, name: displayName, avatar: profileAvatarWire }}
+          size={36}
+          className="shrink-0"
+        />
+        <div className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium text-foreground">{displayName}</span>
+          {!panelOpen ? (
             <span className="block text-xs leading-snug text-muted-foreground">
               {t('profile.collapsedHint')}
             </span>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-9 shrink-0 gap-1.5"
-            onClick={() => setPanelOpen(true)}
-            aria-label={t('profile.showPanelAria')}
-          >
-            <ChevronDown className="size-4" aria-hidden />
-            {t('profile.showPanel')}
-          </Button>
+          ) : null}
         </div>
-      </header>
-    )
-  }
-
-  return (
-    <header className="relative border-b bg-card/90 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm">
-      <div className="flex w-full justify-end px-4 pt-2 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
         <Button
           type="button"
-          variant="ghost"
+          variant={panelOpen ? 'ghost' : 'outline'}
           size="sm"
-          className="h-8 gap-1 text-muted-foreground"
-          onClick={() => setPanelOpen(false)}
+          className={cn('h-9 shrink-0 gap-1.5', panelOpen && 'text-muted-foreground')}
+          onClick={() => setPanelOpen(!panelOpen)}
+          aria-expanded={panelOpen}
+          aria-label={panelOpen ? t('profile.minimizePanel') : t('profile.showPanelAria')}
         >
-          <ChevronUp className="size-4" aria-hidden />
-          {t('profile.minimizePanel')}
+          {panelOpen ? (
+            <ChevronUp className="size-4 shrink-0" aria-hidden />
+          ) : (
+            <ChevronDown className="size-4 shrink-0" aria-hidden />
+          )}
+          <span className="max-[379px]:sr-only">
+            {panelOpen ? t('profile.minimizePanel') : t('profile.showPanel')}
+          </span>
         </Button>
       </div>
-      <div className="flex w-full flex-col gap-4 px-4 py-4 sm:px-6 lg:gap-6 lg:px-10 lg:py-6 xl:px-12 2xl:px-16">
+
+      <div
+        className={cn(
+          'grid motion-safe:transition-[grid-template-rows] motion-safe:duration-300 motion-safe:ease-in-out motion-reduce:transition-none',
+          panelOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div
+            className="flex w-full flex-col gap-4 px-4 pb-4 pt-1 sm:px-6 lg:gap-6 lg:px-10 lg:pb-6 lg:pt-2 xl:px-12 2xl:px-16"
+            inert={!panelOpen}
+            aria-hidden={!panelOpen}
+          >
         {profileInfoKey ? (
           <Alert className="relative border-emerald-600/35 bg-emerald-500/10 text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-950/25 dark:text-emerald-50">
             <AlertTitle>{t('profile.title')}</AlertTitle>
@@ -551,6 +554,8 @@ export function WebProfileControls({
         {supabaseConfigured && !isGuest ? <WebGameHistoryCard /> : null}
             </div>
           ) : null}
+        </div>
+          </div>
         </div>
       </div>
     </header>
