@@ -12,7 +12,7 @@
 # Error details
 
 ```
-Test timeout of 30000ms exceeded.
+Test timeout of 120000ms exceeded.
 ```
 
 ```

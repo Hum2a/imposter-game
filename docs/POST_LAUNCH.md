@@ -16,6 +16,13 @@ Track verification, ops, and follow-up work after deploying Pages, Worker, and P
 - [x] **Worker** secrets: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`.
 - [x] Redeploy **Pages** after changing any `VITE_*` variable (values are baked at build time).
 
+### “Game server not configured” but `VITE_PARTYKIT_HOST` is set
+
+1. Open the **latest Cloudflare Pages deployment → Build log** and search for **`[imposter-build] VITE_PARTYKIT_HOST → client bundle:`**. It must say **`yes (N chars)`**. If it says **`MISSING`**, the build never saw the variable (wrong project, wrong environment **Production** vs **Preview**, typo in the name, or **Root directory** / repo mismatch so a different `package.json` is building).
+2. **Retry deploy → Clear cache and retry** so an old `dist` or cached layer is not reused.
+3. Value should be **plain hostname** only (`server.user.partykit.dev`). No `https://`, and **no wrapping quotes** in the dashboard field.
+4. If you use **both** Git-connected builds **and** `npm run deploy:pages`, read the subsection below — the URL you open might still be the Git-built bundle.
+
 ### Git-connected Pages + `npm run deploy`
 
 If the same Pages project **builds from Git** and you also run **`wrangler pages deploy`** locally, the **main `*.pages.dev` URL** can keep serving the **Git-built** bundle (often missing `VITE_*` unless set in the Cloudflare dashboard). Your CLI log’s **unique** URL (e.g. `https://<hash>.<project>.pages.dev`) may be the only place the Wrangler upload appears.
