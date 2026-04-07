@@ -53,11 +53,11 @@ export default defineConfig(({ mode }) => {
       console.error(
         '\n[vite] Cloudflare Pages build: VITE_PARTYKIT_HOST is missing or empty after coalesce.\n' +
           `  Branch: ${branch}\n` +
-          '  → Dashboard → Workers & Pages → your project → Settings → Environment variables\n' +
-          '  → Add VITE_PARTYKIT_HOST for **Production** (production URL uses Production vars).\n' +
-          '  → Add the same for **Preview** if you use preview deployments (PR/branch builds).\n' +
-          '  → Hostname only, e.g. server.user.partykit.dev (no https://). No quotes.\n' +
-          '  → If this log still says MISSING, open the latest build logs and confirm the variable name matches exactly.\n'
+          '  If the build log shows `Build environment variables: (none found)` from wrangler.toml, dashboard Variables\n' +
+          '  usually do NOT reach `npm run build`. Add `[vars]` in **wrangler.toml** (see file comments) or run\n' +
+          '  `npx wrangler pages download config` to sync. Replace YOUR_* placeholders with your real public values.\n' +
+          '  Otherwise: Dashboard → Workers & Pages → Settings → Environment variables → Production + Preview.\n' +
+          '  Hostname only, e.g. server.user.partykit.dev (no https://). No quotes.\n'
       )
     }
   }

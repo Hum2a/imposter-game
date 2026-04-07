@@ -11,14 +11,14 @@ Track verification, ops, and follow-up work after deploying Pages, Worker, and P
 
 ## 2. Confirm environment wiring
 
-- [x] **Pages** build env: `VITE_DISCORD_CLIENT_ID`, `VITE_PARTYKIT_HOST`, `VITE_DISCORD_TOKEN_URL` (if Worker is not same-origin). Easiest: keep them in **`.env.deploy`** and run `npm run deploy:pages` (or `npm run deploy`) so the Vite build picks them up. **Git-connected Pages:** set the same `VITE_*` under **Production** *and* **Preview** if you use branch/PR previews — production traffic uses **Production** vars only; editing Preview alone leaves `*.pages.dev` production without a host.
+- [x] **Pages** build env: `VITE_DISCORD_CLIENT_ID`, `VITE_PARTYKIT_HOST`, `VITE_DISCORD_TOKEN_URL` (if Worker is not same-origin). **Local / Wrangler CLI:** use **`.env.deploy`** and `npm run deploy:pages`. **Git-connected Pages:** this repo’s root **`wrangler.toml`** declares `pages_build_output_dir`; in that setup Cloudflare often **does not** inject dashboard “Variables” into `npm run build` (log line: `Build environment variables: (none found)`). Put the same public `VITE_*` keys under **`[vars]` in `wrangler.toml`** (replace the `YOUR_*` placeholders), or run `npx wrangler pages download config` to pull settings into the file. Dashboard-only vars are unreliable here; see [Cloudflare Community thread](https://community.cloudflare.com/t/env-vars-from-dashboard-not-loading-in-cloudflare-pages-site-with-wrangler-toml/702808).
 - [ ] **Supabase (optional but required for cloud features):** Add to **`.env.deploy`** so `npm run deploy` embeds them, **and** duplicate the same `VITE_SUPABASE_*` variables under **Cloudflare Pages → Settings → Environment variables → Production** if the project also builds from Git (otherwise production may ship without Supabase). Required pair: `VITE_SUPABASE_URL` + exactly one of `VITE_SUPABASE_ANON_KEY`, `VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, or `VITE_SUPABASE_PUBLISHABLE_KEY`. Run `supabase/migrations/` in order; enable Anonymous / Email / Discord in Supabase Auth as needed; set **Site URL** and **Redirect URLs** to your live Pages origin.
 - [x] **Worker** secrets: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`.
 - [x] Redeploy **Pages** after changing any `VITE_*` variable (values are baked at build time).
 
 ### “Game server not configured” but `VITE_PARTYKIT_HOST` is set
 
-1. Open the **latest Cloudflare Pages deployment → Build log** and search for **`[imposter-build] VITE_PARTYKIT_HOST → client bundle:`**. It must say **`yes (N chars)`**. If it says **`MISSING`**, the build never saw the variable (wrong project, wrong environment **Production** vs **Preview**, typo in the name, or **Root directory** / repo mismatch so a different `package.json` is building).
+1. Open the **latest Cloudflare Pages deployment → Build log**. If you see **`Build environment variables: (none found)`** next to wrangler.toml, set `VITE_PARTYKIT_HOST` (and friends) under **`[vars]` in `wrangler.toml`**, not only in the dashboard. Search for **`[imposter-build] VITE_PARTYKIT_HOST → client bundle:`** — it must say **`yes (N chars)`**. If **`MISSING`**, the build never saw the variable.
 2. **Retry deploy → Clear cache and retry** so an old `dist` or cached layer is not reused.
 3. Value should be **plain hostname** only (`server.user.partykit.dev`). No `https://`, and **no wrapping quotes** in the dashboard field.
 4. If you use **both** Git-connected builds **and** `npm run deploy:pages`, read the subsection below — the URL you open might still be the Git-built bundle.
@@ -27,7 +27,7 @@ Track verification, ops, and follow-up work after deploying Pages, Worker, and P
 
 If the same Pages project **builds from Git** and you also run **`wrangler pages deploy`** locally, the **main `*.pages.dev` URL** can keep serving the **Git-built** bundle (often missing `VITE_*` unless set in the Cloudflare dashboard). Your CLI log’s **unique** URL (e.g. `https://<hash>.<project>.pages.dev`) may be the only place the Wrangler upload appears.
 
-**Fix (pick one):** (1) Add `VITE_PARTYKIT_HOST`, `VITE_DISCORD_CLIENT_ID`, `VITE_DISCORD_TOKEN_URL` under **Pages → Settings → Environment variables** for Production so Git builds embed them; (2) set **`CF_PAGES_BRANCH=main`** (or your production branch) in **`.env.deploy`** so `deploy:pages` passes `--branch` and updates that branch’s production deployment; (3) disable automatic Git builds if you only want Wrangler uploads.
+**Fix (pick one):** (1) Put `VITE_*` under **`[vars]` in `wrangler.toml`** for Git builds (required when dashboard vars do not reach the build); (2) set **`CF_PAGES_BRANCH=main`** (or your production branch) in **`.env.deploy`** so `deploy:pages` passes `--branch` and updates that branch’s production deployment; (3) disable automatic Git builds if you only want Wrangler uploads from `.env.deploy`.
 
 ## 3. Discord Developer Portal
 

@@ -3,6 +3,22 @@
 #
 # The Discord OAuth **Worker** lives in `wrangler.worker.toml`:
 #   npx wrangler deploy -c wrangler.worker.toml
+#
+# --- Git-connected Pages + `pages_build_output_dir` (important)
+# When this file declares `pages_build_output_dir`, Cloudflare often does **not** pass
+# “Settings → Variables” into `npm run build` (build logs: `Build environment variables: (none found)`).
+# Put public Vite keys in `[vars]` below so `vite build` can embed them. Replace placeholders
+# with your real Discord Application ID and PartyKit hostname (both are public).
+# See docs/POST_LAUNCH.md and: https://community.cloudflare.com/t/env-vars-from-dashboard-not-loading-in-cloudflare-pages-site-with-wrangler-toml/702808
 
 name = "imposter-game"
 pages_build_output_dir = "dist"
+
+[vars]
+VITE_DISCORD_CLIENT_ID = "1490390061026377738"
+VITE_PARTYKIT_HOST = "server.hum2a.partykit.dev"
+# Uncomment if the site origin is not the same as your token Worker (browser / PWA):
+VITE_DISCORD_TOKEN_URL = "https://imposter-discord-oauth.humzab1711.workers.dev/api/token"
+# Optional Supabase (website cloud profile) — same names as `.env.example`:
+VITE_SUPABASE_URL = "https://fnilgqhgaeppaiaoeygq.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY = "sb_publishable_inrPEp-mXwVJDdIqGvwbIw_XwMdRHet"
