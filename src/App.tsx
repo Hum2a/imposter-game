@@ -189,7 +189,9 @@ export default function App() {
         body={t('app.gameServerNotConfiguredBody')}
         codeHint={
           <Trans
-            i18nKey="app.partyHostHint"
+            i18nKey={
+              import.meta.env.PROD ? 'app.partyHostHintProduction' : 'app.partyHostHint'
+            }
             components={{
               code0: <InlineCode />,
               code1: <InlineCode />,

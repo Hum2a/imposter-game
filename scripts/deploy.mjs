@@ -70,9 +70,32 @@ function loadDeployEnv() {
   return { file, vars }
 }
 
-/** Merge deploy vars into process.env for child builds. */
+/**
+ * Vite client embed vars: remove from inherited `process.env` first, then apply `.env.deploy`.
+ * Otherwise a developer shell with e.g. `VITE_PARTYKIT_HOST=localhost:1999` can override
+ * production values missing from the file and ship the wrong host.
+ */
+const VITE_CLIENT_EMBED_KEYS = [
+  'VITE_PARTYKIT_HOST',
+  'VITE_DISCORD_CLIENT_ID',
+  'VITE_DISCORD_TOKEN_URL',
+  'VITE_DISCORD_MOCK',
+  'VITE_USE_PARTY_JWT',
+  'VITE_SUPABASE_URL',
+  'VITE_SUPABASE_ANON_KEY',
+  'VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY',
+  'VITE_SUPABASE_PUBLISHABLE_KEY',
+  'VITE_PLAUSIBLE_DOMAIN',
+  'VITE_PLAUSIBLE_SCRIPT_URL',
+]
+
+/** Merge deploy vars into process.env for `vite build` (Pages only). */
 function withDeployEnv(vars) {
-  return { ...process.env, ...vars }
+  const env = { ...process.env }
+  for (const k of VITE_CLIENT_EMBED_KEYS) {
+    delete env[k]
+  }
+  return { ...env, ...vars }
 }
 
 /** True if Vite will bake a Supabase client (same rules as `src/lib/supabase-client.ts`). */
@@ -197,6 +220,12 @@ function cmdPages(vars) {
     deployEnvHasSupabase(vars)
       ? '[deploy] Supabase: URL + client key present → will be embedded in the bundle'
       : '[deploy] Supabase: not configured in this env file → cloud profile/history/lists disabled in build (add VITE_SUPABASE_URL + one key; mirror in Cloudflare Pages if builds run from Git)'
+  )
+  const pk = vars.VITE_PARTYKIT_HOST?.trim()
+  console.log(
+    pk
+      ? `[deploy] PartyKit host for bundle: ${pk.replace(/^https?:\/\//i, '')} (hostname only; scheme stripped if present)`
+      : '[deploy] PartyKit: VITE_PARTYKIT_HOST missing in .env.deploy → client will show “game server not configured” (set production hostname, no https://)'
   )
   const build = spawnSync('npm', ['run', 'build'], {
     cwd: root,

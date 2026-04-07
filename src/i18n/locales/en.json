@@ -26,6 +26,7 @@
     "discordErrorHintP1": "<code0>VITE_DISCORD_CLIENT_ID</code0> is baked in at build time. In Cloudflare Pages → your project → Settings → Environment variables, add it for Production (same value as Discord Application ID), then trigger a new deployment. Also map <code1>/api/token</code1> to your Worker in the Discord portal; set <code2>VITE_DISCORD_TOKEN_URL</code2> in Pages only if the browser opens your app outside Discord on a different origin than the Worker.",
     "discordErrorHintP2": "In the browser, a dev user is used automatically. Use <code0>VITE_DISCORD_MOCK=1</code0> for a fixed mock user and room.",
     "partyHostHint": "Run Partykit in <code0>server/</code0> (<code1>npm run dev</code1>), then set <code2>VITE_PARTYKIT_HOST=localhost:1999</code2> in <code3>.env</code3>.",
+    "partyHostHintProduction": "This build has no PartyKit host baked in. In Cloudflare Dashboard → Workers & Pages → your project → Settings → Environment variables, set <code0>VITE_PARTYKIT_HOST</code0> for Production (not only Preview) to your PartyKit hostname only (no <code1>https://</code1>), then redeploy. If you use <code2>npm run deploy:pages</code2>, put the same value in <code3>.env.deploy</code3>.",
     "mockModeBanner": "<code0>VITE_DISCORD_MOCK=1</code0> is set — the web profile bar (display name, sign-in, cloud saves) is turned off and you’ll see a fixed “Local dev” player. Remove or unset it in <code1>.env</code1> and restart the dev server to get the normal web experience."
   },
   "states": {
