@@ -32,7 +32,7 @@
     "lucide-react": "^1.7.0",
     "partysocket": "^1.1.16",
     "radix-ui": "^1.4.3",
-    "react": "^19.2.4",
+    "react": "^19.2.5",
     "react-dom": "^19.2.4",
     "react-i18next": "^17.0.2",
     "shadcn": "^4.1.2",
