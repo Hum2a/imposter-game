@@ -28,7 +28,7 @@
     "@supabase/supabase-js": "^2.101.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "i18next": "^26.0.3",
+    "i18next": "^26.0.4",
     "lucide-react": "^1.7.0",
     "partysocket": "^1.1.16",
     "radix-ui": "^1.4.3",
